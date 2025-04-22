@@ -4,10 +4,10 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-import tipy.Stockify.api.responses.ResponseUsuarios;
-import tipy.Stockify.business.entities.Usuario;
 import tipy.Stockify.dtos.UsuarioDto;
 import tipy.Stockify.services.UsuarioService;
+
+import java.util.List;
 
 // http://localhost:8080/api/v1/usuarios
 
@@ -21,48 +21,40 @@ public class UsuarioController {
         this.usuarioService = usuarioService;
     }
 
-    // Agregar todos los metodos (get, post, ...)
-
-    // Metodo get para obtener la lista desde el servicio
     @GetMapping
-    @Operation(description = "Esta funcion obtiene la lista de usuarios.")
-    public ResponseEntity<ResponseUsuarios> getUsuarios() {
-        ResponseUsuarios responseUsuarios = usuarioService.listadoUsuarios();
-        return new ResponseEntity<>(responseUsuarios, HttpStatus.OK);
+    @Operation(description = "Obtiene la lista de usuarios.")
+    public ResponseEntity<List<UsuarioDto>> getUsuarios() {
+        return new ResponseEntity<>(usuarioService.getAll(), HttpStatus.OK);
     }
 
-    // Metodo post para crear un usuario
+    @GetMapping("/{id}")
+    @Operation(description = "Obtiene un usuario por su ID.")
+    public ResponseEntity<UsuarioDto> getUsuarioById(@PathVariable Long id) {
+        UsuarioDto usuario = usuarioService.getById(id);
+        return usuario != null
+                ? new ResponseEntity<>(usuario, HttpStatus.OK)
+                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
     @PostMapping
-    @Operation(description = "Esta funcion permite crear un nuevo usuario.")
-    public ResponseEntity<String> crearUsuario(@RequestBody UsuarioDto nuevoUsuario) {
-        String response = usuarioService.crearUsuario(nuevoUsuario);
-
-        if (response == null) {
-            return new ResponseEntity<>( "Error al crear el nuevo usuario.",HttpStatus.BAD_REQUEST);
-        } else {
-            return new ResponseEntity<>(response,HttpStatus.CREATED);
-        }
+    @Operation(description = "Crea un nuevo usuario.")
+    public ResponseEntity<UsuarioDto> createUsuario(@RequestBody UsuarioDto usuarioDto) {
+        return new ResponseEntity<>(usuarioService.create(usuarioDto), HttpStatus.CREATED);
     }
 
-    // Metodo delete para eliminar un usuario
-    @DeleteMapping("/{idUsuario}")
-    @Operation(description = "Esta funcion permite eliminar un usuario.")
-    public ResponseEntity<Void> eliminarUsuario(@PathVariable(name = "idUsuario") Long idUsuario) {
-        usuarioService.eliminarUsuario(idUsuario);
-        return new ResponseEntity<>(HttpStatus.OK);
+    @PutMapping("/{id}")
+    @Operation(description = "Modifica un usuario existente.")
+    public ResponseEntity<UsuarioDto> updateUsuario(@PathVariable Long id, @RequestBody UsuarioDto usuarioDto) {
+        UsuarioDto updated = usuarioService.update(id, usuarioDto);
+        return updated != null
+                ? new ResponseEntity<>(updated, HttpStatus.OK)
+                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
-    // Metodo put para modificar un usuario
-    @PutMapping("{idUsuario}")
-    @Operation(description = "Esta funcion permite modificar un usuario.")
-    public ResponseEntity<String> modificarUsuario(@PathVariable(name = "idUsuario") Long idUsuario, @RequestBody UsuarioDto usuario) {
-        String response = usuarioService.modificarUsuario(idUsuario, usuario);
-
-        if (response == null) {
-            return new ResponseEntity<>( "Error al modificar usuario",HttpStatus.BAD_REQUEST);
-        } else {
-            return new ResponseEntity<>(response,HttpStatus.CREATED);
-        }
+    @DeleteMapping("/{id}")
+    @Operation(description = "Elimina un usuario por su ID.")
+    public ResponseEntity<Void> deleteUsuario(@PathVariable Long id) {
+        usuarioService.delete(id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
-
 }

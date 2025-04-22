@@ -4,7 +4,9 @@ import jakarta.persistence.*;
 import lombok.Data;
 import tipy.Stockify.business.entities.enums.RolUsuario;
 
+import java.time.LocalDate;
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Data
@@ -12,21 +14,27 @@ import java.util.Date;
 public class Reporte {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    @SequenceGenerator(name = "reporte_id_seq", sequenceName = "reporte_seq", allocationSize = 1)
-    @Column(name = "ID_REPORTE")
-    private long id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "ID")
+    private Long id;
 
     @Column(name = "FECHA_GENERACION")
-    private Date fecha;
+    private LocalDate fechaGeneracion;
 
     @Column(name = "TOTAL_FALTANTE")
-    private Float totalFaltante;
+    private float totalFaltante;
 
     @Column(name = "TOTAL_SOBRANTE")
-    private Float totalSobrante;
+    private float totalSobrante;
 
-    @Column(name = "DIFENRECIA_MONETARIA")
-    private Float diferenciaMonetaria;
+    @Column(name = "DIFERENCIA_MONETARIA")
+    private float diferenciaMonetaria;
 
+    @ManyToMany
+    @JoinTable(
+            name = "REPORTE_CONTEO",
+            joinColumns = @JoinColumn(name = "REPORTE_ID"),
+            inverseJoinColumns = @JoinColumn(name = "CONTEO_ID")
+    )
+    private List<Conteo> conteos;
 }

@@ -1,0 +1,58 @@
+package tipy.Stockify.api.controllers;
+
+import io.swagger.v3.oas.annotations.Operation;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.*;
+import tipy.Stockify.dtos.LoteDto;
+import tipy.Stockify.services.LoteService;
+
+import java.util.List;
+
+@RestController
+@RequestMapping(value = "api/v1/lotes")
+public class LoteController {
+
+    private final LoteService loteService;
+
+    public LoteController(LoteService loteService) {
+        this.loteService = loteService;
+    }
+
+    @GetMapping
+    @Operation(description = "Obtiene la lista de lotes.")
+    public ResponseEntity<List<LoteDto>> getLotes() {
+        return new ResponseEntity<>(loteService.getAll(), HttpStatus.OK);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(description = "Obtiene un lote por su ID.")
+    public ResponseEntity<LoteDto> getLoteById(@PathVariable Long id) {
+        LoteDto lote = loteService.getById(id);
+        return lote != null
+                ? new ResponseEntity<>(lote, HttpStatus.OK)
+                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
+    @PostMapping
+    @Operation(description = "Crea un nuevo lote.")
+    public ResponseEntity<LoteDto> createLote(@RequestBody LoteDto loteDto) {
+        return new ResponseEntity<>(loteService.create(loteDto), HttpStatus.CREATED);
+    }
+
+    @PutMapping("/{id}")
+    @Operation(description = "Modifica un lote existente.")
+    public ResponseEntity<LoteDto> updateLote(@PathVariable Long id, @RequestBody LoteDto loteDto) {
+        LoteDto updated = loteService.update(id, loteDto);
+        return updated != null
+                ? new ResponseEntity<>(updated, HttpStatus.OK)
+                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(description = "Elimina un lote por su ID.")
+    public ResponseEntity<Void> deleteLote(@PathVariable Long id) {
+        loteService.delete(id);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+}

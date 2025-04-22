@@ -4,15 +4,16 @@ import jakarta.persistence.*;
 import lombok.Data;
 import tipy.Stockify.business.entities.enums.RolUsuario;
 
+import java.util.List;
+
 @Entity
 @Data
-@Table(name = "USUARIOS")
+@Table(name = "USUARIO")
 public class Usuario {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    @SequenceGenerator(name = "usuario_id_seq", sequenceName = "usuario_seq", allocationSize = 1)
-    @Column(name = "ID_USUARIO")
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "ID")
     private Long id;
 
     @Column(name = "NOMBRE")
@@ -27,7 +28,14 @@ public class Usuario {
     @Column(name = "CONTRASENIA")
     private String contrasenia;
 
-    @Column(name = "ROL_USUARIO")
+    @Enumerated(EnumType.STRING)
+    @Column(name = "ROL")
     private RolUsuario rol;
-    
+
+    @ManyToOne
+    @JoinColumn(name = "SUCURSAL_ID")
+    private Sucursal sucursal;
+
+    @OneToMany(mappedBy = "usuario")
+    private List<Conteo> conteos;
 }

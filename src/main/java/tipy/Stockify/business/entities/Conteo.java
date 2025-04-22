@@ -3,7 +3,9 @@ package tipy.Stockify.business.entities;
 import jakarta.persistence.*;
 import lombok.Data;
 
+import java.time.LocalDate;
 import java.util.Date;
+import java.util.List;
 
 @Entity
 @Data
@@ -11,13 +13,28 @@ import java.util.Date;
 public class Conteo {
 
     @Id
-    @Column(name = "ID_CONTEO")
-    private long id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "ID")
+    private Long id;
 
-    @Column(name = "FECHA_CONTEO")
-    private Date fecha;
+    @Column(name = "FECHA_HORA")
+    private LocalDate fechaHora;
 
-    @Transient //No se crea la columna en la base de datos
-    private Boolean conteoFinalizado;
+    @Column(name = "CONTEO_FINALIZADO")
+    private boolean conteoFinalizado;
 
+    @ManyToOne
+    @JoinColumn(name = "USUARIO_ID")
+    private Usuario usuario;
+
+    @ManyToMany(mappedBy = "conteos")
+    private List<Reporte> reportes;
+
+    @ManyToMany
+    @JoinTable(
+            name = "CONTEO_PRODUCTOS",
+            joinColumns = @JoinColumn(name = "CONTEO_ID"),
+            inverseJoinColumns = @JoinColumn(name = "PRODUCTO_ID")
+    )
+    private List<Producto> productos;
 }

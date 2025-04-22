@@ -1,88 +1,81 @@
 package tipy.Stockify.services;
 
 import org.springframework.stereotype.Service;
+import tipy.Stockify.business.entities.enums.RolUsuario;
+import tipy.Stockify.business.entities.Sucursal;
 import tipy.Stockify.business.entities.Usuario;
-import tipy.Stockify.api.responses.ResponseUsuarios;
+import tipy.Stockify.business.repositories.SucursalRepository;
 import tipy.Stockify.business.repositories.UsuarioRepository;
 import tipy.Stockify.dtos.UsuarioDto;
 
 import java.util.List;
-import java.util.Optional;
+import java.util.stream.Collectors;
 
 @Service
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
+    private final SucursalRepository sucursalRepository;
 
-    public UsuarioService(UsuarioRepository usuarioRepository) {
+    public UsuarioService(UsuarioRepository usuarioRepository, SucursalRepository sucursalRepository) {
         this.usuarioRepository = usuarioRepository;
+        this.sucursalRepository = sucursalRepository;
     }
 
-    // Se llama al repositorio para obtener todos los usuarios y mandarlos al controlador
-    public ResponseUsuarios listadoUsuarios() {
-        ResponseUsuarios responseUsuarios = new ResponseUsuarios();
-
-        responseUsuarios.setUsuarios(usuarioRepository.findAll().stream().map(this::mapToDto).toList());
-
-        return responseUsuarios;
+    public List<UsuarioDto> getAll() {
+        return usuarioRepository.findAll().stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
     }
 
-    // Crea un usuario simepre y cuando no se especifique un id
-    public String crearUsuario(UsuarioDto usuario) {
-        String response = null;
+    public UsuarioDto getById(Long id) {
+        return usuarioRepository.findById(id)
+                .map(this::mapToDto)
+                .orElse(null);
+    }
 
-        if (usuario.getId() == null) {
-            response = "Usuario creado: " + usuarioRepository.save(mapToEntity(usuario)).getId();
+    public UsuarioDto create(UsuarioDto usuarioDto) {
+        Usuario usuario = mapToEntity(usuarioDto);
+        return mapToDto(usuarioRepository.save(usuario));
+    }
+
+    public UsuarioDto update(Long id, UsuarioDto usuarioDto) {
+        if (usuarioRepository.existsById(id)) {
+            Usuario usuario = mapToEntity(usuarioDto);
+            usuario.setId(id);
+            return mapToDto(usuarioRepository.save(usuario));
         }
-
-        return response;
+        return null;
     }
 
-    // Elimina un usuario utilizando el id
-    public void eliminarUsuario(Long idUsuario) {
-        usuarioRepository.deleteById(idUsuario);
-    }
-
-    // Modifica un usuario utilizando el id
-    public String modificarUsuario(Long idUsuario, UsuarioDto usuario) {
-        String response = null;
-
-        Usuario modifierUser = usuarioRepository.findById(idUsuario).orElseThrow(() -> new RuntimeException("El usuario no existe."));
-        modifierUser.setNombre(usuario.getNombre());
-        modifierUser.setApellido(usuario.getApellido());
-        modifierUser.setNombreUsuario(usuario.getNombreUsuario());
-        modifierUser.setContrasenia(usuario.getContrasenia());
-        modifierUser.setRol(usuario.getRol());
-
-        usuarioRepository.save(modifierUser);
-
-        return response;
+    public void delete(Long id) {
+        usuarioRepository.deleteById(id);
     }
 
     public Usuario mapToEntity(UsuarioDto usuarioDto) {
         Usuario usuario = new Usuario();
-
-        usuario.setId(usuarioDto.getId());
         usuario.setNombre(usuarioDto.getNombre());
         usuario.setApellido(usuarioDto.getApellido());
         usuario.setNombreUsuario(usuarioDto.getNombreUsuario());
         usuario.setContrasenia(usuarioDto.getContrasenia());
-        usuario.setRol(usuarioDto.getRol());
-
+        usuario.setRol(usuarioDto.getRol() != null ? RolUsuario.valueOf(usuarioDto.getRol()) : null);
+        if (usuarioDto.getSucursalId() != null) {
+            Sucursal sucursal = sucursalRepository.findById(usuarioDto.getSucursalId())
+                    .orElse(null);
+            usuario.setSucursal(sucursal);
+        }
         return usuario;
     }
 
     public UsuarioDto mapToDto(Usuario usuario) {
         UsuarioDto usuarioDto = new UsuarioDto();
-
-        usuarioDto.setId(usuarioDto.getId());
+        usuarioDto.setId(usuario.getId());
         usuarioDto.setNombre(usuario.getNombre());
         usuarioDto.setApellido(usuario.getApellido());
         usuarioDto.setNombreUsuario(usuario.getNombreUsuario());
         usuarioDto.setContrasenia(usuario.getContrasenia());
-        usuarioDto.setRol(usuario.getRol());
-
+        usuarioDto.setRol(usuario.getRol() != null ? usuario.getRol().name() : null);
+        usuarioDto.setSucursalId(usuario.getSucursal() != null ? usuario.getSucursal().getId() : null);
         return usuarioDto;
     }
-
 }

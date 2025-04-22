@@ -1,27 +1,32 @@
 package tipy.Stockify.business.entities;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.Id;
-import jakarta.persistence.Table;
+import jakarta.persistence.*;
 import lombok.Data;
 
 @Entity
 @Data
-@Table(name = "CONTEO_PRODUCTO")
+@Table(name = "CONTEO_PRODUCTOS")
 public class ConteoProducto {
 
     @Id
-    @Column(name = "ID_CONTEO_PRODUCTO")
-    private long id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "ID")
+    private Integer id;
 
     @Column(name = "PRECIO_ACTUAL")
-    private Float precioActual;
+    private float precioActual;
 
     @Column(name = "CANTIDAD_ESPERADA")
-    private Long cantidadEsperada;
+    private Integer cantidadEsperada;
 
     @Column(name = "CANTIDAD_CONTADA")
-    private Long cantidadContada;
+    private Integer cantidadContada;
 
+    @ManyToOne
+    @JoinColumn(name = "CONTEO_ID")
+    private Conteo conteo;
+
+    @ManyToOne
+    @JoinColumn(name = "PRODUCTO_ID")
+    private Producto producto;
 }

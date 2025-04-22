@@ -4,27 +4,30 @@ import jakarta.persistence.*;
 import lombok.Data;
 import tipy.Stockify.business.entities.enums.RolUsuario;
 
+import java.util.List;
+
 @Entity
 @Data
 @Table(name = "EMPRESA")
 public class Empresa {
 
     @Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE)
-    @SequenceGenerator(name = "empresa_id_seq", sequenceName = "empresa_seq", allocationSize = 1)
-    @Column(name = "ID_EMPRESA")
-    private long id;
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    @Column(name = "ID")
+    private Long id;
 
-    @Column(name = "NOMBRE_EMPRESA")
+    @Column(name = "NOMBRE")
     private String nombre;
 
     @Column(name = "RUT")
     private String rut;
 
-    @Column(name = "DIRECCION_EMPRESA")
+    @Column(name = "DIRECCION")
     private String direccion;
 
-    @Column(name = "TELEFONO_EMPRESA")
+    @Column(name = "TELEFONO")
     private String telefono;
 
+    @OneToMany(mappedBy = "empresa")
+    private List<Sucursal> sucursales;
 }
