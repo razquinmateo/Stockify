@@ -20,13 +20,19 @@ public class EmpresaController {
     }
 
     @GetMapping
-    @Operation(description = "Obtiene la lista de empresas.")
-    public ResponseEntity<List<EmpresaDto>> getEmpresas() {
-        return new ResponseEntity<>(empresaService.getAll(), HttpStatus.OK);
+    @Operation(description = "Obtiene la lista de empresas activas.")
+    public ResponseEntity<List<EmpresaDto>> getActiveEmpresas() {
+        return new ResponseEntity<>(empresaService.getAllActive(), HttpStatus.OK);
+    }
+
+    @GetMapping("/all")
+    @Operation(description = "Obtiene la lista de todas las empresas, incluidas las inactivas.")
+    public ResponseEntity<List<EmpresaDto>> getAllEmpresasIncludingInactive() {
+        return new ResponseEntity<>(empresaService.getAllIncludingInactive(), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    @Operation(description = "Obtiene una empresa por su ID.")
+    @Operation(description = "Obtiene una empresa activa por su ID.")
     public ResponseEntity<EmpresaDto> getEmpresaById(@PathVariable Long id) {
         EmpresaDto empresa = empresaService.getById(id);
         return empresa != null
@@ -50,9 +56,9 @@ public class EmpresaController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(description = "Elimina una empresa por su ID.")
-    public ResponseEntity<Void> deleteEmpresa(@PathVariable Long id) {
-        empresaService.delete(id);
+    @Operation(description = "Desactiva una empresa por su ID.")
+    public ResponseEntity<Void> deactivateEmpresa(@PathVariable Long id) {
+        empresaService.deactivate(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

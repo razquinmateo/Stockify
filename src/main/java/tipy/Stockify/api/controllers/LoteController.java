@@ -20,13 +20,19 @@ public class LoteController {
     }
 
     @GetMapping
-    @Operation(description = "Obtiene la lista de lotes.")
-    public ResponseEntity<List<LoteDto>> getLotes() {
-        return new ResponseEntity<>(loteService.getAll(), HttpStatus.OK);
+    @Operation(description = "Obtiene la lista de lotes activos.")
+    public ResponseEntity<List<LoteDto>> getActiveLotes() {
+        return new ResponseEntity<>(loteService.getAllActive(), HttpStatus.OK);
+    }
+
+    @GetMapping("/all")
+    @Operation(description = "Obtiene la lista de todos los lotes, incluidos los inactivos.")
+    public ResponseEntity<List<LoteDto>> getAllLotesIncludingInactive() {
+        return new ResponseEntity<>(loteService.getAllIncludingInactive(), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    @Operation(description = "Obtiene un lote por su ID.")
+    @Operation(description = "Obtiene un lote activo por su ID.")
     public ResponseEntity<LoteDto> getLoteById(@PathVariable Long id) {
         LoteDto lote = loteService.getById(id);
         return lote != null
@@ -50,9 +56,9 @@ public class LoteController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(description = "Elimina un lote por su ID.")
-    public ResponseEntity<Void> deleteLote(@PathVariable Long id) {
-        loteService.delete(id);
+    @Operation(description = "Desactiva un lote por su ID.")
+    public ResponseEntity<Void> deactivateLote(@PathVariable Long id) {
+        loteService.deactivate(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

@@ -1,6 +1,8 @@
 package tipy.Stockify.services;
 
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import tipy.Stockify.business.entities.Conteo;
 import tipy.Stockify.business.entities.Producto;
 import tipy.Stockify.business.entities.ConteoProducto;
@@ -25,34 +27,70 @@ public class ConteoProductoService {
         this.productoRepository = productoRepository;
     }
 
-    public List<ConteoProductoDto> getAll() {
+    public List<ConteoProductoDto> getAllActive() {
+        return conteoProductoRepository.findByActivoTrue().stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<ConteoProductoDto> getAllIncludingInactive() {
         return conteoProductoRepository.findAll().stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
 
     public ConteoProductoDto getById(Integer id) {
-        return conteoProductoRepository.findById(id)
+        return conteoProductoRepository.findByIdAndActivoTrue(id)
                 .map(this::mapToDto)
                 .orElse(null);
     }
 
     public ConteoProductoDto create(ConteoProductoDto conteoProductoDto) {
         ConteoProducto conteoProducto = mapToEntity(conteoProductoDto);
+        // Asegurar que activo sea true para nuevos conteos de producto, incluso si no se especifica
+        conteoProducto.setActivo(true);
         return mapToDto(conteoProductoRepository.save(conteoProducto));
     }
 
     public ConteoProductoDto update(Integer id, ConteoProductoDto conteoProductoDto) {
-        if (conteoProductoRepository.existsById(id)) {
-            ConteoProducto conteoProducto = mapToEntity(conteoProductoDto);
-            conteoProducto.setId(id);
-            return mapToDto(conteoProductoRepository.save(conteoProducto));
-        }
-        return null;
+        return conteoProductoRepository.findById(id)
+                .map(existingConteoProducto -> {
+                    updateConteoProductoFields(existingConteoProducto, conteoProductoDto);
+                    return mapToDto(conteoProductoRepository.save(existingConteoProducto));
+                })
+                .orElse(null);
     }
 
-    public void delete(Integer id) {
-        conteoProductoRepository.deleteById(id);
+    public void deactivate(Integer id) {
+        ConteoProducto conteoProducto = conteoProductoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ConteoProducto no encontrado con id: " + id));
+        conteoProducto.setActivo(false);
+        conteoProductoRepository.save(conteoProducto);
+    }
+
+    private void updateConteoProductoFields(ConteoProducto conteoProducto, ConteoProductoDto conteoProductoDto) {
+        if (conteoProductoDto.getPrecioActual() != null) {
+            conteoProducto.setPrecioActual(conteoProductoDto.getPrecioActual());
+        }
+        if (conteoProductoDto.getCantidadEsperada() != null) {
+            conteoProducto.setCantidadEsperada(conteoProductoDto.getCantidadEsperada());
+        }
+        if (conteoProductoDto.getCantidadContada() != null) {
+            conteoProducto.setCantidadContada(conteoProductoDto.getCantidadContada());
+        }
+        if (conteoProductoDto.getConteoId() != null) {
+            Conteo conteo = conteoRepository.findById(conteoProductoDto.getConteoId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conteo no encontrado con id: " + conteoProductoDto.getConteoId()));
+            conteoProducto.setConteo(conteo);
+        }
+        if (conteoProductoDto.getProductoId() != null) {
+            Producto producto = productoRepository.findById(conteoProductoDto.getProductoId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado con id: " + conteoProductoDto.getProductoId()));
+            conteoProducto.setProducto(producto);
+        }
+        if (conteoProductoDto.getActivo() != null) {
+            conteoProducto.setActivo(conteoProductoDto.getActivo());
+        }
     }
 
     public ConteoProducto mapToEntity(ConteoProductoDto conteoProductoDto) {
@@ -62,14 +100,15 @@ public class ConteoProductoService {
         conteoProducto.setCantidadContada(conteoProductoDto.getCantidadContada());
         if (conteoProductoDto.getConteoId() != null) {
             Conteo conteo = conteoRepository.findById(conteoProductoDto.getConteoId())
-                    .orElse(null);
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conteo no encontrado con id: " + conteoProductoDto.getConteoId()));
             conteoProducto.setConteo(conteo);
         }
         if (conteoProductoDto.getProductoId() != null) {
             Producto producto = productoRepository.findById(conteoProductoDto.getProductoId())
-                    .orElse(null);
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado con id: " + conteoProductoDto.getProductoId()));
             conteoProducto.setProducto(producto);
         }
+        //activo se establece explícitamente en los métodos create/update
         return conteoProducto;
     }
 
@@ -81,6 +120,7 @@ public class ConteoProductoService {
         conteoProductoDto.setCantidadContada(conteoProducto.getCantidadContada());
         conteoProductoDto.setConteoId(conteoProducto.getConteo() != null ? conteoProducto.getConteo().getId() : null);
         conteoProductoDto.setProductoId(conteoProducto.getProducto() != null ? conteoProducto.getProducto().getId() : null);
+        conteoProductoDto.setActivo(conteoProducto.isActivo());
         return conteoProductoDto;
     }
 }

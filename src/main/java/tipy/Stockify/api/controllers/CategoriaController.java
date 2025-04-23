@@ -20,13 +20,19 @@ public class CategoriaController {
     }
 
     @GetMapping
-    @Operation(description = "Obtiene la lista de categorías.")
-    public ResponseEntity<List<CategoriaDto>> getCategorias() {
-        return new ResponseEntity<>(categoriaService.getAll(), HttpStatus.OK);
+    @Operation(description = "Obtiene la lista de categorías activas.")
+    public ResponseEntity<List<CategoriaDto>> getActiveCategorias() {
+        return new ResponseEntity<>(categoriaService.getAllActive(), HttpStatus.OK);
+    }
+
+    @GetMapping("/all")
+    @Operation(description = "Obtiene la lista de todas las categorías, incluidas las inactivas.")
+    public ResponseEntity<List<CategoriaDto>> getAllCategoriasIncludingInactive() {
+        return new ResponseEntity<>(categoriaService.getAllIncludingInactive(), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    @Operation(description = "Obtiene una categoría por su ID.")
+    @Operation(description = "Obtiene una categoría activa por su ID.")
     public ResponseEntity<CategoriaDto> getCategoriaById(@PathVariable Long id) {
         CategoriaDto categoria = categoriaService.getById(id);
         return categoria != null
@@ -50,9 +56,9 @@ public class CategoriaController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(description = "Elimina una categoría por su ID.")
-    public ResponseEntity<Void> deleteCategoria(@PathVariable Long id) {
-        categoriaService.delete(id);
+    @Operation(description = "Desactiva una categoría por su ID.")
+    public ResponseEntity<Void> deactivateCategoria(@PathVariable Long id) {
+        categoriaService.deactivate(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

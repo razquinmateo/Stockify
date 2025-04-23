@@ -20,13 +20,19 @@ public class ProductoController {
     }
 
     @GetMapping
-    @Operation(description = "Obtiene la lista de productos.")
-    public ResponseEntity<List<ProductoDto>> getProductos() {
-        return new ResponseEntity<>(productoService.getAll(), HttpStatus.OK);
+    @Operation(description = "Obtiene la lista de productos activos.")
+    public ResponseEntity<List<ProductoDto>> getActiveProductos() {
+        return new ResponseEntity<>(productoService.getAllActive(), HttpStatus.OK);
+    }
+
+    @GetMapping("/all")
+    @Operation(description = "Obtiene la lista de todos los productos, incluidos los inactivos.")
+    public ResponseEntity<List<ProductoDto>> getAllProductosIncludingInactive() {
+        return new ResponseEntity<>(productoService.getAllIncludingInactive(), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    @Operation(description = "Obtiene un producto por su ID.")
+    @Operation(description = "Obtiene un producto activo por su ID.")
     public ResponseEntity<ProductoDto> getProductoById(@PathVariable Long id) {
         ProductoDto producto = productoService.getById(id);
         return producto != null
@@ -50,9 +56,9 @@ public class ProductoController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(description = "Elimina un producto por su ID.")
-    public ResponseEntity<Void> deleteProducto(@PathVariable Long id) {
-        productoService.delete(id);
+    @Operation(description = "Desactiva un producto por su ID.")
+    public ResponseEntity<Void> deactivateProducto(@PathVariable Long id) {
+        productoService.deactivate(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

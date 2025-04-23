@@ -1,6 +1,8 @@
 package tipy.Stockify.services;
 
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import tipy.Stockify.business.entities.enums.RolUsuario;
 import tipy.Stockify.business.entities.Sucursal;
 import tipy.Stockify.business.entities.Usuario;
@@ -22,34 +24,71 @@ public class UsuarioService {
         this.sucursalRepository = sucursalRepository;
     }
 
-    public List<UsuarioDto> getAll() {
+    public List<UsuarioDto> getAllActive() {
+        return usuarioRepository.findByActivoTrue().stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<UsuarioDto> getAllIncludingInactive() {
         return usuarioRepository.findAll().stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
 
     public UsuarioDto getById(Long id) {
-        return usuarioRepository.findById(id)
+        return usuarioRepository.findByIdAndActivoTrue(id)
                 .map(this::mapToDto)
                 .orElse(null);
     }
 
     public UsuarioDto create(UsuarioDto usuarioDto) {
         Usuario usuario = mapToEntity(usuarioDto);
+        //nos aseguramos que activo sea true para nuevos usuarios
+        usuario.setActivo(true);
         return mapToDto(usuarioRepository.save(usuario));
     }
 
     public UsuarioDto update(Long id, UsuarioDto usuarioDto) {
-        if (usuarioRepository.existsById(id)) {
-            Usuario usuario = mapToEntity(usuarioDto);
-            usuario.setId(id);
-            return mapToDto(usuarioRepository.save(usuario));
-        }
-        return null;
+        return usuarioRepository.findById(id)
+                .map(existingUsuario -> {
+                    updateUsuarioFields(existingUsuario, usuarioDto);
+                    return mapToDto(usuarioRepository.save(existingUsuario));
+                })
+                .orElse(null);
     }
 
-    public void delete(Long id) {
-        usuarioRepository.deleteById(id);
+    public void deactivate(Long id) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con id: " + id));
+        usuario.setActivo(false);
+        usuarioRepository.save(usuario);
+    }
+
+    private void updateUsuarioFields(Usuario usuario, UsuarioDto usuarioDto) {
+        if (usuarioDto.getNombre() != null) {
+            usuario.setNombre(usuarioDto.getNombre());
+        }
+        if (usuarioDto.getApellido() != null) {
+            usuario.setApellido(usuarioDto.getApellido());
+        }
+        if (usuarioDto.getNombreUsuario() != null) {
+            usuario.setNombreUsuario(usuarioDto.getNombreUsuario());
+        }
+        if (usuarioDto.getContrasenia() != null) {
+            usuario.setContrasenia(usuarioDto.getContrasenia());
+        }
+        if (usuarioDto.getRol() != null) {
+            usuario.setRol(RolUsuario.valueOf(usuarioDto.getRol()));
+        }
+        if (usuarioDto.getSucursalId() != null) {
+            Sucursal sucursal = sucursalRepository.findById(usuarioDto.getSucursalId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sucursal no encontrada con id: " + usuarioDto.getSucursalId()));
+            usuario.setSucursal(sucursal);
+        }
+        if (usuarioDto.getActivo() != null) {
+            usuario.setActivo(usuarioDto.getActivo());
+        }
     }
 
     public Usuario mapToEntity(UsuarioDto usuarioDto) {
@@ -61,9 +100,10 @@ public class UsuarioService {
         usuario.setRol(usuarioDto.getRol() != null ? RolUsuario.valueOf(usuarioDto.getRol()) : null);
         if (usuarioDto.getSucursalId() != null) {
             Sucursal sucursal = sucursalRepository.findById(usuarioDto.getSucursalId())
-                    .orElse(null);
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sucursal no encontrada con id: " + usuarioDto.getSucursalId()));
             usuario.setSucursal(sucursal);
         }
+        //activo se establece explícitamente en los métodos create/update
         return usuario;
     }
 
@@ -76,6 +116,7 @@ public class UsuarioService {
         usuarioDto.setContrasenia(usuario.getContrasenia());
         usuarioDto.setRol(usuario.getRol() != null ? usuario.getRol().name() : null);
         usuarioDto.setSucursalId(usuario.getSucursal() != null ? usuario.getSucursal().getId() : null);
+        usuarioDto.setActivo(usuario.isActivo());
         return usuarioDto;
     }
 }

@@ -37,4 +37,7 @@ public class Conteo {
             inverseJoinColumns = @JoinColumn(name = "PRODUCTO_ID")
     )
     private List<Producto> productos;
+
+    @Column(name = "ACTIVO", nullable = false)
+    private boolean activo = true;
 }

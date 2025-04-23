@@ -1,6 +1,8 @@
 package tipy.Stockify.services;
 
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import tipy.Stockify.business.entities.Proveedor;
 import tipy.Stockify.business.repositories.ProveedorRepository;
 import tipy.Stockify.dtos.ProveedorDto;
@@ -17,34 +19,66 @@ public class ProveedorService {
         this.proveedorRepository = proveedorRepository;
     }
 
-    public List<ProveedorDto> getAll() {
+    public List<ProveedorDto> getAllActive() {
+        return proveedorRepository.findByActivoTrue().stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<ProveedorDto> getAllIncludingInactive() {
         return proveedorRepository.findAll().stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
 
     public ProveedorDto getById(Long id) {
-        return proveedorRepository.findById(id)
+        return proveedorRepository.findByIdAndActivoTrue(id)
                 .map(this::mapToDto)
                 .orElse(null);
     }
 
     public ProveedorDto create(ProveedorDto proveedorDto) {
         Proveedor proveedor = mapToEntity(proveedorDto);
+        // Asegurar que activo sea true para nuevos proveedores, incluso si no se especifica
+        proveedor.setActivo(true);
         return mapToDto(proveedorRepository.save(proveedor));
     }
 
     public ProveedorDto update(Long id, ProveedorDto proveedorDto) {
-        if (proveedorRepository.existsById(id)) {
-            Proveedor proveedor = mapToEntity(proveedorDto);
-            proveedor.setId(id);
-            return mapToDto(proveedorRepository.save(proveedor));
-        }
-        return null;
+        return proveedorRepository.findById(id)
+                .map(existingProveedor -> {
+                    updateProveedorFields(existingProveedor, proveedorDto);
+                    return mapToDto(proveedorRepository.save(existingProveedor));
+                })
+                .orElse(null);
     }
 
-    public void delete(Long id) {
-        proveedorRepository.deleteById(id);
+    public void deactivate(Long id) {
+        Proveedor proveedor = proveedorRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Proveedor no encontrado con id: " + id));
+        proveedor.setActivo(false);
+        proveedorRepository.save(proveedor);
+    }
+
+    private void updateProveedorFields(Proveedor proveedor, ProveedorDto proveedorDto) {
+        if (proveedorDto.getRut() != null) {
+            proveedor.setRut(proveedorDto.getRut());
+        }
+        if (proveedorDto.getNombre() != null) {
+            proveedor.setNombre(proveedorDto.getNombre());
+        }
+        if (proveedorDto.getDireccion() != null) {
+            proveedor.setDireccion(proveedorDto.getDireccion());
+        }
+        if (proveedorDto.getTelefono() != null) {
+            proveedor.setTelefono(proveedorDto.getTelefono());
+        }
+        if (proveedorDto.getNombreVendedor() != null) {
+            proveedor.setNombreVendedor(proveedorDto.getNombreVendedor());
+        }
+        if (proveedorDto.getActivo() != null) {
+            proveedor.setActivo(proveedorDto.getActivo());
+        }
     }
 
     public Proveedor mapToEntity(ProveedorDto proveedorDto) {
@@ -54,6 +88,7 @@ public class ProveedorService {
         proveedor.setDireccion(proveedorDto.getDireccion());
         proveedor.setTelefono(proveedorDto.getTelefono());
         proveedor.setNombreVendedor(proveedorDto.getNombreVendedor());
+        //activo se establece explícitamente en los métodos create/update
         return proveedor;
     }
 
@@ -65,6 +100,7 @@ public class ProveedorService {
         proveedorDto.setDireccion(proveedor.getDireccion());
         proveedorDto.setTelefono(proveedor.getTelefono());
         proveedorDto.setNombreVendedor(proveedor.getNombreVendedor());
+        proveedorDto.setActivo(proveedor.isActivo());
         return proveedorDto;
     }
 }

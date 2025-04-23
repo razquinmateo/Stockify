@@ -33,4 +33,7 @@ public class Proveedor {
 
     @ManyToMany(mappedBy = "proveedores")
     private List<Producto> productos;
+
+    @Column(name = "ACTIVO", nullable = false)
+    private boolean activo = true;
 }

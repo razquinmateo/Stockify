@@ -1,6 +1,8 @@
 package tipy.Stockify.services;
 
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import tipy.Stockify.business.entities.Empresa;
 import tipy.Stockify.business.entities.Sucursal;
 import tipy.Stockify.business.repositories.EmpresaRepository;
@@ -21,34 +23,65 @@ public class SucursalService {
         this.empresaRepository = empresaRepository;
     }
 
-    public List<SucursalDto> getAll() {
+    public List<SucursalDto> getAllActive() {
+        return sucursalRepository.findByActivoTrue().stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<SucursalDto> getAllIncludingInactive() {
         return sucursalRepository.findAll().stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
 
     public SucursalDto getById(Long id) {
-        return sucursalRepository.findById(id)
+        return sucursalRepository.findByIdAndActivoTrue(id)
                 .map(this::mapToDto)
                 .orElse(null);
     }
 
     public SucursalDto create(SucursalDto sucursalDto) {
         Sucursal sucursal = mapToEntity(sucursalDto);
+        // Asegurar que activo sea true para nuevas sucursales, incluso si no se especifica
+        sucursal.setActivo(true);
         return mapToDto(sucursalRepository.save(sucursal));
     }
 
     public SucursalDto update(Long id, SucursalDto sucursalDto) {
-        if (sucursalRepository.existsById(id)) {
-            Sucursal sucursal = mapToEntity(sucursalDto);
-            sucursal.setId(id);
-            return mapToDto(sucursalRepository.save(sucursal));
-        }
-        return null;
+        return sucursalRepository.findById(id)
+                .map(existingSucursal -> {
+                    updateSucursalFields(existingSucursal, sucursalDto);
+                    return mapToDto(sucursalRepository.save(existingSucursal));
+                })
+                .orElse(null);
     }
 
-    public void delete(Long id) {
-        sucursalRepository.deleteById(id);
+    public void deactivate(Long id) {
+        Sucursal sucursal = sucursalRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sucursal no encontrada con id: " + id));
+        sucursal.setActivo(false);
+        sucursalRepository.save(sucursal);
+    }
+
+    private void updateSucursalFields(Sucursal sucursal, SucursalDto sucursalDto) {
+        if (sucursalDto.getNombre() != null) {
+            sucursal.setNombre(sucursalDto.getNombre());
+        }
+        if (sucursalDto.getDireccion() != null) {
+            sucursal.setDireccion(sucursalDto.getDireccion());
+        }
+        if (sucursalDto.getTelefono() != null) {
+            sucursal.setTelefono(sucursalDto.getTelefono());
+        }
+        if (sucursalDto.getEmpresaId() != null) {
+            Empresa empresa = empresaRepository.findById(sucursalDto.getEmpresaId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Empresa no encontrada con id: " + sucursalDto.getEmpresaId()));
+            sucursal.setEmpresa(empresa);
+        }
+        if (sucursalDto.getActivo() != null) {
+            sucursal.setActivo(sucursalDto.getActivo());
+        }
     }
 
     public Sucursal mapToEntity(SucursalDto sucursalDto) {
@@ -58,9 +91,10 @@ public class SucursalService {
         sucursal.setTelefono(sucursalDto.getTelefono());
         if (sucursalDto.getEmpresaId() != null) {
             Empresa empresa = empresaRepository.findById(sucursalDto.getEmpresaId())
-                    .orElse(null);
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Empresa no encontrada con id: " + sucursalDto.getEmpresaId()));
             sucursal.setEmpresa(empresa);
         }
+        //activo se establece explícitamente en los métodos create/update
         return sucursal;
     }
 
@@ -71,6 +105,7 @@ public class SucursalService {
         sucursalDto.setDireccion(sucursal.getDireccion());
         sucursalDto.setTelefono(sucursal.getTelefono());
         sucursalDto.setEmpresaId(sucursal.getEmpresa() != null ? sucursal.getEmpresa().getId() : null);
+        sucursalDto.setActivo(sucursal.isActivo());
         return sucursalDto;
     }
 }

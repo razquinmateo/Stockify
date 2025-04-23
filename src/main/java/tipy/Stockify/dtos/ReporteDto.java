@@ -22,4 +22,7 @@ public class ReporteDto {
 
     @JsonProperty("diferenciaMonetaria")
     private float diferenciaMonetaria;
+
+    @JsonProperty("activo")
+    private Boolean activo;
 }

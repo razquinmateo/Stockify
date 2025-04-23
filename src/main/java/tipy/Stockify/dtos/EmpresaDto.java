@@ -23,4 +23,6 @@ public class EmpresaDto {
     @JsonProperty("telefono")
     private String telefono;
 
+    @JsonProperty("activo")
+    private Boolean activo;
 }

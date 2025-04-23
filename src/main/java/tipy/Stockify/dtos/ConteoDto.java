@@ -14,8 +14,11 @@ public class ConteoDto {
     private LocalDate fechaHora;
 
     @JsonProperty("conteoFinalizado")
-    private boolean conteoFinalizado;
+    private Boolean conteoFinalizado;
 
     @JsonProperty("usuarioId")
     private Long usuarioId;
+
+    @JsonProperty("activo")
+    private Boolean activo;
 }

@@ -20,13 +20,19 @@ public class SucursalController {
     }
 
     @GetMapping
-    @Operation(description = "Obtiene la lista de sucursales.")
-    public ResponseEntity<List<SucursalDto>> getSucursales() {
-        return new ResponseEntity<>(sucursalService.getAll(), HttpStatus.OK);
+    @Operation(description = "Obtiene la lista de sucursales activas.")
+    public ResponseEntity<List<SucursalDto>> getActiveSucursales() {
+        return new ResponseEntity<>(sucursalService.getAllActive(), HttpStatus.OK);
+    }
+
+    @GetMapping("/all")
+    @Operation(description = "Obtiene la lista de todas las sucursales, incluidas las inactivas.")
+    public ResponseEntity<List<SucursalDto>> getAllSucursalesIncludingInactive() {
+        return new ResponseEntity<>(sucursalService.getAllIncludingInactive(), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    @Operation(description = "Obtiene una sucursal por su ID.")
+    @Operation(description = "Obtiene una sucursal activa por su ID.")
     public ResponseEntity<SucursalDto> getSucursalById(@PathVariable Long id) {
         SucursalDto sucursal = sucursalService.getById(id);
         return sucursal != null
@@ -50,9 +56,9 @@ public class SucursalController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(description = "Elimina una sucursal por su ID.")
-    public ResponseEntity<Void> deleteSucursal(@PathVariable Long id) {
-        sucursalService.delete(id);
+    @Operation(description = "Desactiva una sucursal por su ID.")
+    public ResponseEntity<Void> deactivateSucursal(@PathVariable Long id) {
+        sucursalService.deactivate(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

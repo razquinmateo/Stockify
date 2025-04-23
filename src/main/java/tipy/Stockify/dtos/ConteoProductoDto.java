@@ -10,7 +10,7 @@ public class ConteoProductoDto {
     private Integer id;
 
     @JsonProperty("precioActual")
-    private float precioActual;
+    private Float precioActual;
 
     @JsonProperty("cantidadEsperada")
     private Integer cantidadEsperada;
@@ -23,4 +23,7 @@ public class ConteoProductoDto {
 
     @JsonProperty("productoId")
     private Long productoId;
+
+    @JsonProperty("activo")
+    private Boolean activo;
 }

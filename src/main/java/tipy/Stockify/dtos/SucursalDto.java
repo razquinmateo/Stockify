@@ -23,4 +23,6 @@ public class SucursalDto {
     @JsonProperty("empresaId")
     private Long empresaId;
 
+    @JsonProperty("activo")
+    private Boolean activo;
 }

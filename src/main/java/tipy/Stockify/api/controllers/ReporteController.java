@@ -20,13 +20,19 @@ public class ReporteController {
     }
 
     @GetMapping
-    @Operation(description = "Obtiene la lista de reportes.")
-    public ResponseEntity<List<ReporteDto>> getReportes() {
-        return new ResponseEntity<>(reporteService.getAll(), HttpStatus.OK);
+    @Operation(description = "Obtiene la lista de reportes activos.")
+    public ResponseEntity<List<ReporteDto>> getActiveReportes() {
+        return new ResponseEntity<>(reporteService.getAllActive(), HttpStatus.OK);
+    }
+
+    @GetMapping("/all")
+    @Operation(description = "Obtiene la lista de todos los reportes, incluidos los inactivos.")
+    public ResponseEntity<List<ReporteDto>> getAllReportesIncludingInactive() {
+        return new ResponseEntity<>(reporteService.getAllIncludingInactive(), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    @Operation(description = "Obtiene un reporte por su ID.")
+    @Operation(description = "Obtiene un reporte activo por su ID.")
     public ResponseEntity<ReporteDto> getReporteById(@PathVariable Long id) {
         ReporteDto reporte = reporteService.getById(id);
         return reporte != null
@@ -50,9 +56,9 @@ public class ReporteController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(description = "Elimina un reporte por su ID.")
-    public ResponseEntity<Void> deleteReporte(@PathVariable Long id) {
-        reporteService.delete(id);
+    @Operation(description = "Desactiva un reporte por su ID.")
+    public ResponseEntity<Void> deactivateReporte(@PathVariable Long id) {
+        reporteService.deactivate(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

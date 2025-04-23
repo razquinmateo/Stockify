@@ -27,4 +27,7 @@ public class Categoria {
 
     @OneToMany(mappedBy = "categoria")
     private List<Producto> productos;
+
+    @Column(name = "ACTIVO", nullable = false)
+    private boolean activo = true;
 }

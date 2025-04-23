@@ -29,4 +29,7 @@ public class Lote {
 
     @ManyToMany(mappedBy = "lotes")
     private List<Producto> productos;
+
+    @Column(name = "ACTIVO", nullable = false)
+    private boolean activo = true;
 }

@@ -29,4 +29,7 @@ public class ConteoProducto {
     @ManyToOne
     @JoinColumn(name = "PRODUCTO_ID")
     private Producto producto;
+
+    @Column(name = "ACTIVO", nullable = false)
+    private boolean activo = true;
 }

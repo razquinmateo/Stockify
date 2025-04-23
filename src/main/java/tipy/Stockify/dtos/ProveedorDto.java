@@ -26,4 +26,7 @@ public class ProveedorDto {
     @JsonProperty("nombreVendedor")
     private String nombreVendedor;
 
+    @JsonProperty("activo")
+    private Boolean activo;
+
 }

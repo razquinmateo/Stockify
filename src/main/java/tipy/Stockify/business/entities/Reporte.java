@@ -37,4 +37,7 @@ public class Reporte {
             inverseJoinColumns = @JoinColumn(name = "CONTEO_ID")
     )
     private List<Conteo> conteos;
+
+    @Column(name = "ACTIVO", nullable = false)
+    private boolean activo = true;
 }

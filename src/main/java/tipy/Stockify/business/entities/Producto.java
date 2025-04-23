@@ -60,4 +60,7 @@ public class Producto {
             inverseJoinColumns = @JoinColumn(name = "PROVEEDOR_ID")
     )
     private List<Proveedor> proveedores;
+
+    @Column(name = "ACTIVO", nullable = false)
+    private boolean activo = true;
 }

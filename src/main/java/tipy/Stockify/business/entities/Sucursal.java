@@ -37,4 +37,7 @@ public class Sucursal {
 
     @OneToMany(mappedBy = "sucursal")
     private List<Categoria> categorias;
+
+    @Column(name = "ACTIVO", nullable = false)
+    private boolean activo = true;
 }

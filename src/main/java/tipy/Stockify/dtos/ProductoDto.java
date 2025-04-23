@@ -24,7 +24,7 @@ public class ProductoDto {
     private String detalle;
 
     @JsonProperty("precio")
-    private float precio;
+    private Float precio;
 
     @JsonProperty("cantidadStock")
     private Long cantidadStock;
@@ -34,5 +34,8 @@ public class ProductoDto {
 
     @JsonProperty("categoriaId")
     private Long categoriaId;
+
+    @JsonProperty("activo")
+    private Boolean activo;
 
 }

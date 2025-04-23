@@ -20,13 +20,19 @@ public class ProveedorController {
     }
 
     @GetMapping
-    @Operation(description = "Obtiene la lista de proveedores.")
-    public ResponseEntity<List<ProveedorDto>> getProveedores() {
-        return new ResponseEntity<>(proveedorService.getAll(), HttpStatus.OK);
+    @Operation(description = "Obtiene la lista de proveedores activos.")
+    public ResponseEntity<List<ProveedorDto>> getActiveProveedores() {
+        return new ResponseEntity<>(proveedorService.getAllActive(), HttpStatus.OK);
+    }
+
+    @GetMapping("/all")
+    @Operation(description = "Obtiene la lista de todos los proveedores, incluidos los inactivos.")
+    public ResponseEntity<List<ProveedorDto>> getAllProveedoresIncludingInactive() {
+        return new ResponseEntity<>(proveedorService.getAllIncludingInactive(), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    @Operation(description = "Obtiene un proveedor por su ID.")
+    @Operation(description = "Obtiene un proveedor activo por su ID.")
     public ResponseEntity<ProveedorDto> getProveedorById(@PathVariable Long id) {
         ProveedorDto proveedor = proveedorService.getById(id);
         return proveedor != null
@@ -50,9 +56,9 @@ public class ProveedorController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(description = "Elimina un proveedor por su ID.")
-    public ResponseEntity<Void> deleteProveedor(@PathVariable Long id) {
-        proveedorService.delete(id);
+    @Operation(description = "Desactiva un proveedor por su ID.")
+    public ResponseEntity<Void> deactivateProveedor(@PathVariable Long id) {
+        proveedorService.deactivate(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

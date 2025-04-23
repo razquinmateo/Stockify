@@ -1,6 +1,8 @@
 package tipy.Stockify.services;
 
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import tipy.Stockify.business.entities.Categoria;
 import tipy.Stockify.business.entities.Sucursal;
 import tipy.Stockify.business.entities.Producto;
@@ -25,34 +27,79 @@ public class ProductoService {
         this.categoriaRepository = categoriaRepository;
     }
 
-    public List<ProductoDto> getAll() {
+    public List<ProductoDto> getAllActive() {
+        return productoRepository.findByActivoTrue().stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
+    public List<ProductoDto> getAllIncludingInactive() {
         return productoRepository.findAll().stream()
                 .map(this::mapToDto)
                 .collect(Collectors.toList());
     }
 
     public ProductoDto getById(Long id) {
-        return productoRepository.findById(id)
+        return productoRepository.findByIdAndActivoTrue(id)
                 .map(this::mapToDto)
                 .orElse(null);
     }
 
     public ProductoDto create(ProductoDto productoDto) {
         Producto producto = mapToEntity(productoDto);
+        // Asegurar que activo sea true para nuevos productos, incluso si no se especifica
+        producto.setActivo(true);
         return mapToDto(productoRepository.save(producto));
     }
 
     public ProductoDto update(Long id, ProductoDto productoDto) {
-        if (productoRepository.existsById(id)) {
-            Producto producto = mapToEntity(productoDto);
-            producto.setId(id);
-            return mapToDto(productoRepository.save(producto));
-        }
-        return null;
+        return productoRepository.findById(id)
+                .map(existingProducto -> {
+                    updateProductoFields(existingProducto, productoDto);
+                    return mapToDto(productoRepository.save(existingProducto));
+                })
+                .orElse(null);
     }
 
-    public void delete(Long id) {
-        productoRepository.deleteById(id);
+    public void deactivate(Long id) {
+        Producto producto = productoRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado con id: " + id));
+        producto.setActivo(false);
+        productoRepository.save(producto);
+    }
+
+    private void updateProductoFields(Producto producto, ProductoDto productoDto) {
+        if (productoDto.getCodigoBarra() != null) {
+            producto.setCodigoBarra(productoDto.getCodigoBarra());
+        }
+        if (productoDto.getImagen() != null) {
+            producto.setImagen(productoDto.getImagen());
+        }
+        if (productoDto.getNombre() != null) {
+            producto.setNombre(productoDto.getNombre());
+        }
+        if (productoDto.getDetalle() != null) {
+            producto.setDetalle(productoDto.getDetalle());
+        }
+        if (productoDto.getPrecio() != null) {
+            producto.setPrecio(productoDto.getPrecio());
+        }
+        if (productoDto.getCantidadStock() != null) {
+            producto.setCantidadStock(productoDto.getCantidadStock());
+        }
+        if (productoDto.getSucursalId() != null) {
+            Sucursal sucursal = sucursalRepository.findById(productoDto.getSucursalId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sucursal no encontrada con id: " + productoDto.getSucursalId()));
+            producto.setSucursal(sucursal);
+        }
+        if (productoDto.getCategoriaId() != null) {
+            Categoria categoria = categoriaRepository.findById(productoDto.getCategoriaId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoría no encontrada con id: " + productoDto.getCategoriaId()));
+            producto.setCategoria(categoria);
+        }
+        if (productoDto.getActivo() != null) {
+            producto.setActivo(productoDto.getActivo());
+        }
     }
 
     public Producto mapToEntity(ProductoDto productoDto) {
@@ -65,14 +112,15 @@ public class ProductoService {
         producto.setCantidadStock(productoDto.getCantidadStock());
         if (productoDto.getSucursalId() != null) {
             Sucursal sucursal = sucursalRepository.findById(productoDto.getSucursalId())
-                    .orElse(null);
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sucursal no encontrada con id: " + productoDto.getSucursalId()));
             producto.setSucursal(sucursal);
         }
         if (productoDto.getCategoriaId() != null) {
             Categoria categoria = categoriaRepository.findById(productoDto.getCategoriaId())
-                    .orElse(null);
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoría no encontrada con id: " + productoDto.getCategoriaId()));
             producto.setCategoria(categoria);
         }
+        //activo se establece explícitamente en los métodos create/update
         return producto;
     }
 
@@ -87,6 +135,7 @@ public class ProductoService {
         productoDto.setCantidadStock(producto.getCantidadStock());
         productoDto.setSucursalId(producto.getSucursal() != null ? producto.getSucursal().getId() : null);
         productoDto.setCategoriaId(producto.getCategoria() != null ? producto.getCategoria().getId() : null);
+        productoDto.setActivo(producto.isActivo());
         return productoDto;
     }
 }

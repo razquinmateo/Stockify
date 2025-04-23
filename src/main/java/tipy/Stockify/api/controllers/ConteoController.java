@@ -20,13 +20,19 @@ public class ConteoController {
     }
 
     @GetMapping
-    @Operation(description = "Obtiene la lista de conteos.")
-    public ResponseEntity<List<ConteoDto>> getConteos() {
-        return new ResponseEntity<>(conteoService.getAll(), HttpStatus.OK);
+    @Operation(description = "Obtiene la lista de conteos activos.")
+    public ResponseEntity<List<ConteoDto>> getActiveConteos() {
+        return new ResponseEntity<>(conteoService.getAllActive(), HttpStatus.OK);
+    }
+
+    @GetMapping("/all")
+    @Operation(description = "Obtiene la lista de todos los conteos, incluidos los inactivos.")
+    public ResponseEntity<List<ConteoDto>> getAllConteosIncludingInactive() {
+        return new ResponseEntity<>(conteoService.getAllIncludingInactive(), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    @Operation(description = "Obtiene un conteo por su ID.")
+    @Operation(description = "Obtiene un conteo activo por su ID.")
     public ResponseEntity<ConteoDto> getConteoById(@PathVariable Long id) {
         ConteoDto conteo = conteoService.getById(id);
         return conteo != null
@@ -50,9 +56,9 @@ public class ConteoController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(description = "Elimina un conteo por su ID.")
-    public ResponseEntity<Void> deleteConteo(@PathVariable Long id) {
-        conteoService.delete(id);
+    @Operation(description = "Desactiva un conteo por su ID.")
+    public ResponseEntity<Void> deactivateConteo(@PathVariable Long id) {
+        conteoService.deactivate(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

@@ -22,13 +22,19 @@ public class UsuarioController {
     }
 
     @GetMapping
-    @Operation(description = "Obtiene la lista de usuarios.")
-    public ResponseEntity<List<UsuarioDto>> getUsuarios() {
-        return new ResponseEntity<>(usuarioService.getAll(), HttpStatus.OK);
+    @Operation(description = "Obtiene la lista de usuarios activos.")
+    public ResponseEntity<List<UsuarioDto>> getActiveUsuarios() {
+        return new ResponseEntity<>(usuarioService.getAllActive(), HttpStatus.OK);
+    }
+
+    @GetMapping("/all")
+    @Operation(description = "Obtiene la lista de todos los usuarios, incluidos los inactivos.")
+    public ResponseEntity<List<UsuarioDto>> getAllUsuariosIncludingInactive() {
+        return new ResponseEntity<>(usuarioService.getAllIncludingInactive(), HttpStatus.OK);
     }
 
     @GetMapping("/{id}")
-    @Operation(description = "Obtiene un usuario por su ID.")
+    @Operation(description = "Obtiene un usuario activo por su ID.")
     public ResponseEntity<UsuarioDto> getUsuarioById(@PathVariable Long id) {
         UsuarioDto usuario = usuarioService.getById(id);
         return usuario != null
@@ -52,9 +58,9 @@ public class UsuarioController {
     }
 
     @DeleteMapping("/{id}")
-    @Operation(description = "Elimina un usuario por su ID.")
-    public ResponseEntity<Void> deleteUsuario(@PathVariable Long id) {
-        usuarioService.delete(id);
+    @Operation(description = "Desactiva un usuario por su ID.")
+    public ResponseEntity<Void> deactivateUsuario(@PathVariable Long id) {
+        usuarioService.deactivate(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

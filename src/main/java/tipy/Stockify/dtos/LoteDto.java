@@ -19,4 +19,7 @@ public class LoteDto {
 
     @JsonProperty("fechaVencimiento")
     private LocalDate fechaVencimiento;
+
+    @JsonProperty("activo")
+    private Boolean activo;
 }
