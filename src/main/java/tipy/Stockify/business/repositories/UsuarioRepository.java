@@ -24,4 +24,5 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
      * @return Optional con el usuario activo, o vacío si no existe o está inactivo.
      */
     Optional<Usuario> findByIdAndActivoTrue(Long id);
+    Optional<Usuario> findByNombreUsuario(String nombreUsuario);
 }

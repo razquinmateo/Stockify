@@ -1,0 +1,41 @@
+<div class="container mt-5">
+    <div class="row justify-content-center">
+      <div class="col-md-6">
+        <div class="card">
+          <div class="card-header">
+            <h3>Iniciar Sesión</h3>
+          </div>
+          <div class="card-body">
+            <form (ngSubmit)="onSubmit()">
+              <div class="mb-3">
+                <label for="nombreUsuario" class="form-label">Nombre de Usuario</label>
+                <input
+                  type="text"
+                  class="form-control"
+                  id="nombreUsuario"
+                  [(ngModel)]="nombreUsuario"
+                  name="nombreUsuario"
+                  required
+                />
+              </div>
+              <div class="mb-3">
+                <label for="contrasenia" class="form-label">Contraseña</label>
+                <input
+                  type="password"
+                  class="form-control"
+                  id="contrasenia"
+                  [(ngModel)]="contrasenia"
+                  name="contrasenia"
+                  required
+                />
+              </div>
+              <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
+            </form>
+            <div *ngIf="errorMessage" class="alert alert-danger mt-3">
+              {{ errorMessage }}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>

@@ -77,21 +77,29 @@ public class DataInitializer implements CommandLineRunner {
         sucursalRepository.save(sucursal2);
 
         // 3. Usuario
+        Usuario superadmin = new Usuario();
+        superadmin.setNombre("Stockify");
+        superadmin.setApellido("2025");
+        superadmin.setNombreUsuario("stockify");
+        superadmin.setContrasenia("root");
+        superadmin.setRol(RolUsuario.SUPERADMINISTRADOR);
+        superadmin.setSucursal(null);
+        usuarioRepository.save(superadmin);
         // Sucursal 1: San Pedro Centro
         Usuario admin1 = new Usuario();
-        admin1.setNombre("Carolina Andrea");
-        admin1.setApellido("Muñoz González");
-        admin1.setNombreUsuario("carolina.munoz");
-        admin1.setContrasenia("cmunoz2025");
+        admin1.setNombre("Prueba");
+        admin1.setApellido("Test");
+        admin1.setNombreUsuario("prueba.admin");
+        admin1.setContrasenia("root");
         admin1.setRol(RolUsuario.ADMINISTRADOR);
         admin1.setSucursal(sucursal1);
         usuarioRepository.save(admin1);
 
         Usuario empleado1 = new Usuario();
-        empleado1.setNombre("José Ignacio");
-        empleado1.setApellido("Morales Vargas");
-        empleado1.setNombreUsuario("jose.morales");
-        empleado1.setContrasenia("jmorales2025");
+        empleado1.setNombre("Prueba");
+        empleado1.setApellido("Test");
+        empleado1.setNombreUsuario("prueba.empleado");
+        empleado1.setContrasenia("root");
         empleado1.setRol(RolUsuario.EMPLEADO);
         empleado1.setSucursal(sucursal1);
         usuarioRepository.save(empleado1);
