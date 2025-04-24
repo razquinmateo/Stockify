@@ -4,7 +4,6 @@ import { Observable } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { jwtDecode } from 'jwt-decode';
 
-
 interface LoginRequest {
   nombreUsuario: string;
   contrasenia: string;
@@ -12,6 +11,7 @@ interface LoginRequest {
 
 interface LoginResponse {
   token: string;
+  error?: string;
 }
 
 interface JwtPayload {
@@ -33,6 +33,9 @@ export class AuthService {
   login(credentials: LoginRequest): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(this.apiUrl, credentials).pipe(
       tap(response => {
+        if (response.error) {
+          throw new Error(response.error);
+        }
         localStorage.setItem('token', response.token);
       })
     );

@@ -1,6 +1,8 @@
 package tipy.Stockify.utils;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import tipy.Stockify.business.entities.*;
 import tipy.Stockify.business.entities.enums.*;
@@ -20,6 +22,8 @@ public class DataInitializer implements CommandLineRunner {
     private final ProveedorRepository proveedorRepository;
     private final CategoriaRepository categoriaRepository;
     private final ConteoProductoRepository conteoProductoRepository;
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
     public DataInitializer(
             EmpresaRepository empresaRepository,
@@ -81,16 +85,17 @@ public class DataInitializer implements CommandLineRunner {
         superadmin.setNombre("Stockify");
         superadmin.setApellido("2025");
         superadmin.setNombreUsuario("stockify");
-        superadmin.setContrasenia("root");
+        superadmin.setContrasenia(passwordEncoder.encode("root"));
         superadmin.setRol(RolUsuario.SUPERADMINISTRADOR);
         superadmin.setSucursal(null);
         usuarioRepository.save(superadmin);
+
         // Sucursal 1: San Pedro Centro
         Usuario admin1 = new Usuario();
         admin1.setNombre("Prueba");
         admin1.setApellido("Test");
         admin1.setNombreUsuario("prueba.admin");
-        admin1.setContrasenia("root");
+        admin1.setContrasenia(passwordEncoder.encode("root"));
         admin1.setRol(RolUsuario.ADMINISTRADOR);
         admin1.setSucursal(sucursal1);
         usuarioRepository.save(admin1);
@@ -99,7 +104,7 @@ public class DataInitializer implements CommandLineRunner {
         empleado1.setNombre("Prueba");
         empleado1.setApellido("Test");
         empleado1.setNombreUsuario("prueba.empleado");
-        empleado1.setContrasenia("root");
+        empleado1.setContrasenia(passwordEncoder.encode("root"));
         empleado1.setRol(RolUsuario.EMPLEADO);
         empleado1.setSucursal(sucursal1);
         usuarioRepository.save(empleado1);
@@ -109,7 +114,7 @@ public class DataInitializer implements CommandLineRunner {
         admin2.setNombre("María Fernanda");
         admin2.setApellido("Rojas Díaz");
         admin2.setNombreUsuario("maria.rojas");
-        admin2.setContrasenia("mrojas2025");
+        admin2.setContrasenia(passwordEncoder.encode("mrojas2025"));
         admin2.setRol(RolUsuario.ADMINISTRADOR);
         admin2.setSucursal(sucursal2);
         usuarioRepository.save(admin2);
@@ -118,7 +123,7 @@ public class DataInitializer implements CommandLineRunner {
         empleado2.setNombre("Felipe Andrés");
         empleado2.setApellido("Torres Castillo");
         empleado2.setNombreUsuario("felipe.torres");
-        empleado2.setContrasenia("ftorres2025");
+        empleado2.setContrasenia(passwordEncoder.encode("ftorres2025"));
         empleado2.setRol(RolUsuario.EMPLEADO);
         empleado2.setSucursal(sucursal2);
         usuarioRepository.save(empleado2);
