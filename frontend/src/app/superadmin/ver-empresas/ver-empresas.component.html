@@ -1,0 +1,88 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
+    <div class="container-fluid">
+        <span class="navbar-brand mb-0 h1">Stockify - Empresas</span>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto">
+                <li class="nav-item">
+                    <a class="nav-link" routerLink="/superadmin/dashboard">
+                        <i class="bi bi-house-door-fill me-1"></i> Inicio
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" routerLink="/superadmin/crear-empresa">
+                        <i class="bi bi-building-fill-add me-1"></i> Crear Empresa
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</nav>
+
+<div class="container py-5">
+    <h2 class="text-center mb-4">Listado de Empresas</h2>
+    <div class="mb-4">
+        <input type="text" class="form-control" placeholder="Buscar por nombre, RUT, dirección o teléfono..."
+            [(ngModel)]="filtro">
+    </div>
+
+    <div class="table-responsive">
+        <table class="table table-bordered text-center align-middle">
+            <thead class="table-dark">
+                <tr>
+                    <th>Nombre</th>
+                    <th>RUT</th>
+                    <th>Dirección</th>
+                    <th>Teléfono</th>
+                    <th>Estado</th>
+                    <th>Editar</th>
+                    <th>Deshabilitar</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let empresa of filtrarEmpresas()">
+                    <td>{{ empresa.nombre }}</td>
+                    <td>{{ empresa.rut }}</td>
+                    <td>{{ empresa.direccion }}</td>
+                    <td>{{ empresa.telefono }}</td>
+                    <td>
+                        <span class="badge" [ngClass]="empresa.activo ? 'bg-success' : 'bg-danger'">
+                            {{ empresa.activo ? 'Activa' : 'Inactiva' }}
+                        </span>
+                        <button *ngIf="!empresa.activo" class="btn btn-sm btn-success ms-2"
+                            (click)="activarEmpresa(empresa.id)">
+                            <i class="bi bi-check-circle-fill"></i>
+                        </button>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-warning" [disabled]="!empresa.activo"
+                            (click)="editarEmpresa(empresa.id)">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-danger" [disabled]="!empresa.activo"
+                            (click)="deshabilitarEmpresa(empresa.id)">
+                            <i class="bi bi-slash-circle"></i>
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+        <nav *ngIf="totalPages > 1">
+            <ul class="pagination justify-content-center mt-4">
+                <li class="page-item" [class.disabled]="currentPage === 1">
+                    <button class="page-link" (click)="currentPage = currentPage - 1"
+                        [disabled]="currentPage === 1">Anterior</button>
+                </li>
+                <li class="page-item" *ngFor="let page of [].constructor(totalPages); let i = index"
+                    [class.active]="currentPage === i + 1">
+                    <button class="page-link" (click)="currentPage = i + 1">{{ i + 1 }}</button>
+                </li>
+                <li class="page-item" [class.disabled]="currentPage === totalPages">
+                    <button class="page-link" (click)="currentPage = currentPage + 1"
+                        [disabled]="currentPage === totalPages">Siguiente</button>
+                </li>
+            </ul>
+        </nav>
+    </div>
+</div>

@@ -26,17 +26,18 @@ export class LoginComponent {
         const role = this.authService.getUserRole();
         switch (role) {
           case 'SUPERADMINISTRADOR':
-            this.router.navigate(['/superadmin']);
+            this.router.navigate(['/superadmin/dashboard']);
             break;
           case 'ADMINISTRADOR':
-            this.router.navigate(['/admin']);
+            this.router.navigate(['/admin/dashboard']);
             break;
           case 'EMPLEADO':
-            this.router.navigate(['/empleado']);
+            this.router.navigate(['/empleado/dashboard']);
             break;
           default:
             this.errorMessage = 'Rol no reconocido';
         }
+        
       },
       error: (err) => {
         this.errorMessage = 'Credenciales incorrectas o usuario inactivo';
