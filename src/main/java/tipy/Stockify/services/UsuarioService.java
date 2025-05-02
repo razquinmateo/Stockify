@@ -3,6 +3,7 @@ package tipy.Stockify.services;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import tipy.Stockify.business.entities.enums.RolUsuario;
 import tipy.Stockify.business.entities.Sucursal;
 import tipy.Stockify.business.entities.Usuario;
@@ -18,10 +19,12 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final SucursalRepository sucursalRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UsuarioService(UsuarioRepository usuarioRepository, SucursalRepository sucursalRepository) {
+    public UsuarioService(UsuarioRepository usuarioRepository, SucursalRepository sucursalRepository, PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
         this.sucursalRepository = sucursalRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public List<UsuarioDto> getAllActive() {
@@ -44,6 +47,10 @@ public class UsuarioService {
 
     public UsuarioDto create(UsuarioDto usuarioDto) {
         Usuario usuario = mapToEntity(usuarioDto);
+        //encriptamos la contraseña
+        if (usuarioDto.getContrasenia() != null) {
+            usuario.setContrasenia(passwordEncoder.encode(usuarioDto.getContrasenia()));
+        }
         //nos aseguramos que activo sea true para nuevos usuarios
         usuario.setActivo(true);
         return mapToDto(usuarioRepository.save(usuario));
@@ -76,7 +83,7 @@ public class UsuarioService {
             usuario.setNombreUsuario(usuarioDto.getNombreUsuario());
         }
         if (usuarioDto.getContrasenia() != null) {
-            usuario.setContrasenia(usuarioDto.getContrasenia());
+            usuario.setContrasenia(passwordEncoder.encode(usuarioDto.getContrasenia()));
         }
         if (usuarioDto.getRol() != null) {
             usuario.setRol(RolUsuario.valueOf(usuarioDto.getRol()));
@@ -96,7 +103,7 @@ public class UsuarioService {
         usuario.setNombre(usuarioDto.getNombre());
         usuario.setApellido(usuarioDto.getApellido());
         usuario.setNombreUsuario(usuarioDto.getNombreUsuario());
-        usuario.setContrasenia(usuarioDto.getContrasenia());
+        //la contraseña se encripta en create/update, no aca
         usuario.setRol(usuarioDto.getRol() != null ? RolUsuario.valueOf(usuarioDto.getRol()) : null);
         if (usuarioDto.getSucursalId() != null) {
             Sucursal sucursal = sucursalRepository.findById(usuarioDto.getSucursalId())
@@ -113,7 +120,7 @@ public class UsuarioService {
         usuarioDto.setNombre(usuario.getNombre());
         usuarioDto.setApellido(usuario.getApellido());
         usuarioDto.setNombreUsuario(usuario.getNombreUsuario());
-        usuarioDto.setContrasenia(usuario.getContrasenia());
+        //no devolvemos la contraseña hasheada
         usuarioDto.setRol(usuario.getRol() != null ? usuario.getRol().name() : null);
         usuarioDto.setSucursalId(usuario.getSucursal() != null ? usuario.getSucursal().getId() : null);
         usuarioDto.setActivo(usuario.isActivo());
