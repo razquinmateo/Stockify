@@ -9,6 +9,7 @@ import tipy.Stockify.business.entities.Usuario;
 import tipy.Stockify.business.repositories.SucursalRepository;
 import tipy.Stockify.business.repositories.UsuarioRepository;
 import tipy.Stockify.dtos.UsuarioDto;
+import org.springframework.security.crypto.password.PasswordEncoder;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -18,10 +19,12 @@ public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
     private final SucursalRepository sucursalRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public UsuarioService(UsuarioRepository usuarioRepository, SucursalRepository sucursalRepository) {
+    public UsuarioService(UsuarioRepository usuarioRepository, SucursalRepository sucursalRepository, PasswordEncoder passwordEncoder) {
         this.usuarioRepository = usuarioRepository;
         this.sucursalRepository = sucursalRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     public List<UsuarioDto> getAllActive() {
@@ -44,6 +47,10 @@ public class UsuarioService {
 
     public UsuarioDto create(UsuarioDto usuarioDto) {
         Usuario usuario = mapToEntity(usuarioDto);
+        //encriptamos la contraseña
+        if (usuarioDto.getContrasenia() != null) {
+            usuario.setContrasenia(passwordEncoder.encode(usuarioDto.getContrasenia()));
+        }
         //nos aseguramos que activo sea true para nuevos usuarios
         usuario.setActivo(true);
         return mapToDto(usuarioRepository.save(usuario));
@@ -76,7 +83,7 @@ public class UsuarioService {
             usuario.setNombreUsuario(usuarioDto.getNombreUsuario());
         }
         if (usuarioDto.getContrasenia() != null) {
-            usuario.setContrasenia(usuarioDto.getContrasenia());
+            usuario.setContrasenia(passwordEncoder.encode(usuarioDto.getContrasenia()));
         }
         if (usuarioDto.getRol() != null) {
             usuario.setRol(RolUsuario.valueOf(usuarioDto.getRol()));
@@ -96,7 +103,7 @@ public class UsuarioService {
         usuario.setNombre(usuarioDto.getNombre());
         usuario.setApellido(usuarioDto.getApellido());
         usuario.setNombreUsuario(usuarioDto.getNombreUsuario());
-        usuario.setContrasenia(usuarioDto.getContrasenia());
+        //la contraseña se encripta en create/update, no aca
         usuario.setRol(usuarioDto.getRol() != null ? RolUsuario.valueOf(usuarioDto.getRol()) : null);
         if (usuarioDto.getSucursalId() != null) {
             Sucursal sucursal = sucursalRepository.findById(usuarioDto.getSucursalId())
@@ -119,4 +126,13 @@ public class UsuarioService {
         usuarioDto.setActivo(usuario.isActivo());
         return usuarioDto;
     }
+
+    //solo usuarios activos y con rol "EMPLEADO".
+    public List<UsuarioDto> getEmpleadosActivos() {
+        return getAllIncludingInactive()
+                .stream()
+                .filter(usuario -> "EMPLEADO".equals(usuario.getRol()))
+                .collect(Collectors.toList());
+    }
+
 }

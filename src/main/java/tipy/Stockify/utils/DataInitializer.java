@@ -10,6 +10,7 @@ import tipy.Stockify.business.repositories.*;
 
 import java.time.LocalDate;
 
+//@Component
 public class DataInitializer implements CommandLineRunner {
 
     private final EmpresaRepository empresaRepository;

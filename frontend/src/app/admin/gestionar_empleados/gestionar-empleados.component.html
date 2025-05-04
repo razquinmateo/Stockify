@@ -1,0 +1,90 @@
+<div class="container mt-4">
+  <h2>Lista de Empleados</h2>
+
+  <button class="btn btn-success mb-3" (click)="abrirModalAgregar()">Agregar Empleado</button>
+
+  <table class="table table-bordered table-striped mt-3" *ngIf="empleados.length > 0; else sinEmpleados">
+    <thead>
+    <tr>
+      <th>ID</th>
+      <th>Nombre</th>
+      <th>Apellido</th>
+      <th>Usuario</th>
+      <th>Sucursal</th>
+      <th>Activo</th>
+      <th>Acciones</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr *ngFor="let emp of empleados">
+      <td>{{ emp.id }}</td>
+      <td>{{ emp.nombre }}</td>
+      <td>{{ emp.apellido }}</td>
+      <td>{{ emp.nombreUsuario }}</td>
+      <td>{{ emp.sucursalId }}</td>
+      <td>{{ emp.activo ? 'Sí' : 'No' }}</td>
+      <td>
+        <button class="btn btn-sm btn-primary me-2" (click)="editarEmpleado(emp)">Editar</button>
+<!--        <button class="btn btn-sm btn-danger" (click)="deshabilitarEmpleado(emp.id)">Deshabilitar</button>-->
+        <button class="btn btn-sm"
+                [ngClass]="emp.activo ? 'btn-danger' : 'btn-success'"
+                (click)="toggleEstadoEmpleado(emp)">
+          {{ emp.activo ? 'Deshabilitar' : 'Activar' }}
+        </button>
+      </td>
+    </tr>
+    </tbody>
+  </table>
+
+  <ng-template #sinEmpleados>
+    <p>No hay empleados para mostrar.</p>
+  </ng-template>
+
+  <!-- Modal para Agregar / Editar -->
+  <div class="modal fade" id="empleadoModal" tabindex="-1" aria-labelledby="empleadoModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+
+        <div class="modal-header">
+          <h5 class="modal-title" id="empleadoModalLabel">{{ esEditar ? 'Editar Empleado' : 'Agregar Empleado' }}</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+        </div>
+
+        <div class="modal-body">
+          <form>
+            <div class="mb-3">
+              <label>Nombre</label>
+              <input type="text" class="form-control" [(ngModel)]="empleadoSeleccionado.nombre" name="nombre">
+            </div>
+            <div class="mb-3">
+              <label>Apellido</label>
+              <input type="text" class="form-control" [(ngModel)]="empleadoSeleccionado.apellido" name="apellido">
+            </div>
+            <div class="mb-3">
+              <label>Usuario</label>
+              <input type="text" class="form-control" [(ngModel)]="empleadoSeleccionado.nombreUsuario" name="nombreUsuario">
+            </div>
+            <div class="mb-3" *ngIf="!esEditar">
+              <label>Contraseña</label>
+              <input type="password" class="form-control" [(ngModel)]="empleadoSeleccionado.contrasenia" name="contrasenia">
+            </div>
+            <div class="mb-3">
+              <label>Sucursal ID</label>
+              <input type="number" class="form-control" [(ngModel)]="empleadoSeleccionado.sucursalId" name="sucursalId">
+            </div>
+          </form>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+          <button type="button" class="btn btn-primary" (click)="guardarEmpleado()">
+            {{ esEditar ? 'Guardar Cambios' : 'Agregar Empleado' }}
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+
+</div>

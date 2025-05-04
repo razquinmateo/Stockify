@@ -9,7 +9,7 @@ import tipy.Stockify.services.UsuarioService;
 
 import java.util.List;
 
-// http://localhost:8080/api/v1/usuarios
+// http://localhost:8080/Stockify/api/v1/usuarios
 
 @RestController
 @RequestMapping(value = "api/v1/usuarios")
@@ -63,4 +63,11 @@ public class UsuarioController {
         usuarioService.deactivate(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
+
+    @GetMapping("/empleados")
+    @Operation(description = "Obtiene la lista de usuarios con rol EMPLEADO.")
+    public ResponseEntity<List<UsuarioDto>> getEmpleados() {
+        return new ResponseEntity<>(usuarioService.getEmpleadosActivos(), HttpStatus.OK);
+    }
+
 }
