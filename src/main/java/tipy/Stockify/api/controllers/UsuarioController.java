@@ -42,6 +42,12 @@ public class UsuarioController {
                 : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
+    @GetMapping("/empleados")
+    @Operation(description = "Obtiene la lista de usuarios con rol EMPLEADO.")
+    public ResponseEntity<List<UsuarioDto>> getEmpleados() {
+        return new ResponseEntity<>(usuarioService.getEmpleadosActivos(), HttpStatus.OK);
+    }
+
     @PostMapping
     @Operation(description = "Crea un nuevo usuario.")
     public ResponseEntity<UsuarioDto> createUsuario(@RequestBody UsuarioDto usuarioDto) {

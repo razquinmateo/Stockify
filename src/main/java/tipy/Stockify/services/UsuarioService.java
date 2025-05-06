@@ -45,6 +45,13 @@ public class UsuarioService {
                 .orElse(null);
     }
 
+    public List<UsuarioDto> getEmpleadosActivos() {
+        return getAllIncludingInactive()
+                .stream()
+                .filter(usuario -> "EMPLEADO".equals(usuario.getRol()))
+                .collect(Collectors.toList());
+    }
+
     public UsuarioDto create(UsuarioDto usuarioDto) {
         Usuario usuario = mapToEntity(usuarioDto);
         //encriptamos la contraseña

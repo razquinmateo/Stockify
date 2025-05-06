@@ -1,5 +1,35 @@
-<div class="container mt-5">
-    <h1>Hola Mundo - Administrador</h1>
-    <p>Bienvenido a la vista para ADMINISTRADOR.</p>
-    <button class="btn btn-secondary" (click)="logout()">Cerrar Sesión</button>
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
+  <div class="container-fluid">
+    <span class="navbar-brand mb-0 h1">Stockify - Administrador</span>
+    <div class="d-flex align-items-center">
+      <span class="text-white me-3">
+        <i class="bi bi-person-circle me-1"></i>
+        Administrador
+      </span>
+      <button class="btn btn-outline-light btn-sm" (click)="logout()">
+        <i class="bi bi-box-arrow-right me-1"></i>
+        Cerrar sesión
+      </button>      
+    </div>
   </div>
+</nav>
+
+<!-- Dashboard -->
+<div class="container py-5">
+  <h2 class="mb-4 text-center">Panel del Administrador</h2>
+
+  <div class="row justify-content-center g-4">
+    <!-- Gestionar Empleados -->
+    <div class="col-md-4">
+      <div class="card shadow-sm text-center p-4 rounded-4 border-0 h-100">
+        <i class="bi bi-person-fill fs-1 text-primary mb-3"></i>
+        <h5 class="card-title">Empleados</h5>
+        <p class="card-text">Gestiona la información del personal.</p>
+        <button class="btn btn-outline-primary mt-3" (click)="gestionarEmpleados()">Gestionar Empleados</button>
+      </div>
+    </div>
+
+    <!-- Puedes agregar más cards aquí como hiciste en el otro dashboard -->
+  </div>
+</div>

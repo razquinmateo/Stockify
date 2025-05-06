@@ -7,7 +7,7 @@ export interface Usuario {
   nombre: string;
   apellido: string;
   nombreUsuario: string;
-  contrasenia: string;
+  contrasenia?: string;
   rol: string;
   sucursalId?: number;
   activo?: boolean;
@@ -17,9 +17,12 @@ export interface Usuario {
   providedIn: 'root'
 })
 export class UsuarioService {
-  private apiUrl = 'http://localhost:8080/Stockify/api/v1/usuarios';
+  private apiUrl = 'http://localhost:8080/Stockify/api/v1/usuarios'; //EL QUE USA JAIRO
+  private baseUrl = 'http://localhost:8080/Stockify/api/v1/usuarios'; //EL QUE USA MATEO
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
+
+  //=========================LO USA JAIRO======================================
 
   crearUsuario(usuario: Usuario): Observable<Usuario> {
     return this.http.post<Usuario>(`${this.apiUrl}`, usuario);
@@ -39,5 +42,22 @@ export class UsuarioService {
 
   deshabilitarUsuario(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
+  }
+
+  //=========================LO USA MATEO======================================
+  getEmpleados(): Observable<Usuario[]> {
+    return this.http.get<Usuario[]>(`${this.baseUrl}/empleados`);
+  }
+
+  crear(usuario: Usuario): Observable<Usuario> {
+    return this.http.post<Usuario>(`${this.baseUrl}`, usuario);
+  }
+
+  actualizar(id: number, usuario: Usuario): Observable<Usuario> {
+    return this.http.put<Usuario>(`${this.baseUrl}/${id}`, usuario);
+  }
+
+  deshabilitar(id: number): Observable<void> {
+    return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }
 }

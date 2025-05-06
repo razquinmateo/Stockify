@@ -1,41 +1,68 @@
-<div class="container mt-5">
-    <div class="row justify-content-center">
-      <div class="col-md-6">
-        <div class="card">
-          <div class="card-header">
-            <h3>Iniciar Sesión</h3>
-          </div>
-          <div class="card-body">
-            <form (ngSubmit)="onSubmit()">
-              <div class="mb-3">
-                <label for="nombreUsuario" class="form-label">Nombre de Usuario</label>
-                <input
-                  type="text"
-                  class="form-control"
-                  id="nombreUsuario"
-                  [(ngModel)]="nombreUsuario"
-                  name="nombreUsuario"
-                  required
-                />
-              </div>
-              <div class="mb-3">
-                <label for="contrasenia" class="form-label">Contraseña</label>
-                <input
-                  type="password"
-                  class="form-control"
-                  id="contrasenia"
-                  [(ngModel)]="contrasenia"
-                  name="contrasenia"
-                  required
-                />
-              </div>
-              <button type="submit" class="btn btn-primary w-100">Iniciar Sesión</button>
-            </form>
-            <div *ngIf="errorMessage" class="alert alert-danger mt-3">
-              {{ errorMessage }}
+<div class="container d-flex align-items-center justify-content-center min-vh-100">
+  <div class="row w-100 justify-content-center">
+    <div class="col-xl-10 col-lg-10 col-md-12">
+      <div class="card shadow-lg border-0 rounded-4 overflow-hidden">
+        <div class="row g-0">
+          
+          <!-- Login -->
+          <div class="col-md-6 p-5 d-flex align-items-center justify-content-center">
+            <div class="w-100">
+              <h4 class="mb-4 text-center">
+                <i class="bi bi-box-arrow-in-right me-2"></i>Iniciar Sesión
+              </h4>
+
+              <form (ngSubmit)="onSubmit()">
+                <div class="mb-4">
+                  <label for="nombreUsuario" class="form-label">Nombre de Usuario</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-person-fill"></i></span>
+                    <input
+                      type="text"
+                      class="form-control"
+                      id="nombreUsuario"
+                      [(ngModel)]="nombreUsuario"
+                      name="nombreUsuario"
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div class="mb-4">
+                  <label for="contrasenia" class="form-label">Contraseña</label>
+                  <div class="input-group">
+                    <span class="input-group-text"><i class="bi bi-lock-fill"></i></span>
+                    <input
+                      [type]="mostrarContrasenia ? 'text' : 'password'"
+                      class="form-control"
+                      id="contrasenia"
+                      [(ngModel)]="contrasenia"
+                      name="contrasenia"
+                      required
+                    />
+                    <button type="button" class="btn btn-outline-secondary" (click)="mostrarContrasenia = !mostrarContrasenia">
+                      <i class="bi" [ngClass]="mostrarContrasenia ? 'bi-eye-slash' : 'bi-eye'"></i>
+                    </button>
+                  </div>
+                </div>
+
+                <button type="submit" class="btn btn-primary w-100 mt-2">
+                  <i class="bi bi-box-arrow-in-right me-1"></i> Iniciar Sesión
+                </button>
+
+                <div *ngIf="errorMessage" class="alert alert-danger mt-4 text-center">
+                  {{ errorMessage }}
+                </div>
+              </form>
             </div>
           </div>
+
+          <!-- Logo -->
+          <div class="col-md-6 d-none d-md-flex align-items-center justify-content-center bg-light">
+            <img src="stockify.png" alt="Logo" class="img-fluid" />
+          </div>
+
         </div>
       </div>
     </div>
   </div>
+</div>
