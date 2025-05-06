@@ -3,6 +3,9 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { UsuarioService, Usuario } from '../../services/usuario.service';
+import { AuthService } from '../../auth.service';
+import { Router } from '@angular/router';
+import Swal from 'sweetalert2';
 
 declare var bootstrap: any;
 
@@ -15,21 +18,51 @@ declare var bootstrap: any;
 })
 export class GestionarEmpleadosComponent implements OnInit {
   empleados: Usuario[] = [];
-  empleadoSeleccionado: Usuario = this.resetEmpleado();
+  empleadoSeleccionado!: Usuario;
   esEditar: boolean = false;
 
   filtro: string = '';
   paginaActual: number = 1;
   empleadosPorPagina: number = 5;
 
-  constructor(private usuarioService: UsuarioService) {}
+  constructor(
+    private usuarioService: UsuarioService,
+    private authService: AuthService,
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
+    this.empleadoSeleccionado = this.resetEmpleado();
     this.cargarEmpleados();
   }
 
+  logout(): void {
+    this.authService.logout();
+    this.router.navigate(['/login']);
+  }
+
   cargarEmpleados(): void {
-    this.usuarioService.getEmpleados().subscribe(data => this.empleados = data);
+    const sucursalId = this.authService.getSucursalId();
+    if (sucursalId !== null) {
+      this.usuarioService.getEmpleados().subscribe({
+        next: (data) => {
+          this.empleados = data.filter(emp => emp.sucursalId === sucursalId);
+        },
+        error: () => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'No se pudieron cargar los empleados. Inténtalo de nuevo.',
+          });
+        }
+      });
+    } else {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo determinar la sucursal del administrador.',
+      });
+    }
   }
 
   abrirModalAgregar(): void {
@@ -46,30 +79,92 @@ export class GestionarEmpleadosComponent implements OnInit {
 
   toggleEstadoEmpleado(emp: Usuario): void {
     const accion = emp.activo ? 'deshabilitar' : 'activar';
-    if (confirm(`¿Estás seguro que deseas ${accion} este empleado?`)) {
-      const nuevoEstado = !emp.activo;
-      const empleadoActualizado = { ...emp, activo: nuevoEstado };
-      this.usuarioService.actualizar(emp.id, empleadoActualizado).subscribe(() => {
-        this.cargarEmpleados();
-      });
-    }
+    Swal.fire({
+      title: `¿Estás seguro?`,
+      text: `¿Deseas ${accion} este empleado?`,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: `Sí, ${accion}`,
+      cancelButtonText: 'Cancelar'
+    }).then((result) => {
+      if (result.isConfirmed) {
+        const nuevoEstado = !emp.activo;
+        const empleadoActualizado = { ...emp, activo: nuevoEstado };
+        this.usuarioService.actualizar(emp.id, empleadoActualizado).subscribe({
+          next: () => {
+            Swal.fire({
+              icon: 'success',
+              title: 'Éxito',
+              text: `Empleado ${accion}do correctamente`,
+              timer: 1500,
+              showConfirmButton: false
+            });
+            this.cargarEmpleados();
+          },
+          error: () => {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: `No se pudo ${accion} el empleado. Inténtalo de nuevo.`,
+            });
+          }
+        });
+      }
+    });
   }
 
   guardarEmpleado(): void {
     const modal = bootstrap.Modal.getInstance(document.getElementById('empleadoModal'));
+    const accion = this.esEditar ? 'actualizado' : 'agregado';
+
+    if (!this.esEditar) {
+      this.empleadoSeleccionado.sucursalId = this.authService.getSucursalId() || 0;
+    }
 
     if (this.esEditar) {
-      this.usuarioService.actualizar(this.empleadoSeleccionado.id, this.empleadoSeleccionado)
-        .subscribe(() => {
+      this.usuarioService.actualizar(this.empleadoSeleccionado.id, this.empleadoSeleccionado).subscribe({
+        next: () => {
+          Swal.fire({
+            icon: 'success',
+            title: 'Éxito',
+            text: `Empleado ${accion} correctamente`,
+            timer: 1500,
+            showConfirmButton: false
+          });
           modal.hide();
           this.cargarEmpleados();
-        });
+        },
+        error: () => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: `No se pudo ${accion} el empleado. Inténtalo de nuevo.`,
+          });
+        }
+      });
     } else {
-      this.usuarioService.crear(this.empleadoSeleccionado)
-        .subscribe(() => {
+      this.usuarioService.crear(this.empleadoSeleccionado).subscribe({
+        next: () => {
+          Swal.fire({
+            icon: 'success',
+            title: 'Éxito',
+            text: `Empleado ${accion} correctamente`,
+            timer: 1500,
+            showConfirmButton: false
+          });
           modal.hide();
           this.cargarEmpleados();
-        });
+        },
+        error: () => {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: `No se pudo ${accion} el empleado. Inténtalo de nuevo.`,
+          });
+        }
+      });
     }
   }
 
@@ -86,12 +181,11 @@ export class GestionarEmpleadosComponent implements OnInit {
       nombreUsuario: '',
       contrasenia: '',
       rol: 'EMPLEADO',
-      sucursalId: 0,
+      sucursalId: this.authService.getSucursalId() || 0,
       activo: true
     };
   }
 
-  // ✅ NUEVO: Filtro de búsqueda
   filtrarEmpleados(): Usuario[] {
     return this.empleados.filter(emp =>
       emp.nombre.toLowerCase().includes(this.filtro.toLowerCase()) ||
@@ -100,7 +194,6 @@ export class GestionarEmpleadosComponent implements OnInit {
     );
   }
 
-  // ✅ NUEVO: Paginación
   obtenerEmpleadosPaginados(): Usuario[] {
     const inicio = (this.paginaActual - 1) * this.empleadosPorPagina;
     return this.filtrarEmpleados().slice(inicio, inicio + this.empleadosPorPagina);

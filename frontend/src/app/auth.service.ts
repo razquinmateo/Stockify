@@ -55,6 +55,20 @@ export class AuthService {
     return '';
   }
 
+  getSucursalId(): number | null {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decoded: JwtPayload = jwtDecode(token);
+        return decoded.sucursalId;
+      } catch (error) {
+        console.error('Error decoding token:', error);
+        return null;
+      }
+    }
+    return null;
+  }
+
   getToken(): string | null {
     return localStorage.getItem('token');
   }
