@@ -1,0 +1,114 @@
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
+  <div class="container-fluid">
+    <span class="navbar-brand mb-0 h1">Stockify - Superadministrador</span>
+
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <!-- Botón Inicio -->
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/superadmin/dashboard">
+            <i class="bi bi-house-door-fill me-1"></i> Inicio
+          </a>
+        </li>
+        <!-- Botón Agregar Empresa -->
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/superadmin/crear-empresa">
+            <i class="bi bi-building-fill-add me-1"></i> Agregar Empresa
+          </a>
+        </li>
+        <!-- Botón Ver Sucursales -->
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/superadmin/ver-sucursales">
+            <i class="bi bi-list-ul me-1"></i> Ver Sucursales
+          </a>
+        </li>
+      </ul>
+    </div>
+
+    <div class="d-flex align-items-center">
+      <span class="text-white me-3">
+        <i class="bi bi-person-circle me-1"></i>
+        Superadmin Jairo
+      </span>
+      <button class="btn btn-outline-light btn-sm" (click)="cerrarSesion()">
+        <i class="bi bi-box-arrow-right me-1"></i>
+        Cerrar sesión
+      </button>
+    </div>
+  </div>
+</nav>
+
+
+<div class="container py-5">
+  <h2 class="text-center mb-4">Agregar Sucursal</h2>
+
+  <!-- Buscar Empresa -->
+  <div class="mb-4">
+    <label class="form-label">Buscar empresa por nombre o RUT:</label>
+    <input type="text" class="form-control" [(ngModel)]="filtro" placeholder="Ej: Axion, 213456789">
+  </div>
+
+  <!-- Listado de Empresas -->
+  <div *ngIf="!empresaSeleccionada">
+    <table class="table table-bordered table-hover">
+      <thead class="table-light">
+        <tr>
+          <th>Nombre</th>
+          <th>RUT</th>
+          <th>Acción</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let empresa of filtrarEmpresas()">
+          <td>{{ empresa.nombre }}</td>
+          <td>{{ empresa.rut }}</td>
+          <td>
+            <button class="btn btn-sm btn-success" (click)="seleccionarEmpresa(empresa)">
+              Seleccionar
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+    <nav *ngIf="totalPages > 1">
+      <ul class="pagination justify-content-center mt-4">
+        <li class="page-item" [class.disabled]="currentPage === 1">
+          <button class="page-link" (click)="currentPage = currentPage - 1"
+            [disabled]="currentPage === 1">Anterior</button>
+        </li>
+        <li class="page-item" *ngFor="let page of [].constructor(totalPages); let i = index"
+          [class.active]="currentPage === i + 1">
+          <button class="page-link" (click)="currentPage = i + 1">{{ i + 1 }}</button>
+        </li>
+        <li class="page-item" [class.disabled]="currentPage === totalPages">
+          <button class="page-link" (click)="currentPage = currentPage + 1"
+            [disabled]="currentPage === totalPages">Siguiente</button>
+        </li>
+      </ul>
+    </nav>
+
+  </div>
+
+  <!-- Formulario Sucursal -->
+  <div *ngIf="empresaSeleccionada" class="mt-4">
+    <h5>Empresa seleccionada: <strong>{{ empresaSeleccionada.nombre }}</strong></h5>
+    <form (ngSubmit)="guardarSucursal()">
+      <div class="mb-3">
+        <label class="form-label">Nombre de la Sucursal</label>
+        <input type="text" class="form-control" [(ngModel)]="sucursal.nombre" name="nombre" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Dirección</label>
+        <input type="text" class="form-control" [(ngModel)]="sucursal.direccion" name="direccion" required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Teléfono</label>
+        <input type="text" class="form-control" [(ngModel)]="sucursal.telefono" name="telefono" required>
+      </div>
+      <button type="submit" class="btn btn-primary">
+        <i class="bi bi-save"></i> Guardar Sucursal
+      </button>
+    </form>
+  </div>
+</div>
