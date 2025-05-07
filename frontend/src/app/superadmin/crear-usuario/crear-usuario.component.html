@@ -1,17 +1,15 @@
+<!-- navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
     <div class="container-fluid">
         <span class="navbar-brand mb-0 h1">Stockify - Crear Usuario</span>
 
         <div class="collapse navbar-collapse">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0">
-                <!-- Botón Inicio -->
                 <li class="nav-item">
                     <a class="nav-link" routerLink="/superadmin/dashboard">
                         <i class="bi bi-house-door-fill me-1"></i> Inicio
                     </a>
                 </li>
-
-                <!-- Botón Ver Usuarios -->
                 <li class="nav-item">
                     <a class="nav-link" routerLink="/superadmin/ver-usuarios">
                         <i class="bi bi-people-fill me-1"></i> Ver Usuarios
@@ -20,10 +18,10 @@
             </ul>
         </div>
 
-        <div class="d-flex align-items-center">
-            <span class="text-white me-3">
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-white">
                 <i class="bi bi-person-circle me-1"></i>
-                Superadmin Jairo
+                Superadmin {{ nombreUsuarioLogueado }}
             </span>
             <button class="btn btn-outline-light btn-sm" (click)="cerrarSesion()">
                 <i class="bi bi-box-arrow-right me-1"></i>
@@ -33,10 +31,12 @@
     </div>
 </nav>
 
+
+<!-- formulario -->
 <div class="container py-5">
     <h2 class="text-center mb-4">Agregar Usuario</h2>
-
     <form (ngSubmit)="crearUsuario()" autocomplete="off">
+
         <div class="mb-3">
             <label class="form-label">Nombre</label>
             <input type="text" class="form-control" [(ngModel)]="usuario.nombre" name="nombre" required>
@@ -67,6 +67,23 @@
             </select>
         </div>
 
+        <!-- Empresa -->
+        <div class="mb-4">
+            <label class="form-label">Empresa</label>
+            <small class="text-muted fst-italic">
+                * No es necesario seleccionar empresa si el rol es <strong>SUPERADMINISTRADOR</strong>.
+            </small>
+            <div class="d-flex align-items-center gap-2">
+                <input class="form-control" [value]="nombreEmpresaSeleccionada" placeholder="Ninguna seleccionada"
+                    disabled />
+                <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
+                    data-bs-target="#modalEmpresas">
+                    Seleccionar
+                </button>
+            </div>
+        </div>
+
+        <!-- Sucursal -->
         <div class="mb-4">
             <label class="form-label">Sucursal</label>
             <small class="text-muted fst-italic">
@@ -89,21 +106,57 @@
         </div>
     </form>
 
-    <!-- Modal -->
+    <!-- Modal Empresas -->
+    <div class="modal fade" id="modalEmpresas" tabindex="-1" aria-labelledby="modalEmpresasLabel" aria-hidden="true">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="modalEmpresasLabel">Seleccionar Empresa</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="text" class="form-control mb-3" placeholder="Buscar por nombre o dirección..."
+                        [(ngModel)]="filtroEmpresa" />
+                    <div class="table-responsive">
+                        <table class="table table-hover text-center">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Nombre</th>
+                                    <th>Dirección</th>
+                                    <th>Acción</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr *ngFor="let empresa of filtrarEmpresas()">
+                                    <td>{{ empresa.nombre }}</td>
+                                    <td>{{ empresa.direccion }}</td>
+                                    <td>
+                                        <button type="button" class="btn btn-sm btn-success"
+                                            (click)="seleccionarEmpresaDesdeModal(empresa)" data-bs-dismiss="modal">
+                                            Seleccionar
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Sucursales -->
     <div class="modal fade" id="modalSucursales" tabindex="-1" aria-labelledby="modalSucursalesLabel"
         aria-hidden="true">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
-
                 <div class="modal-header">
                     <h5 class="modal-title" id="modalSucursalesLabel">Seleccionar Sucursal</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
                 </div>
-
                 <div class="modal-body">
                     <input type="text" class="form-control mb-3" placeholder="Buscar por nombre o dirección..."
                         [(ngModel)]="filtroSucursal" />
-
                     <div class="table-responsive">
                         <table class="table table-hover text-center">
                             <thead class="table-dark">
@@ -127,11 +180,8 @@
                             </tbody>
                         </table>
                     </div>
-
                 </div>
-
             </div>
         </div>
     </div>
-
 </div>

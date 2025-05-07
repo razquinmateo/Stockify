@@ -61,9 +61,25 @@ export class AuthService {
 
   logout(): void {
     localStorage.removeItem('token');
+    location.href = '/login';
   }
 
   isAuthenticated(): boolean {
     return !!this.getToken();
   }
+
+  getUsuarioDesdeToken(): string {
+    const token = localStorage.getItem('token');
+    if (token) {
+      try {
+        const decoded: JwtPayload = jwtDecode(token);
+        return decoded.sub; // el nombre de usuario logueado
+      } catch (error) {
+        console.error('Error al decodificar el token:', error);
+        return '';
+      }
+    }
+    return '';
+  }
+  
 }

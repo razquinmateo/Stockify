@@ -4,9 +4,9 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { UsuarioService, Usuario } from '../../services/usuario.service';
 import { SucursalService, Sucursal } from '../../services/sucursal.service';
+import { EmpresaService, Empresa } from '../../services/empresa.service';
 import Swal from 'sweetalert2';
 import { AuthService } from '../../auth.service';
-
 
 @Component({
   selector: 'app-crear-usuario',
@@ -25,9 +25,20 @@ export class CrearUsuarioComponent implements OnInit {
     rol: '',
     sucursalId: 0
   };
+  nombreUsuarioLogueado: string = '';
 
-  sucursales: Sucursal[] = [];
+
   roles: string[] = ['SUPERADMINISTRADOR', 'ADMINISTRADOR', 'EMPLEADO'];
+
+  // Empresa
+  empresas: Empresa[] = [];
+  filtroEmpresa: string = '';
+  nombreEmpresaSeleccionada: string = '';
+  empresaIdSeleccionada: number = 0;
+
+  // Sucursales
+  todasLasSucursales: Sucursal[] = [];
+  sucursalesFiltradasList: Sucursal[] = [];
   filtroSucursal: string = '';
   nombreSucursalSeleccionada: string = '';
 
@@ -35,16 +46,26 @@ export class CrearUsuarioComponent implements OnInit {
     private authService: AuthService,
     private usuarioService: UsuarioService,
     private sucursalService: SucursalService,
+    private empresaService: EmpresaService,
     private router: Router
   ) { }
 
   ngOnInit(): void {
+    this.empresaService.getAllEmpresas().subscribe({
+      next: (data) => {
+        this.empresas = data.filter(e => e.activo);
+      },
+      error: () => Swal.fire('Error', 'No se pudieron cargar las empresas', 'error')
+    });
+
     this.sucursalService.getAllSucursales().subscribe({
       next: (data) => {
-        this.sucursales = data.filter(s => s.activo);
+        this.todasLasSucursales = data;
       },
       error: () => Swal.fire('Error', 'No se pudieron cargar las sucursales', 'error')
     });
+
+    this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
   }
 
   crearUsuario(): void {
@@ -53,9 +74,9 @@ export class CrearUsuarioComponent implements OnInit {
     if (
       !this.usuario.nombre || !this.usuario.apellido || !this.usuario.nombreUsuario ||
       !this.usuario.contrasenia || !this.usuario.rol ||
-      (!esSuperadmin && !this.usuario.sucursalId)
+      (!esSuperadmin && (!this.empresaIdSeleccionada || !this.usuario.sucursalId))
     ) {
-      Swal.fire('Campos incompletos', 'Completá todos los campos requeridos. La sucursal es obligatoria salvo para el rol SUPERADMINISTRADOR.', 'warning');
+      Swal.fire('Campos incompletos', 'Completá todos los campos requeridos. Empresa y sucursal no son necesarias solo si el rol es SUPERADMINISTRADOR.', 'warning');
       return;
     }
 
@@ -78,10 +99,9 @@ export class CrearUsuarioComponent implements OnInit {
 
   continuarCreacion(): void {
     const usuarioParaCrear: Usuario = {
-      ...(this.usuario as Usuario),
+      ...(this.usuario as Usuario)
     };
 
-    // Si es superadmin, aseguramos que sucursalId sea undefined (no 0)
     if (usuarioParaCrear.rol === 'SUPERADMINISTRADOR') {
       usuarioParaCrear.sucursalId = undefined;
     }
@@ -103,9 +123,39 @@ export class CrearUsuarioComponent implements OnInit {
     });
   }
 
+  filtrarEmpresas(): Empresa[] {
+    const filtro = this.filtroEmpresa.toLowerCase();
+    return this.empresas.filter(e =>
+      e.nombre.toLowerCase().includes(filtro) || e.direccion.toLowerCase().includes(filtro)
+    );
+  }
+
+  seleccionarEmpresaDesdeModal(empresa: Empresa): void {
+    this.empresaIdSeleccionada = empresa.id;
+    this.nombreEmpresaSeleccionada = empresa.nombre;
+
+    this.usuario.sucursalId = 0;
+    this.nombreSucursalSeleccionada = '';
+
+    // Filtrar sucursales de la empresa seleccionada
+    this.sucursalesFiltradasList = this.todasLasSucursales.filter(s =>
+      s.empresaId === empresa.id && s.activo
+    );
+
+    // Mostrar alerta si no hay sucursales disponibles
+    if (this.sucursalesFiltradasList.length === 0) {
+      Swal.fire({
+        title: 'Sin sucursales',
+        text: 'Esta empresa no tiene sucursales activas. Por favor, contactá con el administrador.',
+        icon: 'info'
+      });
+    }
+  }
+
+
   sucursalesFiltradas(): Sucursal[] {
     const filtro = this.filtroSucursal.toLowerCase();
-    return this.sucursales.filter(s =>
+    return this.sucursalesFiltradasList.filter(s =>
       s.nombre.toLowerCase().includes(filtro) || s.direccion.toLowerCase().includes(filtro)
     );
   }
@@ -115,9 +165,7 @@ export class CrearUsuarioComponent implements OnInit {
     this.nombreSucursalSeleccionada = sucursal.nombre;
   }
 
-  
   cerrarSesion(): void {
-    console.log('🔒 Cerrando sesión...');
     this.authService.logout();
     this.router.navigate(['/login']);
   }

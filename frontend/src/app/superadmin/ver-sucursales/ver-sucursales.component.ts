@@ -5,6 +5,7 @@ import { SucursalService, Sucursal } from '../../services/sucursal.service';
 import { EmpresaService, Empresa } from '../../services/empresa.service';
 import Swal from 'sweetalert2';
 import { Router, RouterModule } from '@angular/router';
+import { AuthService } from '../../auth.service';
 
 @Component({
   selector: 'app-ver-sucursales',
@@ -18,6 +19,8 @@ export class VerSucursalesComponent implements OnInit {
   filtro: string = '';
   currentPage = 1;
   itemsPerPage = 5;
+  rolUsuario: string = '';
+  nombreUsuarioLogueado: string = '';
 
   get totalPages(): number {
     return Math.ceil(this.filtrarSucursalesSinPaginar().length / this.itemsPerPage);
@@ -26,6 +29,7 @@ export class VerSucursalesComponent implements OnInit {
   constructor(
     private sucursalService: SucursalService,
     private empresaService: EmpresaService,
+    private authService: AuthService,
     private router: Router
   ) { }
 
@@ -47,6 +51,7 @@ export class VerSucursalesComponent implements OnInit {
       },
       error: () => Swal.fire('Error', 'No se pudieron cargar las empresas', 'error')
     });
+    this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
   }
 
   deshabilitarSucursal(id: number): void {
@@ -111,5 +116,11 @@ export class VerSucursalesComponent implements OnInit {
     const inicio = (this.currentPage - 1) * this.itemsPerPage;
     const fin = inicio + this.itemsPerPage;
     return this.filtrarSucursalesSinPaginar().slice(inicio, fin);
+  }
+
+  cerrarSesion(): void {
+    console.log('🔒 Cerrando sesión...');
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 }
