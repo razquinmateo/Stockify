@@ -18,6 +18,10 @@ export class AdminComponent {
       this.router.navigate(['/admin/gestionar-empleados']);
     }
 
+  gestionarCategorias() {
+      this.router.navigate(['/admin/gestionar-categorias']);
+  }
+
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
