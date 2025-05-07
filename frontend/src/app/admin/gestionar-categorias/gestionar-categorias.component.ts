@@ -135,7 +135,8 @@ export class GestionarCategoriasComponent implements OnInit {
   filtrarCategorias(): Categoria[] {
     return this.categorias.filter(cat =>
       cat.nombre.toLowerCase().includes(this.filtro.toLowerCase()) ||
-      cat.descripcion.toLowerCase().includes(this.filtro.toLowerCase())
+      cat.descripcion.toLowerCase().includes(this.filtro.toLowerCase()) ||
+      cat.id.toString().includes(this.filtro.toLowerCase())
     )
     .sort((a, b) => a.id - b.id); // Orden ascendente por ID
   }
