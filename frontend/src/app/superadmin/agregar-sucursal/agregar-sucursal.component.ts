@@ -28,6 +28,8 @@ export class AgregarSucursalComponent implements OnInit {
 
   currentPage = 1;
   itemsPerPage = 5;
+  rolUsuario: string = '';
+  nombreUsuarioLogueado: string = '';
 
   constructor(
     private authService: AuthService,
@@ -41,6 +43,7 @@ export class AgregarSucursalComponent implements OnInit {
       next: (data) => this.empresas = data,
       error: () => Swal.fire('Error', 'No se pudieron cargar las empresas', 'error')
     });
+    this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
   }
 
   seleccionarEmpresa(empresa: Empresa) {

@@ -15,6 +15,7 @@ import { AuthService } from '../../auth.service';
   styleUrls: ['./editar-empresa.component.css']
 })
 export class EditarEmpresaComponent implements OnInit {
+  nombreUsuarioLogueado: string = '';
   empresaId!: number;
   empresa: Partial<Empresa> = {
     nombre: '',
@@ -31,6 +32,7 @@ export class EditarEmpresaComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
     this.empresaId = Number(this.route.snapshot.paramMap.get('id'));
     this.empresaService.getEmpresaById(this.empresaId).subscribe({
       next: (data) => this.empresa = data,

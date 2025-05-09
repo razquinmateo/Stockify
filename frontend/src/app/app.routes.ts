@@ -11,10 +11,11 @@ import { CrearUsuarioComponent } from './superadmin/crear-usuario/crear-usuario.
 import { VerUsuariosComponent } from './superadmin/ver-usuarios/ver-usuarios.component';
 import { EditarUsuarioComponent } from './superadmin/editar-usuario/editar-usuario.component';
 
-import { AdminComponent } from './admin/admin.component';
+import { AdminComponent } from './admin/dashboard/dashboard.component';
 import { GestionarEmpleadosComponent } from './admin/gestionar-empleados/gestionar-empleados.component';
+import { GestionarCategoriasComponent } from './admin/gestionar-categorias/gestionar-categorias.component';
 
-import { EmpleadoComponent } from './empleado/empleado.component';
+import { EmpleadoComponent } from './empleado/dashboard/dashboard.component';
 
 import { LoginComponent } from './login/login.component';
 
@@ -81,7 +82,7 @@ export const routes: Routes = [
   },
 
   { 
-    path: 'admin', 
+    path: 'admin/dashboard', 
     component: AdminComponent, 
     canActivate: [authGuard], 
     data: { role: 'ADMINISTRADOR' } 
@@ -92,9 +93,15 @@ export const routes: Routes = [
     canActivate: [authGuard], 
     data: { role: 'ADMINISTRADOR' } 
   },
+   { 
+    path: 'admin/gestionar-categorias', 
+    component: GestionarCategoriasComponent, 
+    canActivate: [authGuard], 
+    data: { role: 'ADMINISTRADOR' } 
+  },
 
   { 
-    path: 'empleado', 
+    path: 'empleado/dashboard', 
     component: EmpleadoComponent, 
     canActivate: [authGuard], 
     data: { role: 'EMPLEADO' } 

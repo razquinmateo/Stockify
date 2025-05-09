@@ -21,6 +21,8 @@ export class DashboardComponent implements OnInit {
   currentPage = 1;
   itemsPerPage = 5;
   filtro: string = '';
+  nombreUsuarioLogueado: string = '';
+
 
   get totalPages(): number {
     return Math.ceil(this.filtrarEmpresasSinPaginar().length / this.itemsPerPage);
@@ -35,6 +37,7 @@ export class DashboardComponent implements OnInit {
 
   ngOnInit(): void {
     this.cargarEmpresas();
+    this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
   }
 
   cargarEmpresas(): void {

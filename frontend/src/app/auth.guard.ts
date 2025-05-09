@@ -26,10 +26,10 @@ export const authGuard: CanActivateFn = (route) => {
         router.navigate(['/superadmin/dashboard']);
         break;
       case 'ADMINISTRADOR':
-        router.navigate(['/admin']);
+        router.navigate(['/admin/dashboard']);
         break;
       case 'EMPLEADO':
-        router.navigate(['/empleado']);
+        router.navigate(['/empleado/dashboard']);
         break;
       default:
         router.navigate(['/login']);  //redirigimos al login si el rol no es reconocido

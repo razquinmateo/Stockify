@@ -20,6 +20,7 @@ export class EditarUsuarioComponent implements OnInit {
   sucursales: Sucursal[] = [];
   filtroSucursal: string = '';
   nombreSucursalSeleccionada: string = '';
+  nombreUsuarioLogueado: string = '';
 
   constructor(
     private authService: AuthService,
@@ -30,6 +31,7 @@ export class EditarUsuarioComponent implements OnInit {
   ) { }
 
   ngOnInit(): void {
+    this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
     this.usuarioId = Number(this.route.snapshot.paramMap.get('id'));
 
     this.usuarioService.getUsuarioPorId(this.usuarioId).subscribe({

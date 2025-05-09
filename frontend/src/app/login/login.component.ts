@@ -28,10 +28,10 @@ export class LoginComponent implements OnInit {
           this.router.navigate(['/superadmin/dashboard']);
           break;
         case 'ADMINISTRADOR':
-          this.router.navigate(['/admin']);
+          this.router.navigate(['/admin/dashboard']);
           break;
         case 'EMPLEADO':
-          this.router.navigate(['/empleado']);
+          this.router.navigate(['/empleado/dashboard']);
           break;
         default:
           this.authService.logout(); //si el rol no es reconocido, hacer logout

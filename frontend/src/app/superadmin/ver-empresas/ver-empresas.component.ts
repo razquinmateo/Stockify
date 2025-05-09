@@ -4,6 +4,8 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { EmpresaService, Empresa } from '../../services/empresa.service';
 import Swal from 'sweetalert2';
+import { Router } from '@angular/router';
+import { AuthService } from '../../auth.service';;
 
 @Component({
   selector: 'app-ver-empresas',
@@ -17,12 +19,20 @@ export class VerEmpresasComponent implements OnInit {
   filtro: string = '';
   currentPage = 1;
   itemsPerPage = 5;
+  nombreUsuarioLogueado: string = '';
 
-  constructor(private empresaService: EmpresaService) { }
+
+  constructor(
+    private empresaService: EmpresaService,
+    private authService: AuthService,
+    private router: Router
+  ) { }
+
 
   ngOnInit(): void {
+    this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
     this.cargarEmpresas();
-  }
+  }  
 
   cargarEmpresas(): void {
     this.empresaService.getAllEmpresas().subscribe({
@@ -97,5 +107,11 @@ export class VerEmpresasComponent implements OnInit {
   editarEmpresa(id: number): void {
     // navegamos a la vista de edición
     location.href = `/superadmin/editar-empresa/${id}`;
+  }
+
+  cerrarSesion(): void {
+    console.log('🔒 Cerrando sesión...');
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 }

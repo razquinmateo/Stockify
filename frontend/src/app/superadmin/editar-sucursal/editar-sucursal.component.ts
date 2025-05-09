@@ -14,6 +14,7 @@ import { AuthService } from '../../auth.service';
   styleUrls: ['./editar-sucursal.component.css']
 })
 export class EditarSucursalComponent implements OnInit {
+  nombreUsuarioLogueado: string = '';
   sucursalId!: number;
   sucursal: Partial<Sucursal> = {
     nombre: '',
@@ -29,6 +30,7 @@ export class EditarSucursalComponent implements OnInit {
   ) {}
   
   ngOnInit(): void {
+    this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
     this.sucursalId = Number(this.route.snapshot.paramMap.get('id'));
     this.sucursalService.getSucursalById(this.sucursalId).subscribe({
       next: (data) => this.sucursal = data,

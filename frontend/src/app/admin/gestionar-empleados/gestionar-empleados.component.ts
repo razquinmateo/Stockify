@@ -24,6 +24,7 @@ export class GestionarEmpleadosComponent implements OnInit {
   filtro: string = '';
   paginaActual: number = 1;
   empleadosPorPagina: number = 5;
+  nombreUsuarioLogueado: string = '';
 
   constructor(
     private usuarioService: UsuarioService,
@@ -34,6 +35,7 @@ export class GestionarEmpleadosComponent implements OnInit {
   ngOnInit(): void {
     this.empleadoSeleccionado = this.resetEmpleado();
     this.cargarEmpleados();
+    this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
   }
 
   logout(): void {

@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms';
 import { EmpresaService, Empresa } from '../../services/empresa.service';
 import Swal from 'sweetalert2';
 import { Router } from '@angular/router';
-import { RouterModule } from '@angular/router';3
+import { RouterModule } from '@angular/router';
 import { AuthService } from '../../auth.service';
 
 @Component({
@@ -14,6 +14,7 @@ import { AuthService } from '../../auth.service';
   templateUrl: './crear-empresa.component.html',
   styleUrls: ['./crear-empresa.component.css']
 })
+
 export class CrearEmpresaComponent {
   empresa: Partial<Empresa> = {
     nombre: '',
@@ -21,8 +22,14 @@ export class CrearEmpresaComponent {
     direccion: '',
     telefono: ''
   };
+  nombreUsuarioLogueado: string = '';
 
   constructor(private empresaService: EmpresaService, private router: Router, private authService: AuthService,) {}
+
+  ngOnInit(): void {
+    this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
+  }
+  
 
   crear(): void {
     if (!this.empresa.nombre || !this.empresa.rut || !this.empresa.direccion || !this.empresa.telefono) {

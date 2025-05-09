@@ -3,6 +3,9 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import { UsuarioService, Usuario } from '../../services/usuario.service';
+import { SucursalService, Sucursal } from '../../services/sucursal.service';
+import { EmpresaService, Empresa } from '../../services/empresa.service';
+import { AuthService } from '../../auth.service';
 import Swal from 'sweetalert2';
 
 @Component({
@@ -14,28 +17,69 @@ import Swal from 'sweetalert2';
 })
 export class VerUsuariosComponent implements OnInit {
   usuarios: Usuario[] = [];
+  sucursales: Sucursal[] = [];
+  empresas: Empresa[] = [];
+
   filtro: string = '';
   currentPage = 1;
   itemsPerPage = 10;
+  nombreUsuario: string = '';
+  rolUsuario: string = '';
+  nombreUsuarioLogueado: string = '';
+
+  constructor(
+    private usuarioService: UsuarioService,
+    private sucursalService: SucursalService,
+    private empresaService: EmpresaService,
+    private authService: AuthService,
+    private router: Router
+  ) { }
 
   get totalPages(): number {
     return Math.ceil(this.filtrarUsuariosSinPaginar().length / this.itemsPerPage);
   }
 
-  constructor(
-    private usuarioService: UsuarioService,
-    private router: Router
-  ) {}
-
   ngOnInit(): void {
-    this.cargarUsuarios();
+    this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
+    this.cargarDatos();
   }
 
-  cargarUsuarios(): void {
+  cargarDatos(): void {
     this.usuarioService.getUsuarios().subscribe({
-      next: (data) => this.usuarios = data,
+      next: (usuarios) => {
+        this.usuarios = usuarios;
+        this.cargarSucursales();
+      },
       error: () => Swal.fire('Error', 'No se pudieron cargar los usuarios', 'error')
     });
+  }
+
+  cargarSucursales(): void {
+    this.sucursalService.getAllSucursales().subscribe({
+      next: (sucs) => {
+        this.sucursales = sucs;
+        this.cargarEmpresas();
+      },
+      error: () => Swal.fire('Error', 'No se pudieron cargar las sucursales', 'error')
+    });
+  }
+
+  cargarEmpresas(): void {
+    this.empresaService.getAllEmpresas().subscribe({
+      next: (emps) => this.empresas = emps,
+      error: () => Swal.fire('Error', 'No se pudieron cargar las empresas', 'error')
+    });
+  }
+
+  obtenerNombreSucursal(id: number): string {
+    return this.sucursales.find(s => s.id === id)?.nombre || '-';
+  }
+
+  obtenerNombreEmpresaDeSucursal(sucursalId: number): string {
+    const sucursal = this.sucursales.find(s => s.id === sucursalId);
+    if (!sucursal) return '-';
+    const empresa = this.empresas.find(e => e.id === sucursal.empresaId);
+    return empresa?.nombre || '-';
   }
 
   editarUsuario(id: number): void {
@@ -55,7 +99,7 @@ export class VerUsuariosComponent implements OnInit {
         this.usuarioService.deshabilitarUsuario(id).subscribe({
           next: () => {
             Swal.fire('Deshabilitado', 'El usuario ha sido deshabilitado', 'success');
-            this.cargarUsuarios();
+            this.cargarDatos();
           },
           error: () => Swal.fire('Error', 'No se pudo deshabilitar el usuario', 'error')
         });
@@ -75,7 +119,7 @@ export class VerUsuariosComponent implements OnInit {
         this.usuarioService.actualizarUsuario(id, { activo: true }).subscribe({
           next: () => {
             Swal.fire('Activado', 'El usuario ha sido reactivado', 'success');
-            this.cargarUsuarios();
+            this.cargarDatos();
           },
           error: () => Swal.fire('Error', 'No se pudo activar el usuario', 'error')
         });
@@ -100,5 +144,10 @@ export class VerUsuariosComponent implements OnInit {
     const inicio = (this.currentPage - 1) * this.itemsPerPage;
     const fin = inicio + this.itemsPerPage;
     return this.filtrarUsuariosSinPaginar().slice(inicio, fin);
+  }
+
+  cerrarSesion(): void {
+    this.authService.logout();
+    this.router.navigate(['/login']);
   }
 }

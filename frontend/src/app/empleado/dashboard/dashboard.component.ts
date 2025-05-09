@@ -1,22 +1,17 @@
 import { Component } from '@angular/core';
-import { AuthService } from '../auth.service';
+import { AuthService } from '../../auth.service';
 import { Router } from '@angular/router';
-import { RouterModule, RouterOutlet } from '@angular/router';
 import { CommonModule } from '@angular/common';
 
 @Component({
-  selector: 'app-admin',
+  selector: 'app-dashboard',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './admin.component.html',
-  styleUrls: ['./admin.component.css']
+  templateUrl: './dashboard.component.html',
+  styleUrls: ['./dashboard.component.css']
 })
-export class AdminComponent {
+export class EmpleadoComponent {
   constructor(private authService: AuthService, private router: Router) {}
-
-  gestionarEmpleados() {
-      this.router.navigate(['/admin/gestionar-empleados']);
-    }
 
   logout(): void {
     this.authService.logout();
