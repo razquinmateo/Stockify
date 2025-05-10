@@ -13,18 +13,22 @@ import { CommonModule } from '@angular/common';
 })
 export class AdminComponent implements OnInit {
   nombreUsuarioLogueado: string = '';
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(private authService: AuthService, private router: Router) { }
 
-    ngOnInit(): void {
+  ngOnInit(): void {
     this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
   }
 
   gestionarEmpleados() {
-      this.router.navigate(['/admin/gestionar-empleados']);
-    }
+    this.router.navigate(['/admin/gestionar-empleados']);
+  }
 
   gestionarCategorias() {
-      this.router.navigate(['/admin/gestionar-categorias']);
+    this.router.navigate(['/admin/gestionar-categorias']);
+  }
+
+  gestionarProductos() {
+    this.router.navigate(['/admin/gestionar-productos']);
   }
 
   logout(): void {

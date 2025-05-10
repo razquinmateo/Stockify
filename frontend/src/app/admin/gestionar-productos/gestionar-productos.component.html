@@ -1,0 +1,386 @@
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
+  <div class="container-fluid">
+    <span class="navbar-brand mb-0 h1">Stockify - Productos</span>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/admin/dashboard">
+            <i class="bi bi-house-door-fill me-1"></i> Inicio
+          </a>
+        </li>
+        <li class="nav-item">
+          <button
+            class="btn btn-link nav-link"
+            (click)="abrirModalAgregar()"
+            type="button"
+            title="Agregar un nuevo producto"
+          >
+            <i class="bi bi-plus-circle me-1"></i> Agregar Producto
+          </button>
+        </li>
+        <li class="nav-item">
+          <a
+            class="btn btn-link nav-link"
+            routerLink="/admin/gestionar-categorias"
+            title="Ir a categorías y agregar una nueva"
+          >
+            <i class="bi bi-tags-fill me-1"></i> Ver Categorías
+          </a>
+        </li>
+      </ul>
+    </div>
+    <div class="d-flex align-items-center">
+      <span class="text-white me-3">
+        <i class="bi bi-person-circle me-1"></i>
+        Administrador {{ nombreUsuarioLogueado }}
+      </span>
+      <button
+        class="btn btn-outline-light btn-sm"
+        (click)="cerrarSesion()"
+        title="Cerrar sesión"
+      >
+        <i class="bi bi-box-arrow-right me-1"></i>
+        Cerrar sesión
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- Contenido -->
+<div class="container py-5">
+  <h2 class="mb-4 text-center">Lista de Productos</h2>
+
+  <!-- Buscador -->
+  <div class="mb-4">
+    <input
+      type="text"
+      class="form-control"
+      placeholder="Buscar por nombre, código o detalle..."
+      [(ngModel)]="filtro"
+    />
+  </div>
+
+  <!-- Tabla -->
+  <div class="table-responsive">
+    <table
+      class="table table-bordered text-center align-middle"
+      *ngIf="filtrarProductos().length > 0; else sinProductos"
+    >
+      <thead class="table-dark">
+        <tr>
+          <th>ID</th>
+          <th>Imagen</th>
+          <th>Nombre</th>
+          <th>Código</th>
+          <th>Detalle</th>
+          <th>Precio</th>
+          <th>Stock</th>
+          <th>Categoría</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let prod of obtenerProductosPaginados(); let i = index">
+          <td>{{ prod.id }}</td>
+          <td>
+            <img
+              [src]="prod.imagen ? prod.imagen : 'assets/placeholder.png'"
+              alt="Imagen de {{ prod.nombre }}"
+              class="img-thumbnail"
+              style="max-width: 100px; max-height: 100px; object-fit: cover;"
+            />
+          </td>
+          <td>{{ prod.nombre }}</td>
+          <td>{{ prod.codigoBarra }}</td>
+          <td>{{ prod.detalle }}</td>
+          <td>${{ prod.precio | number: '1.2-2' }}</td>
+          <td>{{ prod.cantidadStock }}</td>
+          <td>{{ prod.categoriaNombre || 'Sin Categoría' }}</td>
+          <td>
+            <span
+              class="badge"
+              [ngClass]="prod.activo ? 'bg-success' : 'bg-danger'"
+            >
+              {{ prod.activo ? 'Activo' : 'Inactivo' }}
+            </span>
+          </td>
+          <td>
+            <button
+              class="btn btn-sm btn-warning me-2"
+              (click)="editarProducto(prod)"
+              title="Editar producto"
+            >
+              <i class="bi bi-pencil-square"></i>
+            </button>
+            <button
+              class="btn btn-sm"
+              [ngClass]="prod.activo ? 'btn-danger' : 'btn-success'"
+              (click)="toggleEstadoProducto(prod)"
+              [title]="prod.activo ? 'Desactivar producto' : 'Activar producto'"
+            >
+              <i
+                [ngClass]="
+                  prod.activo
+                    ? 'bi bi-slash-circle'
+                    : 'bi bi-check-circle-fill'
+                "
+              ></i>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Sin productos -->
+  <ng-template #sinProductos>
+    <p class="text-center text-muted">No hay productos para mostrar.</p>
+  </ng-template>
+
+  <!-- Paginación -->
+  <nav *ngIf="totalPaginas() > 1">
+    <ul class="pagination justify-content-center mt-4">
+      <li class="page-item" [class.disabled]="paginaActual === 1">
+        <button
+          class="page-link"
+          (click)="paginaActual = paginaActual - 1"
+          [disabled]="paginaActual === 1"
+        >
+          Anterior
+        </button>
+      </li>
+      <li
+        class="page-item"
+        *ngFor="let page of [].constructor(totalPaginas()); let i = index"
+        [class.active]="paginaActual === i + 1"
+      >
+        <button class="page-link" (click)="paginaActual = i + 1">
+          {{ i + 1 }}
+        </button>
+      </li>
+      <li
+        class="page-item"
+        [class.disabled]="paginaActual === totalPaginas()"
+      >
+        <button
+          class="page-link"
+          (click)="paginaActual = paginaActual + 1"
+          [disabled]="paginaActual === totalPaginas()"
+        >
+          Siguiente
+        </button>
+      </li>
+    </ul>
+  </nav>
+</div>
+
+<!-- Modal Mejorado -->
+<div
+  class="modal fade"
+  id="productoModal"
+  tabindex="-1"
+  aria-labelledby="productoModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title" id="productoModalLabel">
+          <i class="bi bi-box-seam-fill me-2"></i>
+          {{ esEditar ? 'Editar Producto' : 'Agregar Producto' }}
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+          aria-label="Cerrar"
+        ></button>
+      </div>
+
+      <div class="modal-body">
+        <form (ngSubmit)="guardarProducto()">
+          <div class="row g-3">
+            <!-- Imagen -->
+            <div class="col-12 text-center">
+              <label class="form-label">Imagen del Producto</label>
+              <div class="mb-2">
+                <img
+                  [src]="
+                    productoSeleccionado.imagen
+                      ? productoSeleccionado.imagen
+                      : 'assets/placeholder.png'
+                  "
+                  alt="Vista previa"
+                  class="img-thumbnail"
+                  style="
+                    max-width: 200px;
+                    max-height: 200px;
+                    object-fit: cover;
+                  "
+                />
+              </div>
+              <div class="d-flex justify-content-center gap-2">
+                <input
+                  type="file"
+                  class="form-control"
+                  accept="image/jpeg,image/png"
+                  style="max-width: 200px;"
+                  (change)="onFileSelected($event)"
+                />
+                <button
+                  type="button"
+                  class="btn btn-outline-primary"
+                  (click)="abrirCamara()"
+                  *ngIf="!mostrarCamara"
+                  title="Usar cámara para tomar foto"
+                >
+                  <i class="bi bi-camera"></i> Usar Cámara
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-outline-secondary"
+                  (click)="cerrarCamara()"
+                  *ngIf="mostrarCamara"
+                  title="Cerrar cámara"
+                >
+                  <i class="bi bi-x-circle"></i> Cerrar Cámara
+                </button>
+              </div>
+              <!-- Contenedor para la cámara -->
+              <div *ngIf="mostrarCamara" class="mt-3">
+                <video
+                  id="video"
+                  autoplay
+                  style="
+                    max-width: 100%;
+                    border: 1px solid #ccc;
+                    border-radius: 4px;
+                  "
+                ></video>
+                <div class="mt-2">
+                  <button
+                    type="button"
+                    class="btn btn-primary"
+                    (click)="capturarFoto()"
+                    title="Tomar foto"
+                  >
+                    <i class="bi bi-camera-fill"></i> Tomar Foto
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Categoría -->
+            <div class="col-md-6">
+              <label class="form-label">
+                Categoría <span class="text-danger">*</span>
+              </label>
+              <select
+                class="form-control"
+                [(ngModel)]="productoSeleccionado.categoriaId"
+                name="categoriaId"
+                required
+              >
+                <option value="" disabled>Selecciona una categoría</option>
+                <option
+                  *ngFor="let categoria of categorias"
+                  [value]="categoria.id"
+                >
+                  {{ categoria.nombre }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Nombre -->
+            <div class="col-md-6">
+              <label class="form-label">
+                Nombre <span class="text-danger">*</span>
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                [(ngModel)]="productoSeleccionado.nombre"
+                name="nombre"
+                required
+              />
+            </div>
+
+            <!-- Código de Barra -->
+            <div class="col-md-6">
+              <label class="form-label">
+                Código de Barra <span class="text-danger">*</span>
+              </label>
+              <input
+                type="text"
+                class="form-control"
+                [(ngModel)]="productoSeleccionado.codigoBarra"
+                name="codigoBarra"
+                required
+              />
+            </div>
+
+            <!-- Precio -->
+            <div class="col-md-6">
+              <label class="form-label">
+                Precio <span class="text-danger">*</span>
+              </label>
+              <input
+                type="number"
+                class="form-control"
+                [(ngModel)]="productoSeleccionado.precio"
+                name="precio"
+                min="0"
+                step="0.01"
+                required
+              />
+            </div>
+
+            <!-- Stock -->
+            <div class="col-md-6">
+              <label class="form-label">
+                Stock <span class="text-danger">*</span>
+              </label>
+              <input
+                type="number"
+                class="form-control"
+                [(ngModel)]="productoSeleccionado.cantidadStock"
+                name="cantidadStock"
+                min="0"
+                required
+              />
+            </div>
+
+            <!-- Detalle -->
+            <div class="col-12">
+              <label class="form-label">Detalle</label>
+              <textarea
+                class="form-control"
+                [(ngModel)]="productoSeleccionado.detalle"
+                name="detalle"
+              ></textarea>
+            </div>
+          </div>
+        </form>
+      </div>
+
+      <div class="modal-footer bg-light">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          data-bs-dismiss="modal"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-success"
+          (click)="guardarProducto()"
+        >
+          {{ esEditar ? 'Guardar Cambios' : 'Agregar Producto' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

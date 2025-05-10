@@ -14,110 +14,117 @@ import { EditarUsuarioComponent } from './superadmin/editar-usuario/editar-usuar
 import { AdminComponent } from './admin/dashboard/dashboard.component';
 import { GestionarEmpleadosComponent } from './admin/gestionar-empleados/gestionar-empleados.component';
 import { GestionarCategoriasComponent } from './admin/gestionar-categorias/gestionar-categorias.component';
+import { GestionarProductosComponent } from './admin/gestionar-productos/gestionar-productos.component';
 
 import { EmpleadoComponent } from './empleado/dashboard/dashboard.component';
 
 import { LoginComponent } from './login/login.component';
 
 export const routes: Routes = [
-  { 
-    path: 'superadmin/editar-sucursal/:id', 
-    component: EditarSucursalComponent, 
-    canActivate: [authGuard], 
-    data: { role: 'SUPERADMINISTRADOR' } 
+  {
+    path: 'superadmin/editar-sucursal/:id',
+    component: EditarSucursalComponent,
+    canActivate: [authGuard],
+    data: { role: 'SUPERADMINISTRADOR' }
   },
-  { 
-    path: 'superadmin/editar-empresa/:id', 
-    component: EditarEmpresaComponent, 
-    canActivate: [authGuard], 
-    data: { role: 'SUPERADMINISTRADOR' } 
+  {
+    path: 'superadmin/editar-empresa/:id',
+    component: EditarEmpresaComponent,
+    canActivate: [authGuard],
+    data: { role: 'SUPERADMINISTRADOR' }
   },
-  { 
-    path: 'superadmin/ver-sucursales', 
-    component: VerSucursalesComponent, 
-    canActivate: [authGuard], 
-    data: { role: 'SUPERADMINISTRADOR' } 
+  {
+    path: 'superadmin/ver-sucursales',
+    component: VerSucursalesComponent,
+    canActivate: [authGuard],
+    data: { role: 'SUPERADMINISTRADOR' }
   },
-  { 
-    path: 'superadmin/agregar-sucursal', 
-    component: AgregarSucursalComponent, 
-    canActivate: [authGuard], 
-    data: { role: 'SUPERADMINISTRADOR' } 
+  {
+    path: 'superadmin/agregar-sucursal',
+    component: AgregarSucursalComponent,
+    canActivate: [authGuard],
+    data: { role: 'SUPERADMINISTRADOR' }
   },
-  { 
-    path: 'superadmin/ver-empresas', 
-    component: VerEmpresasComponent, 
-    canActivate: [authGuard], 
-    data: { role: 'SUPERADMINISTRADOR' } 
+  {
+    path: 'superadmin/ver-empresas',
+    component: VerEmpresasComponent,
+    canActivate: [authGuard],
+    data: { role: 'SUPERADMINISTRADOR' }
   },
-  { 
-    path: 'superadmin/crear-empresa', 
-    component: CrearEmpresaComponent, 
-    canActivate: [authGuard], 
-    data: { role: 'SUPERADMINISTRADOR' } 
+  {
+    path: 'superadmin/crear-empresa',
+    component: CrearEmpresaComponent,
+    canActivate: [authGuard],
+    data: { role: 'SUPERADMINISTRADOR' }
   },
-  { 
-    path: 'superadmin/dashboard', 
-    component: DashboardComponent, 
-    canActivate: [authGuard], 
-    data: { role: 'SUPERADMINISTRADOR' } 
+  {
+    path: 'superadmin/dashboard',
+    component: DashboardComponent,
+    canActivate: [authGuard],
+    data: { role: 'SUPERADMINISTRADOR' }
   },
-  { 
-    path: 'superadmin/crear-usuario', 
-    component: CrearUsuarioComponent, 
-    canActivate: [authGuard], 
-    data: { role: 'SUPERADMINISTRADOR' } 
+  {
+    path: 'superadmin/crear-usuario',
+    component: CrearUsuarioComponent,
+    canActivate: [authGuard],
+    data: { role: 'SUPERADMINISTRADOR' }
   },
-  { 
-    path: 'superadmin/ver-usuarios', 
-    component: VerUsuariosComponent, 
-    canActivate: [authGuard], 
-    data: { role: 'SUPERADMINISTRADOR' } 
+  {
+    path: 'superadmin/ver-usuarios',
+    component: VerUsuariosComponent,
+    canActivate: [authGuard],
+    data: { role: 'SUPERADMINISTRADOR' }
   },
-  { 
-    path: 'superadmin/editar-usuario/:id', 
-    component: EditarUsuarioComponent, 
-    canActivate: [authGuard], 
-    data: { role: 'SUPERADMINISTRADOR' } 
-  },
-
-  { 
-    path: 'admin/dashboard', 
-    component: AdminComponent, 
-    canActivate: [authGuard], 
-    data: { role: 'ADMINISTRADOR' } 
-  },
-  { 
-    path: 'admin/gestionar-empleados', 
-    component: GestionarEmpleadosComponent, 
-    canActivate: [authGuard], 
-    data: { role: 'ADMINISTRADOR' } 
-  },
-   { 
-    path: 'admin/gestionar-categorias', 
-    component: GestionarCategoriasComponent, 
-    canActivate: [authGuard], 
-    data: { role: 'ADMINISTRADOR' } 
+  {
+    path: 'superadmin/editar-usuario/:id',
+    component: EditarUsuarioComponent,
+    canActivate: [authGuard],
+    data: { role: 'SUPERADMINISTRADOR' }
   },
 
-  { 
-    path: 'empleado/dashboard', 
-    component: EmpleadoComponent, 
-    canActivate: [authGuard], 
-    data: { role: 'EMPLEADO' } 
+  {
+    path: 'admin/dashboard',
+    component: AdminComponent,
+    canActivate: [authGuard],
+    data: { role: 'ADMINISTRADOR' }
+  },
+  {
+    path: 'admin/gestionar-empleados',
+    component: GestionarEmpleadosComponent,
+    canActivate: [authGuard],
+    data: { role: 'ADMINISTRADOR' }
+  },
+  {
+    path: 'admin/gestionar-categorias',
+    component: GestionarCategoriasComponent,
+    canActivate: [authGuard],
+    data: { role: 'ADMINISTRADOR' }
+  },
+  {
+    path: 'admin/gestionar-productos',
+    component: GestionarProductosComponent,
+    canActivate: [authGuard],
+    data: { role: 'ADMINISTRADOR' }
   },
 
-  { 
-    path: 'login', 
-    component: LoginComponent 
+  {
+    path: 'empleado/dashboard',
+    component: EmpleadoComponent,
+    canActivate: [authGuard],
+    data: { role: 'EMPLEADO' }
   },
-  { 
-    path: '', 
-    redirectTo: 'superadmin/dashboard', 
-    pathMatch: 'full' 
+
+  {
+    path: 'login',
+    component: LoginComponent
   },
-  { 
-    path: '**', 
-    redirectTo: 'superadmin/dashboard' 
+  {
+    path: '',
+    redirectTo: 'superadmin/dashboard',
+    pathMatch: 'full'
+  },
+  {
+    path: '**',
+    redirectTo: 'superadmin/dashboard'
   }
 ];

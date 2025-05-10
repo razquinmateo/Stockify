@@ -11,6 +11,7 @@ import tipy.Stockify.business.repositories.SucursalRepository;
 import tipy.Stockify.business.repositories.ProductoRepository;
 import tipy.Stockify.dtos.ProductoDto;
 
+import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -46,13 +47,14 @@ public class ProductoService {
     }
 
     public ProductoDto create(ProductoDto productoDto) {
+        validateProductoDto(productoDto);
         Producto producto = mapToEntity(productoDto);
-        // Asegurar que activo sea true para nuevos productos, incluso si no se especifica
         producto.setActivo(true);
         return mapToDto(productoRepository.save(producto));
     }
 
     public ProductoDto update(Long id, ProductoDto productoDto) {
+        validateProductoDto(productoDto);
         return productoRepository.findById(id)
                 .map(existingProducto -> {
                     updateProductoFields(existingProducto, productoDto);
@@ -66,6 +68,40 @@ public class ProductoService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado con id: " + id));
         producto.setActivo(false);
         productoRepository.save(producto);
+    }
+
+    private void validateProductoDto(ProductoDto productoDto) {
+        if (productoDto.getImagen() != null && !productoDto.getImagen().isEmpty()) {
+            //validar que es un base64 válido y corresponde a una imagen
+            try {
+                //verificamos formato base64 y tipo de imagen
+                if (!productoDto.getImagen().matches("data:image/(jpeg|png);base64,.+")) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La imagen debe ser un base64 válido de tipo JPEG o PNG");
+                }
+                //decodificamos para verificar integridad
+                String base64Data = productoDto.getImagen().split(",")[1];
+                byte[] decodedBytes = Base64.getDecoder().decode(base64Data);
+                //limitamos el tamaño (5 MB)
+                if (decodedBytes.length > 5_000_000) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La imagen no debe exceder 5MB");
+                }
+            } catch (IllegalArgumentException e) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Formato de imagen base64 inválido");
+            }
+        }
+        //validamos otros campos requeridos
+        if (productoDto.getNombre() == null || productoDto.getNombre().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre del producto es requerido");
+        }
+        if (productoDto.getCodigoBarra() == null || productoDto.getCodigoBarra().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El código de barra es requerido");
+        }
+        if (productoDto.getPrecio() == null || productoDto.getPrecio() < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El precio debe ser mayor o igual a 0");
+        }
+        if (productoDto.getCantidadStock() == null || productoDto.getCantidadStock() < 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El stock debe ser mayor o igual a 0");
+        }
     }
 
     private void updateProductoFields(Producto producto, ProductoDto productoDto) {
@@ -120,7 +156,6 @@ public class ProductoService {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoría no encontrada con id: " + productoDto.getCategoriaId()));
             producto.setCategoria(categoria);
         }
-        //activo se establece explícitamente en los métodos create/update
         return producto;
     }
 
