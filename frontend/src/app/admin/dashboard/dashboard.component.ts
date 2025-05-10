@@ -27,6 +27,10 @@ export class AdminComponent implements OnInit {
       this.router.navigate(['/admin/gestionar-categorias']);
   }
 
+  gestionarProductos() {
+      this.router.navigate(['/admin/gestionar-productos']);
+    }
+
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
