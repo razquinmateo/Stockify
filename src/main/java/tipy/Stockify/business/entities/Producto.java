@@ -22,7 +22,7 @@ public class Producto {
     @Column(name = "CODIGO_BARRA", nullable = false, unique = true)
     private String codigoBarra;
 
-    @Column(name = "IMAGEN")
+    @Column(name = "IMAGEN", columnDefinition = "TEXT")
     private String imagen;
 
     @Column(name = "NOMBRE", nullable = false)
