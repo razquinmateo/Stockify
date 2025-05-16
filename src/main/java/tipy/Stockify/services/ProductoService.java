@@ -6,9 +6,11 @@ import org.springframework.http.HttpStatus;
 import tipy.Stockify.business.entities.Categoria;
 import tipy.Stockify.business.entities.Sucursal;
 import tipy.Stockify.business.entities.Producto;
+import tipy.Stockify.business.entities.Proveedor;
 import tipy.Stockify.business.repositories.CategoriaRepository;
 import tipy.Stockify.business.repositories.SucursalRepository;
 import tipy.Stockify.business.repositories.ProductoRepository;
+import tipy.Stockify.business.repositories.ProveedorRepository;
 import tipy.Stockify.dtos.ProductoDto;
 
 import java.util.Base64;
@@ -21,11 +23,17 @@ public class ProductoService {
     private final ProductoRepository productoRepository;
     private final SucursalRepository sucursalRepository;
     private final CategoriaRepository categoriaRepository;
+    private final ProveedorRepository proveedorRepository;
 
-    public ProductoService(ProductoRepository productoRepository, SucursalRepository sucursalRepository, CategoriaRepository categoriaRepository) {
+    public ProductoService(
+            ProductoRepository productoRepository,
+            SucursalRepository sucursalRepository,
+            CategoriaRepository categoriaRepository,
+            ProveedorRepository proveedorRepository) {
         this.productoRepository = productoRepository;
         this.sucursalRepository = sucursalRepository;
         this.categoriaRepository = categoriaRepository;
+        this.proveedorRepository = proveedorRepository;
     }
 
     public List<ProductoDto> getAllActive() {
@@ -56,6 +64,7 @@ public class ProductoService {
         validateProductoDto(productoDto);
         Producto producto = mapToEntity(productoDto);
         producto.setActivo(true);
+        assignProveedores(producto, productoDto.getProveedorIds());
         return mapToDto(productoRepository.save(producto));
     }
 
@@ -64,6 +73,7 @@ public class ProductoService {
         return productoRepository.findById(id)
                 .map(existingProducto -> {
                     updateProductoFields(existingProducto, productoDto);
+                    assignProveedores(existingProducto, productoDto.getProveedorIds());
                     return mapToDto(productoRepository.save(existingProducto));
                 })
                 .orElse(null);
@@ -102,6 +112,19 @@ public class ProductoService {
         }
         if (productoDto.getCantidadStock() == null || productoDto.getCantidadStock() < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El stock debe ser mayor o igual a 0");
+        }
+    }
+
+    private void assignProveedores(Producto producto, List<Long> proveedorIds) {
+        if (proveedorIds != null) {
+            // Limpiar proveedores existentes
+            producto.getProveedores().clear();
+            // Asignar nuevos proveedores
+            for (Long proveedorId : proveedorIds) {
+                Proveedor proveedor = proveedorRepository.findByIdAndActivoTrue(proveedorId)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Proveedor no encontrado con id: " + proveedorId));
+                producto.addProveedor(proveedor);
+            }
         }
     }
 
@@ -172,6 +195,9 @@ public class ProductoService {
         productoDto.setSucursalId(producto.getSucursal() != null ? producto.getSucursal().getId() : null);
         productoDto.setCategoriaId(producto.getCategoria() != null ? producto.getCategoria().getId() : null);
         productoDto.setActivo(producto.getActivo());
+        productoDto.setProveedorIds(producto.getProveedores().stream()
+                .map(Proveedor::getId)
+                .collect(Collectors.toList()));
         return productoDto;
     }
 }

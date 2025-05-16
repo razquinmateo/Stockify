@@ -54,7 +54,7 @@
     </div>
 
     <!-- Gestionar Lotes -->
-    <div class="col-md-3">
+    <div class="col-md-4">
       <div class="card shadow-sm text-center p-4 rounded-4 border-0 h-100"> <i
           class="bi bi-boxes fs-1 text-info mb-3"></i>
         <h5 class="card-title">Lotes</h5>
@@ -62,5 +62,18 @@
           (click)="gestionarLotes()">Gestionar Lotes</button>
       </div>
     </div>
+
+    <!-- Gestionar Proveedores -->
+    <div class="col-md-4">
+      <div class="card shadow-sm text-center p-4 rounded-4 border-0 h-100">
+        <i class="bi bi-truck-front-fill fs-1 text-pink mb-3" style="color: #e83e8c;"></i>
+        <h5 class="card-title">Proveedores</h5>
+        <p class="card-text">Administra el catálogo de proveedores disponibles.</p>
+        <button class="btn mt-3" style="border-color: #e83e8c; color: #e83e8c;" (click)="gestionarProveedores()">
+          Gestionar Proveedores
+        </button>
+      </div>
+    </div>
+
   </div>
 </div>

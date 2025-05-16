@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { ProductoService, Producto } from '../../services/producto.service';
+import { ProductoService, Producto, Proveedor } from '../../services/producto.service';
 import { CategoriaService, Categoria } from '../../services/categoria.service';
 import { LoteService, Lote } from '../../services/lote.service';
 import { AuthService } from '../../auth.service';
@@ -24,6 +24,7 @@ declare var bootstrap: any;
 export class GestionarProductosComponent implements OnInit {
   productos: Producto[] = [];
   categorias: Categoria[] = [];
+  proveedores: Proveedor[] = [];
   productoSeleccionado!: Producto;
   loteSeleccionado: Lote = this.resetLote();
   esEditar: boolean = false;
@@ -54,10 +55,12 @@ export class GestionarProductosComponent implements OnInit {
     if (sucursalId !== null) {
       forkJoin({
         productos: this.productoService.obtenerTodosLosProductos(),
-        categorias: this.categoriaService.obtenerTodasLasCategorias()
+        categorias: this.categoriaService.obtenerTodasLasCategorias(),
+        proveedores: this.productoService.obtenerProveedoresActivosPorSucursal(sucursalId)
       }).subscribe({
-        next: ({ productos, categorias }) => {
+        next: ({ productos, categorias, proveedores }) => {
           this.categorias = categorias.filter(cat => cat.sucursalId === sucursalId);
+          this.proveedores = proveedores;
           const categoriaRequests: Observable<any>[] = productos.map(prod =>
             prod.categoriaId
               ? this.productoService.obtenerCategoriaPorId(prod.categoriaId)
@@ -67,6 +70,12 @@ export class GestionarProductosComponent implements OnInit {
             next: (categoriaResponses) => {
               productos.forEach((prod, index) => {
                 prod.categoriaNombre = categoriaResponses[index].nombre;
+                prod.proveedorNombres = prod.proveedorIds
+                  ? prod.proveedorIds.map(id => {
+                      const proveedor = this.proveedores.find(p => p.id === id);
+                      return proveedor ? proveedor.nombre : 'Desconocido';
+                    })
+                  : [];
               });
               this.productos = productos.filter(prod => prod.sucursalId === sucursalId);
             },
@@ -82,6 +91,7 @@ export class GestionarProductosComponent implements OnInit {
     } else {
       this.productos = [];
       this.categorias = [];
+      this.proveedores = [];
       Swal.fire('Error', 'No se pudo obtener el ID de la sucursal', 'error');
     }
   }
@@ -95,7 +105,7 @@ export class GestionarProductosComponent implements OnInit {
 
   editarProducto(prod: Producto): void {
     this.esEditar = true;
-    this.productoSeleccionado = { ...prod };
+    this.productoSeleccionado = { ...prod, proveedorIds: prod.proveedorIds || [] };
     this.mostrarCamara = false;
     this.mostrarModal('productoModal');
   }
@@ -148,7 +158,7 @@ export class GestionarProductosComponent implements OnInit {
           timer: 1500,
           showConfirmButton: false
         });
-        this.cargarDatosIniciales(); // Recargar productos para actualizar stock
+        this.cargarDatosIniciales();
       },
       error: (error: HttpErrorResponse) => {
         let errorMessage = 'Error al agregar el lote';
@@ -237,7 +247,22 @@ export class GestionarProductosComponent implements OnInit {
           this.cerrarCamara();
         },
         error: (err: HttpErrorResponse) => {
-          Swal.fire('Error', err.error.message || 'No se pudo actualizar el producto', 'error');
+          let errorMessage = 'No se pudo actualizar el producto';
+          if (err.status === 400) {
+            errorMessage = err.error || 'Error en los datos proporcionados';
+          } else if (err.status === 403) {
+            errorMessage = 'Acceso denegado. Por favor, inicia sesión nuevamente.';
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: errorMessage,
+            }).then(() => {
+              this.authService.logout();
+              this.router.navigate(['/login']);
+            });
+            return;
+          }
+          Swal.fire('Error', errorMessage, 'error');
         }
       });
     } else {
@@ -249,7 +274,22 @@ export class GestionarProductosComponent implements OnInit {
           this.cerrarCamara();
         },
         error: (err: HttpErrorResponse) => {
-          Swal.fire('Error', err.error.message || 'No se pudo agregar el producto', 'error');
+          let errorMessage = 'No se pudo agregar el producto';
+          if (err.status === 400) {
+            errorMessage = err.error || 'Error en los datos proporcionados';
+          } else if (err.status === 403) {
+            errorMessage = 'Acceso denegado. Por favor, inicia sesión nuevamente.';
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: errorMessage,
+            }).then(() => {
+              this.authService.logout();
+              this.router.navigate(['/login']);
+            });
+            return;
+          }
+          Swal.fire('Error', errorMessage, 'error');
         }
       });
     }
@@ -271,7 +311,8 @@ export class GestionarProductosComponent implements OnInit {
       cantidadStock: 0,
       sucursalId: this.authService.getSucursalId() || 0,
       categoriaId: 0,
-      activo: true
+      activo: true,
+      proveedorIds: []
     };
   }
 
@@ -293,7 +334,8 @@ export class GestionarProductosComponent implements OnInit {
       prod.detalle.toLowerCase().includes(this.filtro.toLowerCase()) ||
       prod.codigoBarra.includes(this.filtro) ||
       prod.id.toString().includes(this.filtro) ||
-      (prod.categoriaNombre && prod.categoriaNombre.toLowerCase().includes(this.filtro.toLowerCase()))
+      (prod.categoriaNombre && prod.categoriaNombre.toLowerCase().includes(this.filtro.toLowerCase())) ||
+      (prod.proveedorNombres && prod.proveedorNombres.some(nombre => nombre.toLowerCase().includes(this.filtro.toLowerCase())))
     ).sort((a, b) => a.id - b.id);
   }
 

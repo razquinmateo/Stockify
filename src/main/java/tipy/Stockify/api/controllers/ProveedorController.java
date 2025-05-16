@@ -31,6 +31,12 @@ public class ProveedorController {
         return new ResponseEntity<>(proveedorService.getAllIncludingInactive(), HttpStatus.OK);
     }
 
+    @GetMapping("/sucursal/{sucursalId}/activos")
+    @Operation(description = "Obtiene la lista de proveedores activos asociados a productos de una sucursal.")
+    public ResponseEntity<List<ProveedorDto>> getActiveProveedoresBySucursal(@PathVariable Long sucursalId) {
+        return new ResponseEntity<>(proveedorService.getAllActiveBySucursalId(sucursalId), HttpStatus.OK);
+    }
+
     @GetMapping("/{id}")
     @Operation(description = "Obtiene un proveedor activo por su ID.")
     public ResponseEntity<ProveedorDto> getProveedorById(@PathVariable Long id) {

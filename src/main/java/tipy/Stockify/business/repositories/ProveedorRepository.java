@@ -1,6 +1,7 @@
 package tipy.Stockify.business.repositories;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 import tipy.Stockify.business.entities.Proveedor;
 
@@ -24,4 +25,15 @@ public interface ProveedorRepository extends JpaRepository<Proveedor, Long> {
      * @return Optional con el proveedor activo, o vacío si no existe o está inactivo.
      */
     Optional<Proveedor> findByIdAndActivoTrue(Long id);
+
+    /**
+     * Encuentra proveedores activos asociados a productos de una sucursal específica.
+     *
+     * @param sucursalId ID de la sucursal.
+     * @return Lista de proveedores activos.
+     */
+    @Query("SELECT DISTINCT prov FROM Proveedor prov " +
+            "JOIN prov.productos prod " +
+            "WHERE prod.sucursal.id = :sucursalId AND prov.activo = true")
+    List<Proveedor> findByProductosSucursalIdAndActivoTrue(Long sucursalId);
 }

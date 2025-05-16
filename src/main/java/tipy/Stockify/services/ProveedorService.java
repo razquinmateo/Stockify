@@ -31,6 +31,12 @@ public class ProveedorService {
                 .collect(Collectors.toList());
     }
 
+    public List<ProveedorDto> getAllActiveBySucursalId(Long sucursalId) {
+        return proveedorRepository.findByProductosSucursalIdAndActivoTrue(sucursalId).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
     public ProveedorDto getById(Long id) {
         return proveedorRepository.findByIdAndActivoTrue(id)
                 .map(this::mapToDto)
@@ -38,13 +44,14 @@ public class ProveedorService {
     }
 
     public ProveedorDto create(ProveedorDto proveedorDto) {
+        validateProveedorDto(proveedorDto);
         Proveedor proveedor = mapToEntity(proveedorDto);
-        // Asegurar que activo sea true para nuevos proveedores, incluso si no se especifica
         proveedor.setActivo(true);
         return mapToDto(proveedorRepository.save(proveedor));
     }
 
     public ProveedorDto update(Long id, ProveedorDto proveedorDto) {
+        validateProveedorDto(proveedorDto);
         return proveedorRepository.findById(id)
                 .map(existingProveedor -> {
                     updateProveedorFields(existingProveedor, proveedorDto);
@@ -58,6 +65,15 @@ public class ProveedorService {
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Proveedor no encontrado con id: " + id));
         proveedor.setActivo(false);
         proveedorRepository.save(proveedor);
+    }
+
+    private void validateProveedorDto(ProveedorDto proveedorDto) {
+        if (proveedorDto.getRut() == null || proveedorDto.getRut().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El RUT del proveedor es requerido");
+        }
+        if (proveedorDto.getNombre() == null || proveedorDto.getNombre().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre del proveedor es requerido");
+        }
     }
 
     private void updateProveedorFields(Proveedor proveedor, ProveedorDto proveedorDto) {
@@ -88,7 +104,6 @@ public class ProveedorService {
         proveedor.setDireccion(proveedorDto.getDireccion());
         proveedor.setTelefono(proveedorDto.getTelefono());
         proveedor.setNombreVendedor(proveedorDto.getNombreVendedor());
-        //activo se establece explícitamente en los métodos create/update
         return proveedor;
     }
 

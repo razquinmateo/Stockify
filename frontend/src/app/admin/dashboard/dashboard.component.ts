@@ -7,12 +7,13 @@ import { CommonModule } from '@angular/common';
 @Component({
   selector: 'app-dashboard',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, RouterModule],
   templateUrl: './dashboard.component.html',
   styleUrls: ['./dashboard.component.css']
 })
 export class AdminComponent implements OnInit {
   nombreUsuarioLogueado: string = '';
+
   constructor(private authService: AuthService, private router: Router) { }
 
   ngOnInit(): void {
@@ -30,8 +31,13 @@ export class AdminComponent implements OnInit {
   gestionarProductos() {
     this.router.navigate(['/admin/gestionar-productos']);
   }
+
   gestionarLotes() {
     this.router.navigate(['/admin/gestionar-lotes']);
+  }
+
+  gestionarProveedores() {
+    this.router.navigate(['/admin/gestionar-proveedores']);
   }
 
   logout(): void {

@@ -43,7 +43,7 @@
 
 <!-- Contenido -->
 <div class="container py-5">
-  <h2 class="mb-4 text-center">Lista de Productos</h2>
+  <h2 class="mb-5 text-center">Lista de Productos</h2>
 
   <!-- Buscador -->
   <div class="mb-4">
@@ -64,6 +64,7 @@
           <th>Precio</th>
           <th>Stock</th>
           <th>Categoría</th>
+          <th>Proveedores</th>
           <th>Estado</th>
           <th>Acciones</th>
         </tr>
@@ -80,6 +81,7 @@
           <td>${{ prod.precio | number: '1.2-2' }}</td>
           <td>{{ prod.cantidadStock }}</td>
           <td>{{ prod.categoriaNombre || 'Sin Categoría' }}</td>
+          <td>{{ prod.proveedorNombres?.join(', ') || 'Sin Proveedores' }}</td>
           <td>
             <span class="badge" [ngClass]="prod.activo ? 'bg-success' : 'bg-danger'">
               {{ prod.activo ? 'Activo' : 'Inactivo' }}
@@ -89,22 +91,19 @@
             <button class="btn btn-sm btn-warning me-2" (click)="editarProducto(prod)" title="Editar producto">
               <i class="bi bi-pencil-square"></i>
             </button>
-
             <button class="btn btn-sm btn-primary me-2" (click)="abrirModalAgregarLote(prod)"
               title="Agregar lote para este producto">
               <i class="bi bi-box-fill"></i>
             </button>
-
             <button class="btn btn-sm" [ngClass]="prod.activo ? 'btn-danger' : 'btn-success'"
               (click)="toggleEstadoProducto(prod)" [title]="prod.activo ? 'Desactivar producto' : 'Activar producto'">
               <i [ngClass]="
-        prod.activo
-          ? 'bi bi-slash-circle'
-          : 'bi bi-check-circle-fill'
-      "></i>
+                  prod.activo
+                    ? 'bi bi-slash-circle'
+                    : 'bi bi-check-circle-fill'
+                "></i>
             </button>
           </td>
-
         </tr>
       </tbody>
     </table>
@@ -202,6 +201,17 @@
                 <option value="" disabled>Selecciona una categoría</option>
                 <option *ngFor="let categoria of categorias" [value]="categoria.id">
                   {{ categoria.nombre }}
+                </option>
+              </select>
+            </div>
+            <!-- Proveedores -->
+            <div class="col-md-6">
+              <label class="form-label">
+                Proveedores
+              </label>
+              <select class="form-select" [(ngModel)]="productoSeleccionado.proveedorIds" name="proveedorIds" multiple>
+                <option *ngFor="let proveedor of proveedores" [value]="proveedor.id">
+                  {{ proveedor.nombre }}
                 </option>
               </select>
             </div>

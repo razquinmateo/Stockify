@@ -14,6 +14,18 @@ export interface Producto {
   categoriaId: number;
   categoriaNombre?: string;
   activo: boolean;
+  proveedorIds?: number[];
+  proveedorNombres?: string[];
+}
+
+export interface Proveedor {
+  id: number;
+  rut: string;
+  nombre: string;
+  direccion: string;
+  telefono: string;
+  nombreVendedor: string;
+  activo: boolean;
 }
 
 @Injectable({
@@ -22,6 +34,7 @@ export interface Producto {
 export class ProductoService {
   private apiUrl = 'http://localhost:8080/Stockify/api/v1/productos';
   private categoriaUrl = 'http://localhost:8080/Stockify/api/v1/categorias';
+  private proveedorUrl = 'http://localhost:8080/Stockify/api/v1/proveedores';
 
   constructor(private http: HttpClient) {}
 
@@ -35,6 +48,10 @@ export class ProductoService {
 
   obtenerCategoriaPorId(categoriaId: number): Observable<any> {
     return this.http.get<any>(`${this.categoriaUrl}/${categoriaId}`);
+  }
+
+  obtenerProveedoresActivosPorSucursal(sucursalId: number): Observable<Proveedor[]> {
+    return this.http.get<Proveedor[]>(`${this.proveedorUrl}/sucursal/${sucursalId}/activos`);
   }
 
   agregarProducto(producto: Producto): Observable<Producto> {

@@ -151,7 +151,7 @@
                         </div>
                         <div class="col-md-12">
                             <label class="form-label">Producto</label> <span class="text-danger"> *</span>
-                            <select class="form-control" [(ngModel)]="loteSeleccionado.productoId" name="productoId"
+                            <select class="form-select" [(ngModel)]="loteSeleccionado.productoId" name="productoId"
                                 required>
                                 <option value="" disabled>Seleccione un producto</option>
                                 <option *ngFor="let producto of productos" [value]="producto.id">{{ producto.nombre }}

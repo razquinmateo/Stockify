@@ -2,8 +2,10 @@ package tipy.Stockify.dtos;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.persistence.Column;
-import jakarta.persistence.Id;
 import lombok.Data;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Data
 public class ProductoDto {
@@ -38,4 +40,6 @@ public class ProductoDto {
     @JsonProperty("activo")
     private Boolean activo;
 
+    @JsonProperty("proveedorIds")
+    private List<Long> proveedorIds = new ArrayList<>();
 }
