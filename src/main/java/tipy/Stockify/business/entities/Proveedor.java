@@ -1,25 +1,28 @@
 package tipy.Stockify.business.entities;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import tipy.Stockify.business.entities.enums.RolUsuario;
+import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Data
 @Table(name = "PROVEEDOR")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Proveedor {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "ID")
     private Long id;
 
-    @Column(name = "RUT")
+    @Column(name = "RUT", nullable = false, unique = true)
     private String rut;
 
-    @Column(name = "NOMBRE")
+    @Column(name = "NOMBRE", nullable = false)
     private String nombre;
 
     @Column(name = "DIRECCION")
@@ -31,9 +34,9 @@ public class Proveedor {
     @Column(name = "NOMBRE_VENDEDOR")
     private String nombreVendedor;
 
-    @ManyToMany(mappedBy = "proveedores")
-    private List<Producto> productos;
-
     @Column(name = "ACTIVO", nullable = false)
-    private boolean activo = true;
+    private Boolean activo = true;
+
+    @ManyToMany(mappedBy = "proveedores")
+    private List<Producto> productos = new ArrayList<>();
 }

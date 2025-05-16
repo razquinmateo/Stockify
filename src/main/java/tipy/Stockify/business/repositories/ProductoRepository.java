@@ -24,4 +24,5 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
      * @return Optional con el producto activo, o vacío si no existe o está inactivo.
      */
     Optional<Producto> findByIdAndActivoTrue(Long id);
+    List<Producto> findBySucursalIdAndActivoTrue(Long sucursalId);
 }

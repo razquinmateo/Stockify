@@ -29,6 +29,10 @@ export class ProductoService {
     return this.http.get<Producto[]>(`${this.apiUrl}/all`);
   }
 
+  obtenerProductosActivosPorSucursal(sucursalId: number): Observable<Producto[]> {
+    return this.http.get<Producto[]>(`${this.apiUrl}/sucursal/${sucursalId}/activos`);
+  }
+
   obtenerCategoriaPorId(categoriaId: number): Observable<any> {
     return this.http.get<any>(`${this.categoriaUrl}/${categoriaId}`);
   }

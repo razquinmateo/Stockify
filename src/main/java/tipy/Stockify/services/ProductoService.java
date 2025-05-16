@@ -40,6 +40,12 @@ public class ProductoService {
                 .collect(Collectors.toList());
     }
 
+    public List<ProductoDto> getAllActiveBySucursalId(Long sucursalId) {
+        return productoRepository.findBySucursalIdAndActivoTrue(sucursalId).stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
     public ProductoDto getById(Long id) {
         return productoRepository.findByIdAndActivoTrue(id)
                 .map(this::mapToDto)
@@ -72,16 +78,12 @@ public class ProductoService {
 
     private void validateProductoDto(ProductoDto productoDto) {
         if (productoDto.getImagen() != null && !productoDto.getImagen().isEmpty()) {
-            //validar que es un base64 válido y corresponde a una imagen
             try {
-                //verificamos formato base64 y tipo de imagen
                 if (!productoDto.getImagen().matches("data:image/(jpeg|png);base64,.+")) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La imagen debe ser un base64 válido de tipo JPEG o PNG");
                 }
-                //decodificamos para verificar integridad
                 String base64Data = productoDto.getImagen().split(",")[1];
                 byte[] decodedBytes = Base64.getDecoder().decode(base64Data);
-                //limitamos el tamaño (5 MB)
                 if (decodedBytes.length > 5_000_000) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "La imagen no debe exceder 5MB");
                 }
@@ -89,7 +91,6 @@ public class ProductoService {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Formato de imagen base64 inválido");
             }
         }
-        //validamos otros campos requeridos
         if (productoDto.getNombre() == null || productoDto.getNombre().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre del producto es requerido");
         }
@@ -170,7 +171,7 @@ public class ProductoService {
         productoDto.setCantidadStock(producto.getCantidadStock());
         productoDto.setSucursalId(producto.getSucursal() != null ? producto.getSucursal().getId() : null);
         productoDto.setCategoriaId(producto.getCategoria() != null ? producto.getCategoria().getId() : null);
-        productoDto.setActivo(producto.isActivo());
+        productoDto.setActivo(producto.getActivo());
         return productoDto;
     }
 }

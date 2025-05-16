@@ -1,25 +1,18 @@
 package tipy.Stockify.dtos;
 
-import com.fasterxml.jackson.annotation.JsonProperty;
-import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 
 import java.time.LocalDate;
 
-@Data
+@Getter
+@Setter
 public class LoteDto {
-
-    @JsonProperty("id")
     private Long id;
-
-    @JsonProperty("numeroLote")
     private String numeroLote;
-
-    @JsonProperty("fechaIngreso")
     private LocalDate fechaIngreso;
-
-    @JsonProperty("fechaVencimiento")
     private LocalDate fechaVencimiento;
-
-    @JsonProperty("activo")
+    private Integer cantidadStock;
     private Boolean activo;
+    private Long productoId;
 }

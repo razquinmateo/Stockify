@@ -100,7 +100,7 @@ public class ProveedorService {
         proveedorDto.setDireccion(proveedor.getDireccion());
         proveedorDto.setTelefono(proveedor.getTelefono());
         proveedorDto.setNombreVendedor(proveedor.getNombreVendedor());
-        proveedorDto.setActivo(proveedor.isActivo());
+        proveedorDto.setActivo(proveedor.getActivo());
         return proveedorDto;
     }
 }

@@ -13,7 +13,7 @@
           <button class="btn btn-link nav-link" (click)="abrirModalAgregar()" type="button">
             <i class="bi bi-plus-circle me-1"></i> Agregar Empleado
           </button>
-        </li>        
+        </li>
       </ul>
     </div>
     <div class="d-flex align-items-center">
@@ -26,7 +26,7 @@
       <button class="btn btn-outline-light btn-sm" (click)="logout()">
         <i class="bi bi-box-arrow-right me-1"></i>
         Cerrar sesión
-      </button>   
+      </button>
     </div>
   </div>
 </nav>
@@ -37,23 +37,16 @@
 
   <!-- Buscador -->
   <div class="mb-4">
-    <input
-      type="text"
-      class="form-control"
-      placeholder="Buscar por nombre, apellido o usuario..."
-      [(ngModel)]="filtro"
-    />
+    <input type="text" class="form-control" placeholder="Buscar por nombre, apellido o usuario..."
+      [(ngModel)]="filtro" />
   </div>
 
   <!-- Tabla -->
   <div class="table-responsive">
-    <table
-      class="table table-bordered text-center align-middle"
-      *ngIf="filtrarEmpleados().length > 0; else sinEmpleados"
-    >
+    <table class="table table-bordered text-center align-middle"
+      *ngIf="filtrarEmpleados().length > 0; else sinEmpleados">
       <thead class="table-dark">
         <tr>
-          <th>ID</th>
           <th>Nombre</th>
           <th>Apellido</th>
           <th>Usuario</th>
@@ -62,10 +55,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr
-          *ngFor="let emp of obtenerEmpleadosPaginados(); let i = index"
-        >
-          <td>{{ emp.id }}</td>
+        <tr *ngFor="let emp of obtenerEmpleadosPaginados(); let i = index">
           <td>{{ emp.nombre }}</td>
           <td>{{ emp.apellido }}</td>
           <td>{{ emp.nombreUsuario }}</td>
@@ -78,11 +68,8 @@
             <button class="btn btn-sm btn-warning me-2" (click)="editarEmpleado(emp)">
               <i class="bi bi-pencil-square"></i>
             </button>
-            <button
-              class="btn btn-sm"
-              [ngClass]="emp.activo ? 'btn-danger' : 'btn-success'"
-              (click)="toggleEstadoEmpleado(emp)"
-            >
+            <button class="btn btn-sm" [ngClass]="emp.activo ? 'btn-danger' : 'btn-success'"
+              (click)="toggleEstadoEmpleado(emp)">
               <i [ngClass]="emp.activo ? 'bi bi-slash-circle' : 'bi bi-check-circle-fill'"></i>
             </button>
           </td>
@@ -104,20 +91,20 @@
           Anterior
         </button>
       </li>
-  
-      <li class="page-item"
-          *ngFor="let page of [].constructor(totalPaginas()); let i = index"
-          [class.active]="paginaActual === i + 1">
+
+      <li class="page-item" *ngFor="let page of [].constructor(totalPaginas()); let i = index"
+        [class.active]="paginaActual === i + 1">
         <button class="page-link" (click)="paginaActual = i + 1">{{ i + 1 }}</button>
       </li>
-  
+
       <li class="page-item" [class.disabled]="paginaActual === totalPaginas()">
-        <button class="page-link" (click)="paginaActual = paginaActual + 1" [disabled]="paginaActual === totalPaginas()">
+        <button class="page-link" (click)="paginaActual = paginaActual + 1"
+          [disabled]="paginaActual === totalPaginas()">
           Siguiente
         </button>
       </li>
     </ul>
-  </nav>  
+  </nav>
 </div>
 
 <!-- Modal Mejorado -->
@@ -145,11 +132,13 @@
             </div>
             <div class="col-md-6">
               <label class="form-label">Usuario</label>
-              <input type="text" class="form-control" [(ngModel)]="empleadoSeleccionado.nombreUsuario" name="nombreUsuario">
+              <input type="text" class="form-control" [(ngModel)]="empleadoSeleccionado.nombreUsuario"
+                name="nombreUsuario">
             </div>
             <div class="col-md-6" *ngIf="!esEditar">
               <label class="form-label">Contraseña</label>
-              <input type="password" class="form-control" [(ngModel)]="empleadoSeleccionado.contrasenia" name="contrasenia">
+              <input type="password" class="form-control" [(ngModel)]="empleadoSeleccionado.contrasenia"
+                name="contrasenia">
             </div>
           </div>
         </form>

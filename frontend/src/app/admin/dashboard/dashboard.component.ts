@@ -30,6 +30,9 @@ export class AdminComponent implements OnInit {
   gestionarProductos() {
     this.router.navigate(['/admin/gestionar-productos']);
   }
+  gestionarLotes() {
+    this.router.navigate(['/admin/gestionar-lotes']);
+  }
 
   logout(): void {
     this.authService.logout();

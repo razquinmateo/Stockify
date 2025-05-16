@@ -31,6 +31,12 @@ public class ProductoController {
         return new ResponseEntity<>(productoService.getAllIncludingInactive(), HttpStatus.OK);
     }
 
+    @GetMapping("/sucursal/{sucursalId}/activos")
+    @Operation(description = "Obtiene la lista de productos activos asociados a una sucursal.")
+    public ResponseEntity<List<ProductoDto>> getActiveProductosBySucursal(@PathVariable Long sucursalId) {
+        return new ResponseEntity<>(productoService.getAllActiveBySucursalId(sucursalId), HttpStatus.OK);
+    }
+
     @GetMapping("/{id}")
     @Operation(description = "Obtiene un producto activo por su ID.")
     public ResponseEntity<ProductoDto> getProductoById(@PathVariable Long id) {

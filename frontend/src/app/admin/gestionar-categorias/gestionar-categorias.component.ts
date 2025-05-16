@@ -18,10 +18,9 @@ declare var bootstrap: any;
 })
 export class GestionarCategoriasComponent implements OnInit {
   categorias: Categoria[] = [];
-  categoriaSeleccionada: Categoria = this.resetCategoria();
+  categoriaSeleccionada!: Categoria;
   esEditar: boolean = false;
 
-  // Filtros y paginación
   filtro: string = '';
   paginaActual: number = 1;
   elementosPorPagina: number = 5;
@@ -30,31 +29,37 @@ export class GestionarCategoriasComponent implements OnInit {
   constructor(private categoriaService: CategoriaService, private authService: AuthService, private router: Router) {}
 
   ngOnInit(): void {
+    this.categoriaSeleccionada = this.resetCategoria();
     this.obtenerCategorias();
     this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
   }
 
-//   obtenerCategorias(): void {
-//     this.categoriaService.obtenerTodasLasCategorias().subscribe(data => this.categorias = data);
-//   }
 
   obtenerCategorias(): void {
     const sucursalId = this.authService.getSucursalId();
     if (sucursalId !== null) {
-      this.categoriaService.obtenerTodasLasCategorias().subscribe(data => {
-        // Filtra las categorías por sucursal
-        this.categorias = data.filter(cat => cat.sucursalId === sucursalId);
+      this.categoriaService.obtenerTodasLasCategorias().subscribe({
+        next: (data) => {
+          this.categorias = data.filter(cat => cat.sucursalId === sucursalId);
+        },
+        error: (err) => {
+          console.error('Error al obtener categorías:', err);
+          Swal.fire('Error', 'No se pudieron cargar las categorías.', 'error');
+        }
       });
     } else {
-      // Si no hay sucursal, puedes mostrar vacío o un error
       this.categorias = [];
-      console.error('No se pudo obtener el ID de la sucursal');
+      Swal.fire('Error', 'No se pudo determinar la sucursal.', 'error');
     }
   }
 
   abrirModalAgregar(): void {
     this.esEditar = false;
     this.categoriaSeleccionada = this.resetCategoria();
+    if (!this.categoriaSeleccionada.sucursalId) {
+      Swal.fire('Error', 'No se pudo determinar la sucursal.', 'error');
+      return;
+    }
     this.mostrarModal();
   }
 
@@ -79,12 +84,16 @@ export class GestionarCategoriasComponent implements OnInit {
       if (result.isConfirmed) {
         const categoriaActualizada = { ...cat, activo: nuevoEstado };
         this.categoriaService.actualizarCategoria(categoriaActualizada).subscribe({
-          next: () => {
+          next: (categoria: Categoria) => {
+            const index = this.categorias.findIndex(c => c.id === categoria.id);
+            if (index !== -1) {
+              this.categorias[index] = categoria;
+            }
             Swal.fire('Éxito', `Categoría ${accion}a correctamente`, 'success');
-            this.obtenerCategorias();
           },
-          error: () => {
-            Swal.fire('Error', `No se pudo ${accion} la categoría`, 'error');
+          error: (err: any) => {
+            console.error('Error al cambiar estado:', err);
+            Swal.fire('Error', `No se pudo ${accion} la categoría: ${err.message || 'Error desconocido'}`, 'error');
           }
         });
       }
@@ -94,26 +103,36 @@ export class GestionarCategoriasComponent implements OnInit {
   guardarCategoria(): void {
     const modal = bootstrap.Modal.getInstance(document.getElementById('categoriaModal'));
 
+    if (!this.categoriaSeleccionada.nombre || !this.categoriaSeleccionada.sucursalId) {
+      Swal.fire('Error', 'El nombre y la sucursal son obligatorios.', 'error');
+      return;
+    }
+
     if (this.esEditar) {
       this.categoriaService.actualizarCategoria(this.categoriaSeleccionada).subscribe({
-        next: () => {
+        next: (categoriaActualizada: Categoria) => {
+          const index = this.categorias.findIndex(c => c.id === categoriaActualizada.id);
+          if (index !== -1) {
+            this.categorias[index] = categoriaActualizada;
+          }
           modal.hide();
           Swal.fire('Actualizada', 'La categoría ha sido actualizada', 'success');
-          this.obtenerCategorias();
         },
-        error: () => {
-          Swal.fire('Error', 'No se pudo actualizar la categoría', 'error');
+        error: (err: any) => {
+          console.error('Error al actualizar:', err);
+          Swal.fire('Error', `No se pudo actualizar la categoría: ${err.message || 'Error desconocido'}`, 'error');
         }
       });
     } else {
       this.categoriaService.agregarCategoria(this.categoriaSeleccionada).subscribe({
-        next: () => {
+        next: (nuevaCategoria: Categoria) => {
+          this.categorias.push(nuevaCategoria);
           modal.hide();
           Swal.fire('Agregada', 'La categoría ha sido agregada', 'success');
-          this.obtenerCategorias();
         },
-        error: () => {
-          Swal.fire('Error', 'No se pudo agregar la categoría', 'error');
+        error: (err: any) => {
+          console.error('Error al agregar:', err);
+          Swal.fire('Error', `No se pudo agregar la categoría: ${err.message || 'Error desconocido'}`, 'error');
         }
       });
     }
@@ -129,36 +148,29 @@ export class GestionarCategoriasComponent implements OnInit {
       id: 0,
       nombre: '',
       descripcion: '',
-      sucursalId: 0,
+      sucursalId: this.authService.getSucursalId() || 0,
       activo: true
     };
   }
 
-  // ✅ Filtrado de categorías
   filtrarCategorias(): Categoria[] {
     return this.categorias.filter(cat =>
       cat.nombre.toLowerCase().includes(this.filtro.toLowerCase()) ||
-      cat.descripcion.toLowerCase().includes(this.filtro.toLowerCase()) ||
-      cat.id.toString().includes(this.filtro.toLowerCase())
-    )
-    .sort((a, b) => a.id - b.id); // Orden ascendente por ID
+      cat.descripcion.toLowerCase().includes(this.filtro.toLowerCase())
+    ).sort((a, b) => a.id - b.id);
   }
 
-  // ✅ Paginación de categorías
   obtenerCategoriasPaginadas(): Categoria[] {
     const inicio = (this.paginaActual - 1) * this.elementosPorPagina;
     return this.filtrarCategorias().slice(inicio, inicio + this.elementosPorPagina);
   }
 
-  // ✅ Total de páginas
   totalPaginas(): number {
     return Math.ceil(this.filtrarCategorias().length / this.elementosPorPagina);
   }
 
-cerrarSesion(): void {
-    console.log('🔒 Cerrando sesión...');
+  cerrarSesion(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
   }
-
 }

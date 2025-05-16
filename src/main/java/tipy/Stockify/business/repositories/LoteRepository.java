@@ -24,4 +24,7 @@ public interface LoteRepository extends JpaRepository<Lote, Long> {
      * @return Optional con el lote activo, o vacío si no existe o está inactivo.
      */
     Optional<Lote> findByIdAndActivoTrue(Long id);
+
+    List<Lote> findByProducto_Sucursal_IdAndActivoTrue(Long sucursalId);
+    List<Lote> findByProducto_Sucursal_Id(Long sucursalId);
 }

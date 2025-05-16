@@ -1,0 +1,172 @@
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
+    <div class="container-fluid">
+        <span class="navbar-brand mb-0 h1">Stockify - Lotes</span>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" routerLink="/admin/dashboard">
+                        <i class="bi bi-house-door-fill me-1"></i> Inicio
+                    </a>
+                </li>
+                <li class="nav-item">
+                    <button class="btn btn-link nav-link" (click)="abrirModalAgregar()" type="button">
+                        <i class="bi bi-plus-circle me-1"></i> Agregar Lote
+                    </button>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" [routerLink]="'/admin/gestionar-productos'">
+                        <i class="bi bi-house-door-fill me-1"></i> Ver Productos
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="d-flex align-items-center">
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3">
+                    <i class="bi bi-person-circle me-1"></i>
+                    {{ nombreUsuarioLogueado }}
+                </span>
+            </div>
+            <button class="btn btn-outline-light btn-sm" (click)="logout()">
+                <i class="bi bi-box-arrow-right me-1"></i>
+                Cerrar sesión
+            </button>
+        </div>
+    </div>
+</nav>
+
+<!-- Contenido -->
+<div class="container py-5">
+    <h2 class="mb-4 text-center">Lista de Lotes</h2>
+
+    <!-- Buscador -->
+    <div class="mb-4">
+        <input type="text" class="form-control" placeholder="Buscar por número de lote..." [(ngModel)]="filtro"
+            (ngModelChange)="filtrarLotes()" />
+    </div>
+
+    <!-- Tabla -->
+    <div class="table-responsive">
+        <table class="table table-bordered text-center align-middle" *ngIf="lotesFiltrados.length > 0; else sinLotes">
+            <thead class="table-dark">
+                <tr>
+                    <th>Número de Lote</th>
+                    <th>Fecha de Ingreso</th>
+                    <th>Fecha de Vencimiento</th>
+                    <th>Cantidad Stock</th>
+                    <th>Producto</th>
+                    <th>Estado</th>
+                    <th>Acciones</th>
+                </tr>
+            </thead>
+            <tbody>
+                <tr *ngFor="let lote of obtenerLotesPaginados(); let i = index">
+                    <td>{{ lote.numeroLote }}</td>
+                    <td>{{ lote.fechaIngreso | date:'dd/MM/yyyy' }}</td>
+                    <td>{{ lote.fechaVencimiento ? (lote.fechaVencimiento | date:'dd/MM/yyyy') : 'Sin vencimiento' }}
+                    </td>
+                    <td>{{ lote.cantidadStock }}</td>
+                    <td>{{ getProductoNombre(lote.productoId) || 'Sin producto' }}</td>
+                    <td>
+                        <span class="badge" [ngClass]="lote.activo ? 'bg-success' : 'bg-danger'">
+                            {{ lote.activo ? 'Activo' : 'Inactivo' }}
+                        </span>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-warning me-2" (click)="editarLote(lote)">
+                            <i class="bi bi-pencil-square"></i>
+                        </button>
+                        <button class="btn btn-sm" [ngClass]="lote.activo ? 'btn-danger' : 'btn-success'"
+                            (click)="toggleEstadoLote(lote)">
+                            <i [ngClass]="lote.activo ? 'bi bi-slash-circle' : 'bi bi-check-circle-fill'"></i>
+                        </button>
+                    </td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+
+    <!-- Sin lotes -->
+    <ng-template #sinLotes>
+        <p class="text-center text-muted">No hay lotes para mostrar.</p>
+    </ng-template>
+
+    <!-- Paginación -->
+    <nav *ngIf="totalPaginas() > 1">
+        <ul class="pagination justify-content-center mt-4">
+            <li class="page-item" [class.disabled]="paginaActual === 1">
+                <button class="page-link" (click)="paginaActual = paginaActual - 1" [disabled]="paginaActual === 1">
+                    Anterior
+                </button>
+            </li>
+            <li class="page-item" *ngFor="let page of [].constructor(totalPaginas()); let i = index"
+                [class.active]="paginaActual === i + 1">
+                <button class="page-link" (click)="paginaActual = i + 1">{{ i + 1 }}</button>
+            </li>
+            <li class="page-item" [class.disabled]="paginaActual === totalPaginas()">
+                <button class="page-link" (click)="paginaActual = paginaActual + 1"
+                    [disabled]="paginaActual === totalPaginas()">
+                    Siguiente
+                </button>
+            </li>
+        </ul>
+    </nav>
+</div>
+
+<!-- Modal Mejorado -->
+<div class="modal fade" id="loteModal" tabindex="-1" aria-labelledby="loteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-dark text-white">
+                <h5 class="modal-title" id="loteModalLabel">
+                    <i class="bi bi-box-fill me-2"></i>
+                    {{ esEditar ? 'Editar Lote' : 'Agregar Lote' }}
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"
+                    aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+                <form>
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Número de Lote</label> <span class="text-danger"> *</span>
+                            <input type="text" class="form-control" [(ngModel)]="loteSeleccionado.numeroLote"
+                                name="numeroLote" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de Ingreso</label> <span class="text-danger"> *</span>
+                            <input type="date" class="form-control" [(ngModel)]="loteSeleccionado.fechaIngreso"
+                                name="fechaIngreso" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de Vencimiento</label>
+                            <input type="date" class="form-control" [(ngModel)]="loteSeleccionado.fechaVencimiento"
+                                name="fechaVencimiento">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Cantidad de Stock</label> <span class="text-danger"> *</span>
+                            <input type="number" class="form-control" [(ngModel)]="loteSeleccionado.cantidadStock"
+                                name="cantidadStock" min="0" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Producto</label> <span class="text-danger"> *</span>
+                            <select class="form-control" [(ngModel)]="loteSeleccionado.productoId" name="productoId"
+                                required>
+                                <option value="" disabled>Seleccione un producto</option>
+                                <option *ngFor="let producto of productos" [value]="producto.id">{{ producto.nombre }}
+                                </option>
+                            </select>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer bg-light">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-success" (click)="guardarLote()">
+                    {{ esEditar ? 'Guardar Cambios' : 'Agregar Lote' }}
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

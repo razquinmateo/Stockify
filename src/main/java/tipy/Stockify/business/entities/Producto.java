@@ -1,66 +1,79 @@
 package tipy.Stockify.business.entities;
 
 import jakarta.persistence.*;
-import lombok.Data;
-import tipy.Stockify.business.entities.enums.RolUsuario;
+import lombok.*;
 
+import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Data
 @Table(name = "PRODUCTO")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
 public class Producto {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
-    @Column(name = "ID")
     private Long id;
 
-    @Column(name = "CODIGO_BARRA")
+    @Column(name = "CODIGO_BARRA", nullable = false, unique = true)
     private String codigoBarra;
 
-    @Column(name = "IMAGEN", columnDefinition = "TEXT")
+    @Column(name = "IMAGEN")
     private String imagen;
 
-    @Column(name = "NOMBRE")
+    @Column(name = "NOMBRE", nullable = false)
     private String nombre;
 
     @Column(name = "DETALLE")
     private String detalle;
 
-    @Column(name = "PRECIO")
-    private float precio;
+    @Column(name = "PRECIO", nullable = false)
+    private Float precio;
 
-    @Column(name = "CANTIDAD_STOCK")
+    @Column(name = "CANTIDAD_STOCK", nullable = false)
     private Long cantidadStock;
 
-    @ManyToOne
-    @JoinColumn(name = "SUCURSAL_ID")
+    @Column(name = "ACTIVO", nullable = false)
+    private Boolean activo;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "SUCURSAL_ID", nullable = false)
     private Sucursal sucursal;
 
-    @ManyToOne
-    @JoinColumn(name = "CATEGORIA_ID")
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "CATEGORIA_ID", nullable = false)
     private Categoria categoria;
 
-    @ManyToMany(mappedBy = "productos")
-    private List<Conteo> conteos;
-
-    @ManyToMany
-    @JoinTable(
-            name = "PRODUCTO_LOTE",
-            joinColumns = @JoinColumn(name = "PRODUCTO_ID"),
-            inverseJoinColumns = @JoinColumn(name = "LOTE_ID")
-    )
-    private List<Lote> lotes;
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Lote> lotes = new ArrayList<>();
 
     @ManyToMany
     @JoinTable(
             name = "PRODUCTO_PROVEEDOR",
-            joinColumns = @JoinColumn(name = "PRODUCTO_ID"),
-            inverseJoinColumns = @JoinColumn(name = "PROVEEDOR_ID")
+            joinColumns = @JoinColumn(name = "producto_id"),
+            inverseJoinColumns = @JoinColumn(name = "proveedor_id")
     )
-    private List<Proveedor> proveedores;
+    private List<Proveedor> proveedores = new ArrayList<>();
 
-    @Column(name = "ACTIVO", nullable = false)
-    private boolean activo = true;
+    public void addLote(Lote lote) {
+        lotes.add(lote);
+        lote.setProducto(this);
+    }
+
+    public void removeLote(Lote lote) {
+        lotes.remove(lote);
+        lote.setProducto(null);
+    }
+
+    public void addProveedor(Proveedor proveedor) {
+        proveedores.add(proveedor);
+    }
+
+    public void removeProveedor(Proveedor proveedor) {
+        proveedores.remove(proveedor);
+    }
 }

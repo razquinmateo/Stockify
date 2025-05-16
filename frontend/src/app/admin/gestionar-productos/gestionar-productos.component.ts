@@ -4,10 +4,11 @@ import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { ProductoService, Producto } from '../../services/producto.service';
 import { CategoriaService, Categoria } from '../../services/categoria.service';
+import { LoteService, Lote } from '../../services/lote.service';
 import { AuthService } from '../../auth.service';
 import { Router } from '@angular/router';
 import Swal from 'sweetalert2';
-import { Observable, of } from 'rxjs'; // Import 'of' from RxJS
+import { Observable, of } from 'rxjs';
 import { forkJoin } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
 
@@ -24,6 +25,7 @@ export class GestionarProductosComponent implements OnInit {
   productos: Producto[] = [];
   categorias: Categoria[] = [];
   productoSeleccionado!: Producto;
+  loteSeleccionado: Lote = this.resetLote();
   esEditar: boolean = false;
   filtro: string = '';
   paginaActual: number = 1;
@@ -36,6 +38,7 @@ export class GestionarProductosComponent implements OnInit {
   constructor(
     private productoService: ProductoService,
     private categoriaService: CategoriaService,
+    private loteService: LoteService,
     private authService: AuthService,
     private router: Router
   ) { }
@@ -49,19 +52,16 @@ export class GestionarProductosComponent implements OnInit {
   cargarDatosIniciales(): void {
     const sucursalId = this.authService.getSucursalId();
     if (sucursalId !== null) {
-      // Cargar productos y categorías en paralelo
       forkJoin({
         productos: this.productoService.obtenerTodosLosProductos(),
         categorias: this.categoriaService.obtenerTodasLasCategorias()
       }).subscribe({
         next: ({ productos, categorias }) => {
-          // Filtrar categorías por sucursalId
           this.categorias = categorias.filter(cat => cat.sucursalId === sucursalId);
-          // Asignar nombres de categorías a productos
           const categoriaRequests: Observable<any>[] = productos.map(prod =>
             prod.categoriaId
               ? this.productoService.obtenerCategoriaPorId(prod.categoriaId)
-              : of({ nombre: 'Sin Categoría' }) // Return Observable with fallback
+              : of({ nombre: 'Sin Categoría' })
           );
           forkJoin(categoriaRequests).subscribe({
             next: (categoriaResponses) => {
@@ -90,14 +90,94 @@ export class GestionarProductosComponent implements OnInit {
     this.esEditar = false;
     this.productoSeleccionado = this.resetProducto();
     this.mostrarCamara = false;
-    this.mostrarModal();
+    this.mostrarModal('productoModal');
   }
 
   editarProducto(prod: Producto): void {
     this.esEditar = true;
     this.productoSeleccionado = { ...prod };
     this.mostrarCamara = false;
-    this.mostrarModal();
+    this.mostrarModal('productoModal');
+  }
+
+  abrirModalAgregarLote(prod: Producto): void {
+    this.loteSeleccionado = this.resetLote();
+    this.loteSeleccionado.productoId = prod.id;
+    this.mostrarModal('loteModal');
+  }
+
+  guardarLote(): void {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('loteModal'));
+    if (!this.loteSeleccionado.numeroLote || !this.loteSeleccionado.fechaIngreso) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Campos requeridos',
+        text: 'El número de lote y la fecha de ingreso son obligatorios',
+      });
+      return;
+    }
+    if (this.loteSeleccionado.cantidadStock == null || this.loteSeleccionado.cantidadStock < 0) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Cantidad inválida',
+        text: 'La cantidad de stock debe ser mayor o igual a 0',
+      });
+      return;
+    }
+    if (!this.loteSeleccionado.productoId) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Producto requerido',
+        text: 'Debe estar asociado a un producto',
+      });
+      return;
+    }
+
+    const loteData: Lote = {
+      ...this.loteSeleccionado,
+      activo: true
+    };
+
+    this.loteService.agregarLote(loteData).subscribe({
+      next: () => {
+        modal.hide();
+        Swal.fire({
+          icon: 'success',
+          title: 'Lote agregado',
+          text: 'El lote ha sido agregado correctamente',
+          timer: 1500,
+          showConfirmButton: false
+        });
+        this.cargarDatosIniciales(); // Recargar productos para actualizar stock
+      },
+      error: (error: HttpErrorResponse) => {
+        let errorMessage = 'Error al agregar el lote';
+        if (error.status === 403) {
+          errorMessage = 'Acceso denegado. Por favor, inicia sesión nuevamente.';
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: errorMessage,
+          }).then(() => {
+            this.authService.logout();
+            this.router.navigate(['/login']);
+          });
+        } else if (error.status === 400) {
+          errorMessage = error.error || 'Error en los datos proporcionados';
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: errorMessage,
+          });
+        } else {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: `${errorMessage}: ${error.message}`,
+          });
+        }
+      }
+    });
   }
 
   toggleEstadoProducto(prod: Producto): void {
@@ -128,19 +208,17 @@ export class GestionarProductosComponent implements OnInit {
 
   guardarProducto(): void {
     const modal = bootstrap.Modal.getInstance(document.getElementById('productoModal'));
-    // Validar campos requeridos
     if (!this.productoSeleccionado.nombre ||
-      !this.productoSeleccionado.codigoBarra ||
-      this.productoSeleccionado.categoriaId === 0 ||
-      this.productoSeleccionado.precio < 0 ||
-      this.productoSeleccionado.cantidadStock < 0) {
+        !this.productoSeleccionado.codigoBarra ||
+        this.productoSeleccionado.categoriaId === 0 ||
+        this.productoSeleccionado.precio < 0 ||
+        this.productoSeleccionado.cantidadStock < 0) {
       Swal.fire('Error', 'Por favor completa todos los campos requeridos correctamente', 'error');
       return;
     }
-    // Validar imagen
     if (this.productoSeleccionado.imagen) {
       const imgSizeBytes = atob(this.productoSeleccionado.imagen.split(',')[1]).length;
-      if (imgSizeBytes > 1_000_000) { // 1MB limit
+      if (imgSizeBytes > 1_000_000) {
         Swal.fire('Error', 'La imagen no debe exceder 1MB', 'error');
         return;
       }
@@ -177,8 +255,8 @@ export class GestionarProductosComponent implements OnInit {
     }
   }
 
-  mostrarModal(): void {
-    const modal = new bootstrap.Modal(document.getElementById('productoModal'));
+  mostrarModal(modalId: string): void {
+    const modal = new bootstrap.Modal(document.getElementById(modalId));
     modal.show();
   }
 
@@ -194,6 +272,18 @@ export class GestionarProductosComponent implements OnInit {
       sucursalId: this.authService.getSucursalId() || 0,
       categoriaId: 0,
       activo: true
+    };
+  }
+
+  resetLote(): Lote {
+    return {
+      id: 0,
+      numeroLote: '',
+      fechaIngreso: '',
+      fechaVencimiento: null,
+      cantidadStock: 0,
+      activo: true,
+      productoId: null
     };
   }
 
@@ -225,9 +315,9 @@ export class GestionarProductosComponent implements OnInit {
     const input = event.target as HTMLInputElement;
     if (input.files && input.files[0]) {
       const file = input.files[0];
-      if (file.size > 1_000_000) { // 1MB limit
+      if (file.size > 1_000_000) {
         Swal.fire('Error', 'La imagen no debe exceder 1MB', 'error');
-        input.value = ''; // Clear input
+        input.value = '';
         return;
       }
       const reader = new FileReader();
@@ -275,7 +365,7 @@ export class GestionarProductosComponent implements OnInit {
         ctx.drawImage(this.videoElement, 0, 0);
         const imageData = this.canvas.toDataURL('image/jpeg');
         const imgSizeBytes = atob(imageData.split(',')[1]).length;
-        if (imgSizeBytes > 1_000_000) { // 1MB limit
+        if (imgSizeBytes > 1_000_000) {
           Swal.fire('Error', 'La imagen capturada no debe exceder 1MB', 'error');
           return;
         }
