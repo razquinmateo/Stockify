@@ -2,7 +2,8 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { ProveedorService, SucursalProveedor, Proveedor } from '../../services/proveedor.service';
+import { ProveedorService, Proveedor } from '../../services/proveedor.service';
+import { ProductoService, Producto } from '../../services/producto.service';
 import { AuthService } from '../../auth.service';
 import { Router } from '@angular/router';
 import Swal from 'sweetalert2';
@@ -19,8 +20,9 @@ declare var bootstrap: any;
   styleUrls: ['./gestionar-proveedores.component.css']
 })
 export class GestionarProveedoresComponent implements OnInit {
-  proveedoresAsociados: SucursalProveedor[] = [];
+  proveedores: Proveedor[] = [];
   proveedorSeleccionado: Proveedor = this.resetProveedor();
+  productos: Producto[] = [];
   esEditar: boolean = false;
   filtro: string = '';
   paginaActual: number = 1;
@@ -29,6 +31,7 @@ export class GestionarProveedoresComponent implements OnInit {
 
   constructor(
     private proveedorService: ProveedorService,
+    private productoService: ProductoService,
     private authService: AuthService,
     private router: Router
   ) {}
@@ -41,9 +44,13 @@ export class GestionarProveedoresComponent implements OnInit {
   cargarDatosIniciales(): void {
     const sucursalId = this.authService.getSucursalId();
     if (sucursalId !== null) {
-      this.proveedorService.obtenerProveedoresActivosPorSucursal(sucursalId).subscribe({
-        next: (asociados) => {
-          this.proveedoresAsociados = asociados;
+      forkJoin({
+        proveedores: this.proveedorService.obtenerProveedoresActivosPorSucursal(sucursalId),
+        productos: this.productoService.obtenerProductosActivosPorSucursal(sucursalId)
+      }).subscribe({
+        next: ({ proveedores, productos }) => {
+          this.proveedores = proveedores;
+          this.productos = productos;
         },
         error: () => {
           Swal.fire('Error', 'No se pudieron cargar los datos iniciales', 'error');
@@ -60,18 +67,26 @@ export class GestionarProveedoresComponent implements OnInit {
     this.mostrarModal('proveedorModal');
   }
 
-  editarProveedor(prov: SucursalProveedor): void {
+  editarProveedor(prov: Proveedor): void {
     this.esEditar = true;
-    this.proveedorSeleccionado = {
-      id: prov.proveedorId,
-      rut: prov.proveedorRut,
-      nombre: prov.proveedorNombre,
-      direccion: prov.proveedorDireccion,
-      telefono: prov.proveedorTelefono,
-      nombreVendedor: prov.proveedorNombreVendedor,
-      activo: prov.proveedorActivo
-    };
-    this.mostrarModal('proveedorModal');
+    this.proveedorService.getById(prov.id).subscribe({
+      next: (proveedor: Proveedor) => {
+        this.proveedorSeleccionado = {
+          id: proveedor.id,
+          rut: proveedor.rut,
+          nombre: proveedor.nombre,
+          direccion: proveedor.direccion,
+          telefono: proveedor.telefono,
+          nombreVendedor: proveedor.nombreVendedor,
+          activo: proveedor.activo,
+          productoIds: proveedor.productoIds || []
+        };
+        this.mostrarModal('proveedorModal');
+      },
+      error: () => {
+        Swal.fire('Error', 'No se pudo cargar el proveedor', 'error');
+      }
+    });
   }
 
   guardarProveedor(): void {
@@ -81,14 +96,13 @@ export class GestionarProveedoresComponent implements OnInit {
       return;
     }
 
-    const sucursalId = this.authService.getSucursalId();
-    if (!sucursalId) {
-      Swal.fire('Error', 'No se pudo obtener el ID de la sucursal', 'error');
-      return;
-    }
+    const proveedorToSave: Proveedor = {
+      ...this.proveedorSeleccionado,
+      productoIds: this.proveedorSeleccionado.productoIds || []
+    };
 
     if (this.esEditar) {
-      this.proveedorService.actualizarProveedor(this.proveedorSeleccionado).subscribe({
+      this.proveedorService.actualizarProveedor(proveedorToSave).subscribe({
         next: () => {
           modal.hide();
           Swal.fire('Éxito', 'Proveedor actualizado correctamente', 'success');
@@ -114,10 +128,10 @@ export class GestionarProveedoresComponent implements OnInit {
         }
       });
     } else {
-      this.proveedorService.crearProveedorConRelacion(this.proveedorSeleccionado, sucursalId).subscribe({
+      this.proveedorService.crearProveedor(proveedorToSave).subscribe({
         next: () => {
           modal.hide();
-          Swal.fire('Éxito', 'Proveedor agregado y asociado correctamente', 'success');
+          Swal.fire('Éxito', 'Proveedor agregado correctamente', 'success');
           this.cargarDatosIniciales();
         },
         error: (err: HttpErrorResponse) => {
@@ -142,25 +156,25 @@ export class GestionarProveedoresComponent implements OnInit {
     }
   }
 
-  toggleEstadoProveedor(prov: SucursalProveedor): void {
-    const accion = prov.proveedorActivo ? 'desactivar' : 'activar';
-    const nuevoEstado = !prov.proveedorActivo;
+  toggleEstadoProveedor(prov: Proveedor): void {
+    const accion = prov.activo ? 'desactivar' : 'activar';
+    const nuevoEstado = !prov.activo;
     Swal.fire({
       title: '¿Estás seguro?',
-      text: `El proveedor ${prov.proveedorNombre} será ${accion}ado`,
+      text: `El proveedor ${prov.nombre} será ${accion}ado`,
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: `Sí, ${accion}`,
       cancelButtonText: 'Cancelar'
     }).then(result => {
       if (result.isConfirmed) {
-        this.proveedorService.toggleProveedorActivo(prov.proveedorId, nuevoEstado).subscribe({
+        this.proveedorService.toggleProveedorActivo(prov.id, nuevoEstado).subscribe({
           next: () => {
             Swal.fire('Éxito', `Proveedor ${accion}ado correctamente`, 'success');
             this.cargarDatosIniciales();
           },
           error: (err: HttpErrorResponse) => {
-            Swal.fire('Error', err.error.message || `No se pudo ${accion} el proveedor`, 'error');
+            Swal.fire('Error', err.error?.message || `No se pudo ${accion} el proveedor`, 'error');
           }
         });
       }
@@ -180,20 +194,21 @@ export class GestionarProveedoresComponent implements OnInit {
       direccion: '',
       telefono: '',
       nombreVendedor: '',
-      activo: true
+      activo: true,
+      productoIds: []
     };
   }
 
-  filtrarProveedores(): SucursalProveedor[] {
-    return this.proveedoresAsociados.filter(prov =>
-      prov.proveedorNombre.toLowerCase().includes(this.filtro.toLowerCase()) ||
-      prov.proveedorRut.toLowerCase().includes(this.filtro.toLowerCase()) ||
-      (prov.proveedorNombreVendedor && prov.proveedorNombreVendedor.toLowerCase().includes(this.filtro.toLowerCase())) ||
-      (prov.proveedorDireccion && prov.proveedorDireccion.toLowerCase().includes(this.filtro.toLowerCase()))
+  filtrarProveedores(): Proveedor[] {
+    return this.proveedores.filter(prov =>
+      (prov.nombre ? prov.nombre.toLowerCase().includes(this.filtro.toLowerCase()) : false) ||
+      (prov.rut ? prov.rut.toLowerCase().includes(this.filtro.toLowerCase()) : false) ||
+      (prov.nombreVendedor ? prov.nombreVendedor.toLowerCase().includes(this.filtro.toLowerCase()) : false) ||
+      (prov.direccion ? prov.direccion.toLowerCase().includes(this.filtro.toLowerCase()) : false)
     ).sort((a, b) => a.id - b.id);
   }
 
-  obtenerProveedoresPaginados(): SucursalProveedor[] {
+  obtenerProveedoresPaginados(): Proveedor[] {
     const inicio = (this.paginaActual - 1) * this.elementosPorPagina;
     return this.filtrarProveedores().slice(inicio, inicio + this.elementosPorPagina);
   }
@@ -205,5 +220,15 @@ export class GestionarProveedoresComponent implements OnInit {
   cerrarSesion(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
+  }
+
+  getProductoNombres(productoIds: number[] | undefined): string {
+    if (!productoIds || productoIds.length === 0) return 'Sin Productos';
+    return productoIds
+      .map(id => {
+        const producto = this.productos.find(p => p.id === id);
+        return producto ? producto.nombre : 'Desconocido';
+      })
+      .join(', ');
   }
 }

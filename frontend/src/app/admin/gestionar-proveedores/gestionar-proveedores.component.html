@@ -51,29 +51,31 @@
           <th>Dirección</th>
           <th>Teléfono</th>
           <th>Nombre Vendedor</th>
+          <th>Productos</th>
           <th>Estado</th>
           <th>Acciones</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let prov of obtenerProveedoresPaginados(); let i = index">
-          <td>{{ prov.proveedorNombre }}</td>
-          <td>{{ prov.proveedorRut }}</td>
-          <td>{{ prov.proveedorDireccion || 'Sin Dirección' }}</td>
-          <td>{{ prov.proveedorTelefono || 'Sin Teléfono' }}</td>
-          <td>{{ prov.proveedorNombreVendedor || 'Sin Vendedor' }}</td>
+          <td>{{ prov.nombre }}</td>
+          <td>{{ prov.rut }}</td>
+          <td>{{ prov.direccion || 'Sin Dirección' }}</td>
+          <td>{{ prov.telefono || 'Sin Teléfono' }}</td>
+          <td>{{ prov.nombreVendedor || 'Sin Vendedor' }}</td>
+          <td>{{ getProductoNombres(prov.productoIds) || 'Sin Productos' }}</td>
           <td>
-            <span class="badge" [ngClass]="prov.proveedorActivo ? 'bg-success' : 'bg-danger'">
-              {{ prov.proveedorActivo ? 'Activo' : 'Inactivo' }}
+            <span class="badge" [ngClass]="prov.activo ? 'bg-success' : 'bg-danger'">
+              {{ prov.activo ? 'Activo' : 'Inactivo' }}
             </span>
           </td>
           <td>
             <button class="btn btn-sm btn-warning me-2" (click)="editarProveedor(prov)" title="Editar proveedor">
               <i class="bi bi-pencil-square"></i>
             </button>
-            <button class="btn btn-sm" [ngClass]="prov.proveedorActivo ? 'btn-danger' : 'btn-success'"
-              (click)="toggleEstadoProveedor(prov)" [title]="prov.proveedorActivo ? 'Desactivar proveedor' : 'Activar proveedor'">
-              <i [ngClass]="prov.proveedorActivo ? 'bi bi-slash-circle' : 'bi bi-check-circle-fill'"></i>
+            <button class="btn btn-sm" [ngClass]="prov.activo ? 'btn-danger' : 'btn-success'"
+              (click)="toggleEstadoProveedor(prov)" [title]="prov.activo ? 'Desactivar proveedor' : 'Activar proveedor'">
+              <i [ngClass]="prov.activo ? 'bi bi-slash-circle' : 'bi bi-check-circle-fill'"></i>
             </button>
           </td>
         </tr>
@@ -151,10 +153,19 @@
               <input type="text" class="form-control" [(ngModel)]="proveedorSeleccionado.telefono" name="telefono" />
             </div>
             <!-- Nombre Vendedor -->
-            <div class="col-12">
+            <div class="col-md-6">
               <label class="form-label">Nombre del Vendedor</label>
               <input type="text" class="form-control" [(ngModel)]="proveedorSeleccionado.nombreVendedor"
                 name="nombreVendedor" />
+            </div>
+            <!-- Productos -->
+            <div class="col-md-6">
+              <label class="form-label">Productos Suministrados</label>
+              <select class="form-select" [(ngModel)]="proveedorSeleccionado.productoIds" name="productoIds" multiple>
+                <option *ngFor="let producto of productos" [value]="producto.id">
+                  {{ producto.nombre }}
+                </option>
+              </select>
             </div>
           </div>
         </form>

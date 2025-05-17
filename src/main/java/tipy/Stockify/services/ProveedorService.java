@@ -4,7 +4,9 @@ import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 import tipy.Stockify.business.entities.Proveedor;
+import tipy.Stockify.business.entities.Producto;
 import tipy.Stockify.business.repositories.ProveedorRepository;
+import tipy.Stockify.business.repositories.ProductoRepository;
 import tipy.Stockify.dtos.ProveedorDto;
 
 import java.util.List;
@@ -14,9 +16,11 @@ import java.util.stream.Collectors;
 public class ProveedorService {
 
     private final ProveedorRepository proveedorRepository;
+    private final ProductoRepository productoRepository;
 
-    public ProveedorService(ProveedorRepository proveedorRepository) {
+    public ProveedorService(ProveedorRepository proveedorRepository, ProductoRepository productoRepository) {
         this.proveedorRepository = proveedorRepository;
+        this.productoRepository = productoRepository;
     }
 
     public List<ProveedorDto> getAllActive() {
@@ -47,6 +51,7 @@ public class ProveedorService {
         validateProveedorDto(proveedorDto);
         Proveedor proveedor = mapToEntity(proveedorDto);
         proveedor.setActivo(true);
+        assignProductos(proveedor, proveedorDto.getProductoIds());
         return mapToDto(proveedorRepository.save(proveedor));
     }
 
@@ -55,16 +60,21 @@ public class ProveedorService {
         return proveedorRepository.findById(id)
                 .map(existingProveedor -> {
                     updateProveedorFields(existingProveedor, proveedorDto);
+                    assignProductos(existingProveedor, proveedorDto.getProductoIds());
                     return mapToDto(proveedorRepository.save(existingProveedor));
                 })
                 .orElse(null);
     }
 
-    public void deactivate(Long id) {
+    public void toggleActive(Long id, Boolean activo) {
         Proveedor proveedor = proveedorRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Proveedor no encontrado con id: " + id));
-        proveedor.setActivo(false);
+        proveedor.setActivo(activo);
         proveedorRepository.save(proveedor);
+    }
+
+    public void deactivate(Long id) {
+        toggleActive(id, false);
     }
 
     public void validateProveedorDto(ProveedorDto proveedorDto) {
@@ -73,6 +83,21 @@ public class ProveedorService {
         }
         if (proveedorDto.getNombre() == null || proveedorDto.getNombre().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre del proveedor es requerido");
+        }
+    }
+
+    private void assignProductos(Proveedor proveedor, List<Long> productoIds) {
+        if (productoIds != null) {
+            // Clear existing products
+            proveedor.getProductos().clear();
+            // Assign new products
+            for (Long productoId : productoIds) {
+                Producto producto = productoRepository.findByIdAndActivoTrue(productoId)
+                        .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado con id: " + productoId));
+                proveedor.getProductos().add(producto);
+                // Ensure bidirectional relationship
+                producto.getProveedores().add(proveedor);
+            }
         }
     }
 
@@ -116,6 +141,9 @@ public class ProveedorService {
         proveedorDto.setTelefono(proveedor.getTelefono());
         proveedorDto.setNombreVendedor(proveedor.getNombreVendedor());
         proveedorDto.setActivo(proveedor.getActivo());
+        proveedorDto.setProductoIds(proveedor.getProductos().stream()
+                .map(Producto::getId)
+                .collect(Collectors.toList()));
         return proveedorDto;
     }
 }

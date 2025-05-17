@@ -61,6 +61,13 @@ public class ProveedorController {
                 : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
+    @PutMapping("/{id}/activo/{activo}")
+    @Operation(description = "Activa o desactiva un proveedor por su ID.")
+    public ResponseEntity<Void> toggleProveedorActivo(@PathVariable Long id, @PathVariable Boolean activo) {
+        proveedorService.toggleActive(id, activo);
+        return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
     @DeleteMapping("/{id}")
     @Operation(description = "Desactiva un proveedor por su ID.")
     public ResponseEntity<Void> deactivateProveedor(@PathVariable Long id) {

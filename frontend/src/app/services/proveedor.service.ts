@@ -10,18 +10,7 @@ export interface Proveedor {
   telefono?: string;
   nombreVendedor?: string;
   activo: boolean;
-}
-
-export interface SucursalProveedor {
-  id: number;
-  sucursalId: number;
-  proveedorId: number;
-  proveedorNombre: string;
-  proveedorRut: string;
-  proveedorTelefono?: string;
-  proveedorDireccion?: string;
-  proveedorNombreVendedor?: string;
-  proveedorActivo: boolean;
+  productoIds?: number[];
 }
 
 @Injectable({
@@ -29,7 +18,6 @@ export interface SucursalProveedor {
 })
 export class ProveedorService {
   private apiUrl = 'http://localhost:8080/Stockify/api/v1/proveedores';
-  private sucursalProveedorApiUrl = 'http://localhost:8080/Stockify/api/v1/sucursal-proveedor';
 
   constructor(private http: HttpClient) {}
 
@@ -37,19 +25,23 @@ export class ProveedorService {
     return this.http.get<Proveedor[]>(this.apiUrl);
   }
 
-  obtenerProveedoresActivosPorSucursal(sucursalId: number): Observable<SucursalProveedor[]> {
-    return this.http.get<SucursalProveedor[]>(`${this.sucursalProveedorApiUrl}/sucursal/${sucursalId}`);
+  obtenerProveedoresActivosPorSucursal(sucursalId: number): Observable<Proveedor[]> {
+    return this.http.get<Proveedor[]>(`${this.apiUrl}/sucursal/${sucursalId}/activos`);
   }
 
-  crearProveedorConRelacion(proveedor: Proveedor, sucursalId: number): Observable<SucursalProveedor> {
-    return this.http.post<SucursalProveedor>(`${this.sucursalProveedorApiUrl}/sucursal/${sucursalId}`, proveedor);
+  crearProveedor(proveedor: Proveedor): Observable<Proveedor> {
+    return this.http.post<Proveedor>(this.apiUrl, proveedor);
   }
 
   actualizarProveedor(proveedor: Proveedor): Observable<Proveedor> {
-    return this.http.put<Proveedor>(`${this.sucursalProveedorApiUrl}/proveedor/${proveedor.id}`, proveedor);
+    return this.http.put<Proveedor>(`${this.apiUrl}/${proveedor.id}`, proveedor);
   }
 
   toggleProveedorActivo(proveedorId: number, activo: boolean): Observable<void> {
-    return this.http.put<void>(`${this.sucursalProveedorApiUrl}/proveedor/${proveedorId}/activo/${activo}`, null);
+    return this.http.put<void>(`${this.apiUrl}/${proveedorId}/activo/${activo}`, null);
+  }
+
+  getById(proveedorId: number): Observable<Proveedor> {
+    return this.http.get<Proveedor>(`${this.apiUrl}/${proveedorId}`);
   }
 }
