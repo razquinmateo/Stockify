@@ -1,0 +1,172 @@
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
+  <div class="container-fluid">
+    <span class="navbar-brand mb-0 h1">Stockify - Proveedores</span>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/admin/dashboard">
+            <i class="bi bi-house-door-fill me-1"></i> Inicio
+          </a>
+        </li>
+        <li class="nav-item">
+          <button class="btn btn-link nav-link" (click)="abrirModalAgregar()" type="button"
+            title="Agregar un nuevo proveedor">
+            <i class="bi bi-plus-circle me-1"></i> Agregar Proveedor
+          </button>
+        </li>
+      </ul>
+    </div>
+    <div class="d-flex align-items-center">
+      <span class="text-white me-3">
+        <i class="bi bi-person-circle me-1"></i>
+        Administrador {{ nombreUsuarioLogueado }}
+      </span>
+      <button class="btn btn-outline-light btn-sm" (click)="cerrarSesion()" title="Cerrar sesión">
+        <i class="bi bi-box-arrow-right me-1"></i>
+        Cerrar sesión
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- Contenido -->
+<div class="container py-5">
+  <h2 class="mb-5 text-center">Lista de Proveedores</h2>
+
+  <!-- Buscador -->
+  <div class="mb-4">
+    <input type="text" class="form-control" placeholder="Buscar por nombre, RUT, dirección o vendedor..." [(ngModel)]="filtro"
+      (ngModelChange)="filtrarProveedores()" />
+  </div>
+
+  <!-- Tabla -->
+  <div class="table-responsive">
+    <table class="table table-bordered text-center align-middle"
+      *ngIf="filtrarProveedores().length > 0; else sinProveedores">
+      <thead class="table-dark">
+        <tr>
+          <th>Nombre</th>
+          <th>RUT</th>
+          <th>Dirección</th>
+          <th>Teléfono</th>
+          <th>Nombre Vendedor</th>
+          <th>Estado</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let prov of obtenerProveedoresPaginados(); let i = index">
+          <td>{{ prov.proveedorNombre }}</td>
+          <td>{{ prov.proveedorRut }}</td>
+          <td>{{ prov.proveedorDireccion || 'Sin Dirección' }}</td>
+          <td>{{ prov.proveedorTelefono || 'Sin Teléfono' }}</td>
+          <td>{{ prov.proveedorNombreVendedor || 'Sin Vendedor' }}</td>
+          <td>
+            <span class="badge" [ngClass]="prov.proveedorActivo ? 'bg-success' : 'bg-danger'">
+              {{ prov.proveedorActivo ? 'Activo' : 'Inactivo' }}
+            </span>
+          </td>
+          <td>
+            <button class="btn btn-sm btn-warning me-2" (click)="editarProveedor(prov)" title="Editar proveedor">
+              <i class="bi bi-pencil-square"></i>
+            </button>
+            <button class="btn btn-sm" [ngClass]="prov.proveedorActivo ? 'btn-danger' : 'btn-success'"
+              (click)="toggleEstadoProveedor(prov)" [title]="prov.proveedorActivo ? 'Desactivar proveedor' : 'Activar proveedor'">
+              <i [ngClass]="prov.proveedorActivo ? 'bi bi-slash-circle' : 'bi bi-check-circle-fill'"></i>
+            </button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Sin proveedores -->
+  <ng-template #sinProveedores>
+    <p class="text-center text-muted">No hay proveedores asociados a esta sucursal.</p>
+  </ng-template>
+
+  <!-- Paginación -->
+  <nav *ngIf="totalPaginas() > 1">
+    <ul class="pagination justify-content-center mt-4">
+      <li class="page-item" [class.disabled]="paginaActual === 1">
+        <button class="page-link" (click)="paginaActual = paginaActual - 1" [disabled]="paginaActual === 1">
+          Anterior
+        </button>
+      </li>
+      <li class="page-item" *ngFor="let page of [].constructor(totalPaginas()); let i = index"
+        [class.active]="paginaActual === i + 1">
+        <button class="page-link" (click)="paginaActual = i + 1">
+          {{ i + 1 }}
+        </button>
+      </li>
+      <li class="page-item" [class.disabled]="paginaActual === totalPaginas()">
+        <button class="page-link" (click)="paginaActual = paginaActual + 1"
+          [disabled]="paginaActual === totalPaginas()">
+          Siguiente
+        </button>
+      </li>
+    </ul>
+  </nav>
+</div>
+
+<!-- Modal para Agregar/Editar Proveedor -->
+<div class="modal fade" id="proveedorModal" tabindex="-1" aria-labelledby="proveedorModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title" id="proveedorModalLabel">
+          <i class="bi bi-person-fill me-2"></i>
+          {{ esEditar ? 'Editar Proveedor' : 'Agregar Proveedor' }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <form (ngSubmit)="guardarProveedor()">
+          <div class="row g-3">
+            <!-- Nombre -->
+            <div class="col-md-6">
+              <label class="form-label">
+                Nombre <span class="text-danger">*</span>
+              </label>
+              <input type="text" class="form-control" [(ngModel)]="proveedorSeleccionado.nombre" name="nombre"
+                required />
+            </div>
+            <!-- RUT -->
+            <div class="col-md-6">
+              <label class="form-label">
+                RUT <span class="text-danger">*</span>
+              </label>
+              <input type="text" class="form-control" [(ngModel)]="proveedorSeleccionado.rut" name="rut"
+                required />
+            </div>
+            <!-- Dirección -->
+            <div class="col-md-6">
+              <label class="form-label">Dirección</label>
+              <input type="text" class="form-control" [(ngModel)]="proveedorSeleccionado.direccion" name="direccion" />
+            </div>
+            <!-- Teléfono -->
+            <div class="col-md-6">
+              <label class="form-label">Teléfono</label>
+              <input type="text" class="form-control" [(ngModel)]="proveedorSeleccionado.telefono" name="telefono" />
+            </div>
+            <!-- Nombre Vendedor -->
+            <div class="col-12">
+              <label class="form-label">Nombre del Vendedor</label>
+              <input type="text" class="form-control" [(ngModel)]="proveedorSeleccionado.nombreVendedor"
+                name="nombreVendedor" />
+            </div>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+          Cancelar
+        </button>
+        <button type="button" class="btn btn-success" (click)="guardarProveedor()">
+          {{ esEditar ? 'Guardar Cambios' : 'Agregar Proveedor' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>

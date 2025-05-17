@@ -67,7 +67,7 @@ public class ProveedorService {
         proveedorRepository.save(proveedor);
     }
 
-    private void validateProveedorDto(ProveedorDto proveedorDto) {
+    public void validateProveedorDto(ProveedorDto proveedorDto) {
         if (proveedorDto.getRut() == null || proveedorDto.getRut().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El RUT del proveedor es requerido");
         }

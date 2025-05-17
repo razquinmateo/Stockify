@@ -1,7 +1,30 @@
 .card {
-    transition: transform 0.2s ease;
-  }
-  .card:hover {
-    transform: translateY(-5px);
-  }
-  
+  transition: transform 0.2s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+}
+
+.btn-outline-pink {
+  color: #e83e8c;
+  border-color: #e83e8c;
+}
+
+.btn-outline-pink:hover {
+  color: #fff;
+  background-color: #e83e8c;
+  border-color: #e83e8c;
+}
+
+.btn-outline-pink:focus,
+.btn-outline-pink.focus {
+  box-shadow: 0 0 0 0.2rem rgba(232, 62, 140, 0.5);
+}
+
+.btn-outline-pink:active,
+.btn-outline-pink.active {
+  color: #fff;
+  background-color: #e83e8c;
+  border-color: #e83e8c;
+}

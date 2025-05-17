@@ -39,6 +39,7 @@ public class WebSecurityConfig {
 
                         .requestMatchers(antMatcher("/api/v1/empresas/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/sucursales/**")).permitAll()
+                        .requestMatchers(antMatcher("/api/v1/sucursal-proveedor/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/usuarios/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/productos/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/categorias/**")).permitAll()
