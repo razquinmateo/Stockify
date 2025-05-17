@@ -8,6 +8,7 @@ import tipy.Stockify.business.entities.Producto;
 import tipy.Stockify.business.repositories.ProveedorRepository;
 import tipy.Stockify.business.repositories.ProductoRepository;
 import tipy.Stockify.dtos.ProveedorDto;
+import tipy.Stockify.utils.ProveedorUtils;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -17,51 +18,55 @@ public class ProveedorService {
 
     private final ProveedorRepository proveedorRepository;
     private final ProductoRepository productoRepository;
+    private final ProveedorUtils proveedorUtils;
 
-    public ProveedorService(ProveedorRepository proveedorRepository, ProductoRepository productoRepository) {
+    public ProveedorService(ProveedorRepository proveedorRepository,
+                            ProductoRepository productoRepository,
+                            ProveedorUtils proveedorUtils) {
         this.proveedorRepository = proveedorRepository;
         this.productoRepository = productoRepository;
+        this.proveedorUtils = proveedorUtils;
     }
 
     public List<ProveedorDto> getAllActive() {
         return proveedorRepository.findByActivoTrue().stream()
-                .map(this::mapToDto)
+                .map(proveedorUtils::mapToDto)
                 .collect(Collectors.toList());
     }
 
     public List<ProveedorDto> getAllIncludingInactive() {
         return proveedorRepository.findAll().stream()
-                .map(this::mapToDto)
+                .map(proveedorUtils::mapToDto)
                 .collect(Collectors.toList());
     }
 
     public List<ProveedorDto> getAllActiveBySucursalId(Long sucursalId) {
         return proveedorRepository.findByProductosSucursalIdAndActivoTrue(sucursalId).stream()
-                .map(this::mapToDto)
+                .map(proveedorUtils::mapToDto)
                 .collect(Collectors.toList());
     }
 
     public ProveedorDto getById(Long id) {
         return proveedorRepository.findByIdAndActivoTrue(id)
-                .map(this::mapToDto)
+                .map(proveedorUtils::mapToDto)
                 .orElse(null);
     }
 
     public ProveedorDto create(ProveedorDto proveedorDto) {
-        validateProveedorDto(proveedorDto);
-        Proveedor proveedor = mapToEntity(proveedorDto);
+        proveedorUtils.validateProveedorDto(proveedorDto);
+        Proveedor proveedor = proveedorUtils.mapToEntity(proveedorDto);
         proveedor.setActivo(true);
         assignProductos(proveedor, proveedorDto.getProductoIds());
-        return mapToDto(proveedorRepository.save(proveedor));
+        return proveedorUtils.mapToDto(proveedorRepository.save(proveedor));
     }
 
     public ProveedorDto update(Long id, ProveedorDto proveedorDto) {
-        validateProveedorDto(proveedorDto);
+        proveedorUtils.validateProveedorDto(proveedorDto);
         return proveedorRepository.findById(id)
                 .map(existingProveedor -> {
                     updateProveedorFields(existingProveedor, proveedorDto);
                     assignProductos(existingProveedor, proveedorDto.getProductoIds());
-                    return mapToDto(proveedorRepository.save(existingProveedor));
+                    return proveedorUtils.mapToDto(proveedorRepository.save(existingProveedor));
                 })
                 .orElse(null);
     }
@@ -77,25 +82,13 @@ public class ProveedorService {
         toggleActive(id, false);
     }
 
-    public void validateProveedorDto(ProveedorDto proveedorDto) {
-        if (proveedorDto.getRut() == null || proveedorDto.getRut().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El RUT del proveedor es requerido");
-        }
-        if (proveedorDto.getNombre() == null || proveedorDto.getNombre().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre del proveedor es requerido");
-        }
-    }
-
     private void assignProductos(Proveedor proveedor, List<Long> productoIds) {
         if (productoIds != null) {
-            // Clear existing products
             proveedor.getProductos().clear();
-            // Assign new products
             for (Long productoId : productoIds) {
                 Producto producto = productoRepository.findByIdAndActivoTrue(productoId)
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado con id: " + productoId));
                 proveedor.getProductos().add(producto);
-                // Ensure bidirectional relationship
                 producto.getProveedores().add(proveedor);
             }
         }
@@ -120,30 +113,5 @@ public class ProveedorService {
         if (proveedorDto.getActivo() != null) {
             proveedor.setActivo(proveedorDto.getActivo());
         }
-    }
-
-    public Proveedor mapToEntity(ProveedorDto proveedorDto) {
-        Proveedor proveedor = new Proveedor();
-        proveedor.setRut(proveedorDto.getRut());
-        proveedor.setNombre(proveedorDto.getNombre());
-        proveedor.setDireccion(proveedorDto.getDireccion());
-        proveedor.setTelefono(proveedorDto.getTelefono());
-        proveedor.setNombreVendedor(proveedorDto.getNombreVendedor());
-        return proveedor;
-    }
-
-    public ProveedorDto mapToDto(Proveedor proveedor) {
-        ProveedorDto proveedorDto = new ProveedorDto();
-        proveedorDto.setId(proveedor.getId());
-        proveedorDto.setRut(proveedor.getRut());
-        proveedorDto.setNombre(proveedor.getNombre());
-        proveedorDto.setDireccion(proveedor.getDireccion());
-        proveedorDto.setTelefono(proveedor.getTelefono());
-        proveedorDto.setNombreVendedor(proveedor.getNombreVendedor());
-        proveedorDto.setActivo(proveedor.getActivo());
-        proveedorDto.setProductoIds(proveedor.getProductos().stream()
-                .map(Producto::getId)
-                .collect(Collectors.toList()));
-        return proveedorDto;
     }
 }

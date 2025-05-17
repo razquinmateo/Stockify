@@ -13,11 +13,19 @@ export interface Proveedor {
   productoIds?: number[];
 }
 
+export interface SucursalProveedor {
+  id?: number;
+  sucursalId: number;
+  proveedorId: number;
+  // Add other fields as needed based on SucursalProveedorDto
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class ProveedorService {
   private apiUrl = 'http://localhost:8080/Stockify/api/v1/proveedores';
+  private sucursalProveedorApiUrl = 'http://localhost:8080/Stockify/api/v1/sucursal-proveedor';
 
   constructor(private http: HttpClient) {}
 
@@ -31,6 +39,13 @@ export class ProveedorService {
 
   crearProveedor(proveedor: Proveedor): Observable<Proveedor> {
     return this.http.post<Proveedor>(this.apiUrl, proveedor);
+  }
+
+  linkSucursalProveedor(sucursalId: number, proveedorId: number): Observable<SucursalProveedor> {
+    return this.http.post<SucursalProveedor>(
+      `${this.sucursalProveedorApiUrl}/sucursal/${sucursalId}/proveedor/${proveedorId}`,
+      {}
+    );
   }
 
   actualizarProveedor(proveedor: Proveedor): Observable<Proveedor> {

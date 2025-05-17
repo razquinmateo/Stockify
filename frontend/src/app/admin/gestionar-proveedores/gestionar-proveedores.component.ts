@@ -2,7 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
-import { ProveedorService, Proveedor } from '../../services/proveedor.service';
+import { ProveedorService, Proveedor, SucursalProveedor } from '../../services/proveedor.service';
 import { ProductoService, Producto } from '../../services/producto.service';
 import { AuthService } from '../../auth.service';
 import { Router } from '@angular/router';
@@ -101,6 +101,12 @@ export class GestionarProveedoresComponent implements OnInit {
       productoIds: this.proveedorSeleccionado.productoIds || []
     };
 
+    const sucursalId = this.authService.getSucursalId();
+    if (sucursalId === null) {
+      Swal.fire('Error', 'No se pudo obtener el ID de la sucursal', 'error');
+      return;
+    }
+
     if (this.esEditar) {
       this.proveedorService.actualizarProveedor(proveedorToSave).subscribe({
         next: () => {
@@ -129,10 +135,32 @@ export class GestionarProveedoresComponent implements OnInit {
       });
     } else {
       this.proveedorService.crearProveedor(proveedorToSave).subscribe({
-        next: () => {
-          modal.hide();
-          Swal.fire('Éxito', 'Proveedor agregado correctamente', 'success');
-          this.cargarDatosIniciales();
+        next: (proveedor: Proveedor) => {
+          this.proveedorService.linkSucursalProveedor(sucursalId, proveedor.id).subscribe({
+            next: () => {
+              modal.hide();
+              Swal.fire('Éxito', 'Proveedor agregado y vinculado correctamente a la sucursal', 'success');
+              this.cargarDatosIniciales();
+            },
+            error: (err: HttpErrorResponse) => {
+              let errorMessage = 'No se pudo vincular el proveedor a la sucursal';
+              if (err.status === 400) {
+                errorMessage = err.error || 'Error en los datos proporcionados';
+              } else if (err.status === 403) {
+                errorMessage = 'Acceso denegado. Por favor, inicia sesión nuevamente.';
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Error',
+                  text: errorMessage,
+                }).then(() => {
+                  this.authService.logout();
+                  this.router.navigate(['/login']);
+                });
+                return;
+              }
+              Swal.fire('Error', errorMessage, 'error');
+            }
+          });
         },
         error: (err: HttpErrorResponse) => {
           let errorMessage = 'No se pudo agregar el proveedor';

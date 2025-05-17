@@ -53,4 +53,12 @@ public class SucursalProveedorController {
         sucursalProveedorService.toggleProveedorActivo(proveedorId, activo);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
+
+    @PostMapping("/sucursal/{sucursalId}/proveedor/{proveedorId}")
+    @Operation(description = "Crea una relación entre una sucursal y un proveedor existente.")
+    public ResponseEntity<SucursalProveedorDto> linkSucursalProveedor(
+            @PathVariable Long sucursalId,
+            @PathVariable Long proveedorId) {
+        return new ResponseEntity<>(sucursalProveedorService.linkSucursalProveedor(sucursalId, proveedorId), HttpStatus.CREATED);
+    }
 }
