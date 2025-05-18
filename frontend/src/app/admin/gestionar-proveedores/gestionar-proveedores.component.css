@@ -32,3 +32,14 @@
   font-size: 0.9em;
   padding: 0.5em 1em;
 }
+
+.btn-productos {
+  background-color: #6f42c1; /* Morado para el botón de productos */
+  border-color: #6f42c1;
+  color: white;
+}
+
+.btn-productos:hover {
+  background-color: #5a32a3;
+  border-color: #5a32a3;
+}

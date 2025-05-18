@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { NgSelectModule } from '@ng-select/ng-select';
 import { ProveedorService, Proveedor, SucursalProveedor } from '../../services/proveedor.service';
 import { ProductoService, Producto } from '../../services/producto.service';
 import { AuthService } from '../../auth.service';
@@ -15,7 +16,7 @@ declare var bootstrap: any;
 @Component({
   selector: 'app-gestionar-proveedores',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule],
   templateUrl: './gestionar-proveedores.component.html',
   styleUrls: ['./gestionar-proveedores.component.css']
 })
@@ -23,8 +24,10 @@ export class GestionarProveedoresComponent implements OnInit {
   proveedores: Proveedor[] = [];
   proveedorSeleccionado: Proveedor = this.resetProveedor();
   productos: Producto[] = [];
+  productosFiltrados: Producto[] = [];
   esEditar: boolean = false;
   filtro: string = '';
+  filtroProductos: string = '';
   paginaActual: number = 1;
   elementosPorPagina: number = 5;
   nombreUsuarioLogueado: string = '';
@@ -45,7 +48,7 @@ export class GestionarProveedoresComponent implements OnInit {
     const sucursalId = this.authService.getSucursalId();
     if (sucursalId !== null) {
       forkJoin({
-        proveedores: this.proveedorService.obtenerProveedoresActivosPorSucursal(sucursalId),
+        proveedores: this.proveedorService.obtenerProveedoresPorSucursal(sucursalId),
         productos: this.productoService.obtenerProductosActivosPorSucursal(sucursalId)
       }).subscribe({
         next: ({ proveedores, productos }) => {
@@ -65,6 +68,20 @@ export class GestionarProveedoresComponent implements OnInit {
     this.esEditar = false;
     this.proveedorSeleccionado = this.resetProveedor();
     this.mostrarModal('proveedorModal');
+  }
+
+  abrirModalProductos(prov: Proveedor): void {
+    this.proveedorSeleccionado = { ...prov };
+    this.filtroProductos = '';
+    this.filtrarProductos();
+    this.mostrarModal('productosModal');
+  }
+
+  cerrarModalProductosFuera(event: MouseEvent): void {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('productosModal'));
+    if (event.target === event.currentTarget) {
+      modal.hide();
+    }
   }
 
   editarProveedor(prov: Proveedor): void {
@@ -154,7 +171,7 @@ export class GestionarProveedoresComponent implements OnInit {
                   text: errorMessage,
                 }).then(() => {
                   this.authService.logout();
-                  this.router.navigate(['/login']);
+                  this.router.navigate(['//login']);
                 });
                 return;
               }
@@ -174,7 +191,7 @@ export class GestionarProveedoresComponent implements OnInit {
               text: errorMessage,
             }).then(() => {
               this.authService.logout();
-              this.router.navigate(['/login']);
+              this.router.navigate(['//login']);
             });
             return;
           }
@@ -234,6 +251,24 @@ export class GestionarProveedoresComponent implements OnInit {
       (prov.nombreVendedor ? prov.nombreVendedor.toLowerCase().includes(this.filtro.toLowerCase()) : false) ||
       (prov.direccion ? prov.direccion.toLowerCase().includes(this.filtro.toLowerCase()) : false)
     ).sort((a, b) => a.id - b.id);
+  }
+
+  filtrarProductos(): void {
+    if (!this.proveedorSeleccionado.productoIds || this.proveedorSeleccionado.productoIds.length === 0) {
+      this.productosFiltrados = [];
+      return;
+    }
+    this.productosFiltrados = this.productos.filter(producto =>
+      this.proveedorSeleccionado.productoIds!.includes(producto.id) &&
+      (this.filtroProductos
+        ? producto.nombre.toLowerCase().includes(this.filtroProductos.toLowerCase()) ||
+          (producto.detalle && producto.detalle.toLowerCase().includes(this.filtroProductos.toLowerCase()))
+        : true)
+    );
+  }
+
+  obtenerProductosFiltrados(): Producto[] {
+    return this.productosFiltrados;
   }
 
   obtenerProveedoresPaginados(): Proveedor[] {

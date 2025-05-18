@@ -46,6 +46,12 @@ public class ProveedorService {
                 .collect(Collectors.toList());
     }
 
+    public List<ProveedorDto> getAllBySucursalId(Long sucursalId) {
+        return proveedorRepository.findByProductosSucursalId(sucursalId).stream()
+                .map(proveedorUtils::mapToDto)
+                .collect(Collectors.toList());
+    }
+
     public ProveedorDto getById(Long id) {
         return proveedorRepository.findByIdAndActivoTrue(id)
                 .map(proveedorUtils::mapToDto)

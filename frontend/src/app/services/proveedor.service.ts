@@ -17,7 +17,6 @@ export interface SucursalProveedor {
   id?: number;
   sucursalId: number;
   proveedorId: number;
-  // Add other fields as needed based on SucursalProveedorDto
 }
 
 @Injectable({
@@ -29,12 +28,12 @@ export class ProveedorService {
 
   constructor(private http: HttpClient) {}
 
-  obtenerProveedoresActivos(): Observable<Proveedor[]> {
-    return this.http.get<Proveedor[]>(this.apiUrl);
+  obtenerProveedores(): Observable<Proveedor[]> {
+    return this.http.get<Proveedor[]>(`${this.apiUrl}/all`);
   }
 
-  obtenerProveedoresActivosPorSucursal(sucursalId: number): Observable<Proveedor[]> {
-    return this.http.get<Proveedor[]>(`${this.apiUrl}/sucursal/${sucursalId}/activos`);
+  obtenerProveedoresPorSucursal(sucursalId: number): Observable<Proveedor[]> {
+    return this.http.get<Proveedor[]>(`${this.apiUrl}/sucursal/${sucursalId}`);
   }
 
   crearProveedor(proveedor: Proveedor): Observable<Proveedor> {

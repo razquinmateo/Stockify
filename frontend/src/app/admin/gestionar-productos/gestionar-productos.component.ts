@@ -2,6 +2,7 @@ import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
+import { NgSelectModule } from '@ng-select/ng-select';
 import { ProductoService, Producto, Proveedor } from '../../services/producto.service';
 import { CategoriaService, Categoria } from '../../services/categoria.service';
 import { LoteService, Lote } from '../../services/lote.service';
@@ -17,7 +18,7 @@ declare var bootstrap: any;
 @Component({
   selector: 'app-gestionar-productos',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule],
   templateUrl: './gestionar-productos.component.html',
   styleUrls: ['./gestionar-productos.component.css']
 })
@@ -76,6 +77,11 @@ export class GestionarProductosComponent implements OnInit {
                       return proveedor ? proveedor.nombre : 'Desconocido';
                     })
                   : [];
+                // Sanitize imagen to prevent invalid base64
+                if (prod.imagen && !this.isValidBase64Image(prod.imagen)) {
+                  console.warn(`Invalid imagen for product ${prod.id}: ${prod.imagen}`);
+                  prod.imagen = null;
+                }
               });
               this.productos = productos.filter(prod => prod.sucursalId === sucursalId);
             },
@@ -93,6 +99,20 @@ export class GestionarProductosComponent implements OnInit {
       this.categorias = [];
       this.proveedores = [];
       Swal.fire('Error', 'No se pudo obtener el ID de la sucursal', 'error');
+    }
+  }
+
+  isValidBase64Image(imagen: string): boolean {
+    if (!imagen || !imagen.startsWith('data:image/') || !imagen.includes('base64,')) {
+      return false;
+    }
+    try {
+      const base64Data = imagen.split(',')[1];
+      if (!base64Data) return false;
+      atob(base64Data);
+      return true;
+    } catch (e) {
+      return false;
     }
   }
 
@@ -227,13 +247,19 @@ export class GestionarProductosComponent implements OnInit {
       return;
     }
     if (this.productoSeleccionado.imagen) {
-      const imgSizeBytes = atob(this.productoSeleccionado.imagen.split(',')[1]).length;
-      if (imgSizeBytes > 1_000_000) {
-        Swal.fire('Error', 'La imagen no debe exceder 1MB', 'error');
+      if (!this.isValidBase64Image(this.productoSeleccionado.imagen)) {
+        Swal.fire('Error', 'El formato de la imagen no es válido o los datos base64 son incorrectos', 'error');
         return;
       }
-      if (!this.productoSeleccionado.imagen.match(/^data:image\/(jpeg|png);base64,.+/)) {
-        Swal.fire('Error', 'La imagen debe ser un formato JPEG o PNG válido', 'error');
+      try {
+        const base64Data = this.productoSeleccionado.imagen.split(',')[1];
+        const imgSizeBytes = atob(base64Data).length;
+        if (imgSizeBytes > 1_000_000) {
+          Swal.fire('Error', 'La imagen no debe exceder 1MB', 'error');
+          return;
+        }
+      } catch (e) {
+        Swal.fire('Error', 'No se pudo procesar la imagen: formato base64 inválido', 'error');
         return;
       }
     }
@@ -304,7 +330,7 @@ export class GestionarProductosComponent implements OnInit {
     return {
       id: 0,
       codigoBarra: '',
-      imagen: '',
+      imagen: null,
       nombre: '',
       detalle: '',
       precio: 0,
@@ -365,8 +391,8 @@ export class GestionarProductosComponent implements OnInit {
       const reader = new FileReader();
       reader.onload = () => {
         const imageData = reader.result as string;
-        if (!imageData.match(/^data:image\/(jpeg|png);base64,.+/)) {
-          Swal.fire('Error', 'La imagen debe ser un formato JPEG o PNG válido', 'error');
+        if (!this.isValidBase64Image(imageData)) {
+          Swal.fire('Error', 'La imagen debe ser un formato de imagen válido en base64', 'error');
           input.value = '';
           return;
         }
@@ -406,13 +432,22 @@ export class GestionarProductosComponent implements OnInit {
       if (ctx) {
         ctx.drawImage(this.videoElement, 0, 0);
         const imageData = this.canvas.toDataURL('image/jpeg');
-        const imgSizeBytes = atob(imageData.split(',')[1]).length;
-        if (imgSizeBytes > 1_000_000) {
-          Swal.fire('Error', 'La imagen capturada no debe exceder 1MB', 'error');
+        if (!this.isValidBase64Image(imageData)) {
+          Swal.fire('Error', 'La imagen capturada tiene un formato inválido', 'error');
           return;
         }
-        this.productoSeleccionado.imagen = imageData;
-        this.cerrarCamara();
+        try {
+          const imgSizeBytes = atob(imageData.split(',')[1]).length;
+          if (imgSizeBytes > 1_000_000) {
+            Swal.fire('Error', 'La imagen capturada no debe exceder 1MB', 'error');
+            return;
+          }
+          this.productoSeleccionado.imagen = imageData;
+          this.cerrarCamara();
+        } catch (e) {
+          Swal.fire('Error', 'No se pudo procesar la imagen capturada: formato base64 inválido', 'error');
+          return;
+        }
       }
     }
   }

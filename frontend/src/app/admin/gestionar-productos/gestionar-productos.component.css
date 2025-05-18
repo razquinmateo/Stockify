@@ -1,0 +1,74 @@
+/* Custom styles to widen the table */
+    .custom-table {
+      width: 100%;
+      min-width: 1200px; /* Makes the table wider; adjust as needed */
+      table-layout: auto; /* Allows columns to adjust based on content */
+    }
+
+    /* Adjust column widths for better distribution */
+    .custom-table th:nth-child(1), /* Imagen */
+    .custom-table td:nth-child(1) {
+      width: 150px; /* Wider for images */
+    }
+
+    .custom-table th:nth-child(2), /* Nombre */
+    .custom-table td:nth-child(2) {
+      width: 15%; /* More space for product names */
+    }
+
+    .custom-table th:nth-child(3), /* Código */
+    .custom-table td:nth-child(3) {
+      width: 10%; /* Moderate width for barcode */
+    }
+
+    .custom-table th:nth-child(4), /* Detalle */
+    .custom-table td:nth-child(4) {
+      width: 20%; /* Wider for descriptions */
+      white-space: normal; /* Allow wrapping */
+      overflow-wrap: break-word; /* Break long words */
+    }
+
+    .custom-table th:nth-child(5), /* Precio */
+    .custom-table td:nth-child(5) {
+      width: 10%; /* Fixed width for price */
+    }
+
+    .custom-table th:nth-child(6), /* Stock */
+    .custom-table td:nth-child(6) {
+      width: 8%; /* Compact for stock */
+    }
+
+    .custom-table th:nth-child(7), /* Categoría */
+    .custom-table td:nth-child(7) {
+      width: 12%; /* Moderate for category */
+    }
+
+    .custom-table th:nth-child(8), /* Proveedores */
+    .custom-table td:nth-child(8) {
+      width: 15%; /* Wider for multiple providers */
+      white-space: normal; /* Allow wrapping */
+    }
+
+    .custom-table th:nth-child(9), /* Estado */
+    .custom-table td:nth-child(9) {
+      width: 10%; /* Fixed for status badge */
+    }
+
+    .custom-table th:nth-child(10), /* Acciones */
+    .custom-table td:nth-child(10) {
+      width: 150px; /* Fixed for buttons */
+      white-space: nowrap; /* Keep buttons in one line */
+    }
+
+    /* Ensure images scale properly */
+    .custom-table img {
+      max-width: 120px; /* Slightly larger images */
+      max-height: 120px;
+      object-fit: cover;
+    }
+
+    /* Prevent text overflow in cells */
+    .custom-table td {
+      vertical-align: middle;
+      padding: 8px; /* Consistent padding */
+    }

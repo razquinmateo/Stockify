@@ -36,4 +36,15 @@ public interface ProveedorRepository extends JpaRepository<Proveedor, Long> {
             "JOIN prov.productos prod " +
             "WHERE prod.sucursal.id = :sucursalId AND prov.activo = true")
     List<Proveedor> findByProductosSucursalIdAndActivoTrue(Long sucursalId);
+
+    /**
+     * Encuentra proveedores asociados a productos de una sucursal específica.
+     *
+     * @param sucursalId ID de la sucursal.
+     * @return Lista de proveedores.
+     */
+    @Query("SELECT DISTINCT prov FROM Proveedor prov " +
+            "JOIN prov.productos prod " +
+            "WHERE prod.sucursal.id = :sucursalId")
+    List<Proveedor> findByProductosSucursalId(Long sucursalId);
 }

@@ -63,7 +63,11 @@
           <td>{{ prov.direccion || 'Sin Dirección' }}</td>
           <td>{{ prov.telefono || 'Sin Teléfono' }}</td>
           <td>{{ prov.nombreVendedor || 'Sin Vendedor' }}</td>
-          <td>{{ getProductoNombres(prov.productoIds) || 'Sin Productos' }}</td>
+          <td>
+            <button class="btn btn-sm btn-productos" (click)="abrirModalProductos(prov)" title="Ver lista de productos">
+              <i class="bi bi-eye-fill me-1"></i> Ver
+            </button>
+          </td>
           <td>
             <span class="badge" [ngClass]="prov.activo ? 'bg-success' : 'bg-danger'">
               {{ prov.activo ? 'Activo' : 'Inactivo' }}
@@ -129,7 +133,7 @@
             <!-- Nombre -->
             <div class="col-md-6">
               <label class="form-label">
-                Nombre <span class="text-danger">*</span>
+                Nombre de la Empresa<span class="text-danger">*</span>
               </label>
               <input type="text" class="form-control" [(ngModel)]="proveedorSeleccionado.nombre" name="nombre"
                 required />
@@ -158,14 +162,23 @@
               <input type="text" class="form-control" [(ngModel)]="proveedorSeleccionado.nombreVendedor"
                 name="nombreVendedor" />
             </div>
-            <!-- Productos -->
-            <div class="col-md-6">
+            <!-- Separador -->
+            <div class="col-12">
+              <hr class="my-3">
+            </div>
+            <!-- Productos Suministrados -->
+            <div class="col-12">
               <label class="form-label">Productos Suministrados</label>
-              <select class="form-select" [(ngModel)]="proveedorSeleccionado.productoIds" name="productoIds" multiple>
-                <option *ngFor="let producto of productos" [value]="producto.id">
-                  {{ producto.nombre }}
-                </option>
-              </select>
+              <ng-select
+                [items]="productos"
+                bindLabel="nombre"
+                bindValue="id"
+                [(ngModel)]="proveedorSeleccionado.productoIds"
+                name="productoIds"
+                [multiple]="true"
+                [closeOnSelect]="false"
+                placeholder="Seleccione uno o más productos"
+              ></ng-select>
             </div>
           </div>
         </form>
@@ -177,6 +190,50 @@
         <button type="button" class="btn btn-success" (click)="guardarProveedor()">
           {{ esEditar ? 'Guardar Cambios' : 'Agregar Proveedor' }}
         </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para Productos -->
+<div class="modal fade" id="productosModal" tabindex="-1" aria-labelledby="productosModalLabel" aria-hidden="true" (click)="cerrarModalProductosFuera($event)">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content border-0 shadow" (click)="$event.stopPropagation()">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title" id="productosModalLabel">
+          <i class="bi bi-box-fill me-2"></i>
+          Productos del Proveedor {{ proveedorSeleccionado.nombre || '' }}
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <!-- Buscador de Productos -->
+        <div class="mb-4">
+          <input type="text" class="form-control" placeholder="Buscar productos..." [(ngModel)]="filtroProductos"
+            (ngModelChange)="filtrarProductos()" />
+        </div>
+        <!-- Lista de Productos -->
+        <div class="table-responsive">
+          <table class="table table-bordered text-center align-middle">
+            <thead class="table-dark">
+              <tr>
+                <th>Nombre</th>
+                <th>Descripción</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let producto of obtenerProductosFiltrados()">
+                <td>{{ producto.nombre }}</td>
+                <td>{{ producto.detalle || 'Sin descripción' }}</td>
+              </tr>
+            </tbody>
+            <tfoot *ngIf="obtenerProductosFiltrados().length === 0">
+              <tr>
+                <td colspan="2" class="text-center text-muted">No hay productos que coincidan con la búsqueda.</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
       </div>
     </div>
   </div>

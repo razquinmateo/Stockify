@@ -8,7 +8,11 @@ import tipy.Stockify.business.entities.*;
 import tipy.Stockify.business.entities.enums.*;
 import tipy.Stockify.business.repositories.*;
 
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.util.Base64;
 import java.util.List;
 
 //@Component
@@ -56,6 +60,18 @@ public class DataInitializer implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        String defaultImage = null;
+        try {
+            // Leer el archivo binario
+            byte[] imageBytes = Files.readAllBytes(Paths.get("src/main/resources/default-image.png"));
+            // Convertir a base64
+            defaultImage = Base64.getEncoder().encodeToString(imageBytes);
+        } catch (IOException e) {
+            e.printStackTrace();
+            defaultImage = "";
+        }
+
+
         // 1. Empresa
         Empresa empresa1 = new Empresa();
         empresa1.setNombre("Minimercado San Pedro Ltda.");
@@ -220,6 +236,19 @@ public class DataInitializer implements CommandLineRunner {
         categoria8.setSucursal(sucursal1);
         categoriaRepository.save(categoria8);
 
+        // New Categories for Sucursal 1
+        Categoria categoria9 = new Categoria();
+        categoria9.setNombre("Bebidas");
+        categoria9.setDescripcion("Bebidas gaseosas, jugos y aguas");
+        categoria9.setSucursal(sucursal1);
+        categoriaRepository.save(categoria9);
+
+        Categoria categoria10 = new Categoria();
+        categoria10.setNombre("Snacks");
+        categoria10.setDescripcion("Papas fritas, frutos secos y golosinas");
+        categoria10.setSucursal(sucursal1);
+        categoriaRepository.save(categoria10);
+
         // Sucursal 2: La Familiar Villa Sur
         Categoria categoria2 = new Categoria();
         categoria2.setNombre("Cereales");
@@ -295,11 +324,30 @@ public class DataInitializer implements CommandLineRunner {
         proveedor6.setActivo(true);
         proveedorRepository.save(proveedor6);
 
+        // New Providers for Sucursal 1
+        Proveedor proveedor7 = new Proveedor();
+        proveedor7.setRut("82.777.888-3");
+        proveedor7.setNombre("Nestlé Chile S.A.");
+        proveedor7.setDireccion("Av. Providencia 2000, Santiago");
+        proveedor7.setTelefono("+56229991122");
+        proveedor7.setNombreVendedor("María José Torres");
+        proveedor7.setActivo(true);
+        proveedorRepository.save(proveedor7);
+
+        Proveedor proveedor8 = new Proveedor();
+        proveedor8.setRut("83.888.999-4");
+        proveedor8.setNombre("Agrícola Verde Ltda.");
+        proveedor8.setDireccion("Camino Buin 450, Maipú");
+        proveedor8.setTelefono("+56226667788");
+        proveedor8.setNombreVendedor("Andrés Felipe Gómez");
+        proveedor8.setActivo(true);
+        proveedorRepository.save(proveedor8);
+
         // 6. Producto
         // Sucursal 1: San Pedro Centro (Expanded)
         Producto producto1 = new Producto();
         producto1.setCodigoBarra("7801234567890");
-        producto1.setImagen("leche_colun.jpg");
+        producto1.setImagen(defaultImage);
         producto1.setNombre("Leche Entera Colún");
         producto1.setDetalle("Leche entera pasteurizada, envase 1 litro");
         producto1.setPrecio(49f);
@@ -312,7 +360,7 @@ public class DataInitializer implements CommandLineRunner {
 
         Producto producto2 = new Producto();
         producto2.setCodigoBarra("7801234567891");
-        producto2.setImagen("detergente_omo.jpg");
+        producto2.setImagen(defaultImage);
         producto2.setNombre("Detergente Omo Matic");
         producto2.setDetalle("Detergente en polvo para ropa, bolsa 800 g");
         producto2.setPrecio(165f);
@@ -325,7 +373,7 @@ public class DataInitializer implements CommandLineRunner {
 
         Producto producto7 = new Producto();
         producto7.setCodigoBarra("7801234567892");
-        producto7.setImagen("pollo_congelado.jpg");
+        producto7.setImagen(defaultImage);
         producto7.setNombre("Pollo Entero Congelado");
         producto7.setDetalle("Pollo entero congelado, peso aprox. 2 kg");
         producto7.setPrecio(250f);
@@ -338,7 +386,7 @@ public class DataInitializer implements CommandLineRunner {
 
         Producto producto8 = new Producto();
         producto8.setCodigoBarra("7801234567893");
-        producto8.setImagen("manzanas_fuji.jpg");
+        producto8.setImagen(defaultImage);
         producto8.setNombre("Manzanas Fuji");
         producto8.setDetalle("Manzanas fuji frescas, bolsa 1 kg");
         producto8.setPrecio(60f);
@@ -351,7 +399,7 @@ public class DataInitializer implements CommandLineRunner {
 
         Producto producto9 = new Producto();
         producto9.setCodigoBarra("7801234567894");
-        producto9.setImagen("papas_fritas_congeladas.jpg");
+        producto9.setImagen(defaultImage);
         producto9.setNombre("Papas Fritas Congeladas");
         producto9.setDetalle("Papas fritas precocidas, bolsa 1 kg");
         producto9.setPrecio(120f);
@@ -364,7 +412,7 @@ public class DataInitializer implements CommandLineRunner {
 
         Producto producto10 = new Producto();
         producto10.setCodigoBarra("7801234567895");
-        producto10.setImagen("yogurt_natural.jpg");
+        producto10.setImagen(defaultImage);
         producto10.setNombre("Yogurt Natural Colún");
         producto10.setDetalle("Yogurt natural sin azúcar, envase 1 litro");
         producto10.setPrecio(70f);
@@ -375,10 +423,76 @@ public class DataInitializer implements CommandLineRunner {
         producto10.addProveedor(proveedor1);
         productoRepository.save(producto10);
 
+        // New Products for Sucursal 1
+        Producto producto11 = new Producto();
+        producto11.setCodigoBarra("7801234567900");
+        producto11.setImagen(defaultImage);
+        producto11.setNombre("Jugo Naranja Watt's");
+        producto11.setDetalle("Jugo de naranja natural, envase 1 litro");
+        producto11.setPrecio(80f);
+        producto11.setCantidadStock(140L); // 90 base + 50 lote11
+        producto11.setActivo(true);
+        producto11.setSucursal(sucursal1);
+        producto11.setCategoria(categoria9);
+        producto11.addProveedor(proveedor7);
+        productoRepository.save(producto11);
+
+        Producto producto12 = new Producto();
+        producto12.setCodigoBarra("7801234567901");
+        producto12.setImagen(defaultImage);
+        producto12.setNombre("Papas Fritas Lay's Clásicas");
+        producto12.setDetalle("Papas fritas crujientes, bolsa 200 g");
+        producto12.setPrecio(50f);
+        producto12.setCantidadStock(200L); // 150 base + 50 lote12
+        producto12.setActivo(true);
+        producto12.setSucursal(sucursal1);
+        producto12.setCategoria(categoria10);
+        producto12.addProveedor(proveedor7);
+        productoRepository.save(producto12);
+
+        Producto producto13 = new Producto();
+        producto13.setCodigoBarra("7801234567902");
+        producto13.setImagen(defaultImage);
+        producto13.setNombre("Queso Mantecoso Colún");
+        producto13.setDetalle("Queso mantecoso, envase 500 g");
+        producto13.setPrecio(150f);
+        producto13.setCantidadStock(90L); // 50 base + 40 lote13
+        producto13.setActivo(true);
+        producto13.setSucursal(sucursal1);
+        producto13.setCategoria(categoria1);
+        producto13.addProveedor(proveedor1);
+        productoRepository.save(producto13);
+
+        Producto producto14 = new Producto();
+        producto14.setCodigoBarra("7801234567903");
+        producto14.setImagen(defaultImage);
+        producto14.setNombre("Zanahorias Frescas");
+        producto14.setDetalle("Zanahorias frescas, bolsa 1 kg");
+        producto14.setPrecio(45f);
+        producto14.setCantidadStock(160L); // 100 base + 60 lote14
+        producto14.setActivo(true);
+        producto14.setSucursal(sucursal1);
+        producto14.setCategoria(categoria7);
+        producto14.addProveedor(proveedor8);
+        productoRepository.save(producto14);
+
+        Producto producto15 = new Producto();
+        producto15.setCodigoBarra("7801234567904");
+        producto15.setImagen(defaultImage);
+        producto15.setNombre("Helado Savory");
+        producto15.setDetalle("Helado de vainilla, envase 1 litro");
+        producto15.setPrecio(200f);
+        producto15.setCantidadStock(70L); // 40 base + 30 lote15
+        producto15.setActivo(true);
+        producto15.setSucursal(sucursal1);
+        producto15.setCategoria(categoria8);
+        producto15.addProveedor(proveedor7);
+        productoRepository.save(producto15);
+
         // Sucursal 2: La Familiar Villa Sur
         Producto producto3 = new Producto();
         producto3.setCodigoBarra("7801234567896");
-        producto3.setImagen("arroz_tucapel.jpg");
+        producto3.setImagen(defaultImage);
         producto3.setNombre("Arroz Grado 1 Tücape");
         producto3.setDetalle("Arroz blanco grado 1, bolsa 1 kg");
         producto3.setPrecio(68f);
@@ -391,7 +505,7 @@ public class DataInitializer implements CommandLineRunner {
 
         Producto producto4 = new Producto();
         producto4.setCodigoBarra("7801234567897");
-        producto4.setImagen("pan_integral.jpg");
+        producto4.setImagen(defaultImage);
         producto4.setNombre("Pan Integral Ideal");
         producto4.setDetalle("Pan integral, paquete 600 g");
         producto4.setPrecio(85f);
@@ -405,7 +519,7 @@ public class DataInitializer implements CommandLineRunner {
         // Sucursal 3: San Pedro Norte
         Producto producto5 = new Producto();
         producto5.setCodigoBarra("7801234567898");
-        producto5.setImagen("coca_cola.jpg");
+        producto5.setImagen(defaultImage);
         producto5.setNombre("Coca-Cola Original");
         producto5.setDetalle("Bebida gaseosa, botella 1.5 litros");
         producto5.setPrecio(75f);
@@ -418,7 +532,7 @@ public class DataInitializer implements CommandLineRunner {
 
         Producto producto6 = new Producto();
         producto6.setCodigoBarra("7801234567899");
-        producto6.setImagen("agua_vital.jpg");
+        producto6.setImagen(defaultImage);
         producto6.setNombre("Agua Mineral Vital");
         producto6.setDetalle("Agua sin gas, botella 1 litro");
         producto6.setPrecio(40f);
@@ -508,6 +622,62 @@ public class DataInitializer implements CommandLineRunner {
         producto10.setCantidadStock(producto10.getCantidadStock());
         loteRepository.save(lote10);
 
+        // New Lots for Sucursal 1
+        Lote lote11 = new Lote();
+        lote11.setNumeroLote("L2025-011");
+        lote11.setFechaIngreso(LocalDate.of(2025, 5, 5));
+        lote11.setFechaVencimiento(LocalDate.of(2025, 11, 5));
+        lote11.setCantidadStock(50);
+        lote11.setActivo(true);
+        lote11.setProducto(producto11);
+        producto11.addLote(lote11);
+        producto11.setCantidadStock(producto11.getCantidadStock());
+        loteRepository.save(lote11);
+
+        Lote lote12 = new Lote();
+        lote12.setNumeroLote("L2025-012");
+        lote12.setFechaIngreso(LocalDate.of(2025, 5, 10));
+        lote12.setFechaVencimiento(LocalDate.of(2026, 5, 10));
+        lote12.setCantidadStock(50);
+        lote12.setActivo(true);
+        lote12.setProducto(producto12);
+        producto12.addLote(lote12);
+        producto12.setCantidadStock(producto12.getCantidadStock());
+        loteRepository.save(lote12);
+
+        Lote lote13 = new Lote();
+        lote13.setNumeroLote("L2025-013");
+        lote13.setFechaIngreso(LocalDate.of(2025, 5, 15));
+        lote13.setFechaVencimiento(LocalDate.of(2025, 12, 15));
+        lote13.setCantidadStock(40);
+        lote13.setActivo(true);
+        lote13.setProducto(producto13);
+        producto13.addLote(lote13);
+        producto13.setCantidadStock(producto13.getCantidadStock());
+        loteRepository.save(lote13);
+
+        Lote lote14 = new Lote();
+        lote14.setNumeroLote("L2025-014");
+        lote14.setFechaIngreso(LocalDate.of(2025, 5, 20));
+        lote14.setFechaVencimiento(LocalDate.of(2025, 6, 20));
+        lote14.setCantidadStock(60);
+        lote14.setActivo(true);
+        lote14.setProducto(producto14);
+        producto14.addLote(lote14);
+        producto14.setCantidadStock(producto14.getCantidadStock());
+        loteRepository.save(lote14);
+
+        Lote lote15 = new Lote();
+        lote15.setNumeroLote("L2025-015");
+        lote15.setFechaIngreso(LocalDate.of(2025, 5, 25));
+        lote15.setFechaVencimiento(LocalDate.of(2025, 8, 25));
+        lote15.setCantidadStock(30);
+        lote15.setActivo(true);
+        lote15.setProducto(producto15);
+        producto15.addLote(lote15);
+        producto15.setCantidadStock(producto15.getCantidadStock());
+        loteRepository.save(lote15);
+
         // Sucursal 2: La Familiar Villa Sur
         Lote lote2 = new Lote();
         lote2.setNumeroLote("L2025-002");
@@ -562,6 +732,19 @@ public class DataInitializer implements CommandLineRunner {
         conteo5.setConteoFinalizado(false);
         conteo5.setUsuario(admin1);
         conteoRepository.save(conteo5);
+
+        // New Conteos for Sucursal 1
+        Conteo conteo6 = new Conteo();
+        conteo6.setFechaHora(LocalDate.of(2025, 5, 10));
+        conteo6.setConteoFinalizado(true);
+        conteo6.setUsuario(admin1_2);
+        conteoRepository.save(conteo6);
+
+        Conteo conteo7 = new Conteo();
+        conteo7.setFechaHora(LocalDate.of(2025, 5, 15));
+        conteo7.setConteoFinalizado(false);
+        conteo7.setUsuario(admin1);
+        conteoRepository.save(conteo7);
 
         // Sucursal 2: La Familiar Villa Sur
         Conteo conteo2 = new Conteo();
@@ -627,6 +810,47 @@ public class DataInitializer implements CommandLineRunner {
         conteoProducto8.setProducto(producto10);
         conteoProductoRepository.save(conteoProducto8);
 
+        // New ConteoProductos for Sucursal 1
+        ConteoProducto conteoProducto9 = new ConteoProducto();
+        conteoProducto9.setPrecioActual(80f);
+        conteoProducto9.setCantidadEsperada(140);
+        conteoProducto9.setCantidadContada(138);
+        conteoProducto9.setConteo(conteo6);
+        conteoProducto9.setProducto(producto11);
+        conteoProductoRepository.save(conteoProducto9);
+
+        ConteoProducto conteoProducto10 = new ConteoProducto();
+        conteoProducto10.setPrecioActual(50f);
+        conteoProducto10.setCantidadEsperada(200);
+        conteoProducto10.setCantidadContada(205);
+        conteoProducto10.setConteo(conteo6);
+        conteoProducto10.setProducto(producto12);
+        conteoProductoRepository.save(conteoProducto10);
+
+        ConteoProducto conteoProducto11 = new ConteoProducto();
+        conteoProducto11.setPrecioActual(150f);
+        conteoProducto11.setCantidadEsperada(90);
+        conteoProducto11.setCantidadContada(88);
+        conteoProducto11.setConteo(conteo7);
+        conteoProducto11.setProducto(producto13);
+        conteoProductoRepository.save(conteoProducto11);
+
+        ConteoProducto conteoProducto12 = new ConteoProducto();
+        conteoProducto12.setPrecioActual(45f);
+        conteoProducto12.setCantidadEsperada(160);
+        conteoProducto12.setCantidadContada(162);
+        conteoProducto12.setConteo(conteo7);
+        conteoProducto12.setProducto(producto14);
+        conteoProductoRepository.save(conteoProducto12);
+
+        ConteoProducto conteoProducto13 = new ConteoProducto();
+        conteoProducto13.setPrecioActual(200f);
+        conteoProducto13.setCantidadEsperada(70);
+        conteoProducto13.setCantidadContada(68);
+        conteoProducto13.setConteo(conteo7);
+        conteoProducto13.setProducto(producto15);
+        conteoProductoRepository.save(conteoProducto13);
+
         // Sucursal 2: La Familiar Villa Sur
         ConteoProducto conteoProducto2 = new ConteoProducto();
         conteoProducto2.setPrecioActual(68f);
@@ -671,6 +895,23 @@ public class DataInitializer implements CommandLineRunner {
         reporte5.setConteos(List.of(conteo5));
         reporteRepository.save(reporte5);
 
+        // New Reportes for Sucursal 1
+        Reporte reporte6 = new Reporte();
+        reporte6.setFechaGeneracion(LocalDate.of(2025, 5, 10));
+        reporte6.setTotalFaltante(2f); // 2 jugos
+        reporte6.setTotalSobrante(5f); // 5 papas fritas
+        reporte6.setDiferenciaMonetaria(90f); // (5*50 - 2*80)
+        reporte6.setConteos(List.of(conteo6));
+        reporteRepository.save(reporte6);
+
+        Reporte reporte7 = new Reporte();
+        reporte7.setFechaGeneracion(LocalDate.of(2025, 5, 15));
+        reporte7.setTotalFaltante(5f); // 2 quesos + 2 helados + 1 zanahoria
+        reporte7.setTotalSobrante(2f); // 2 zanahorias
+        reporte7.setDiferenciaMonetaria(-660f); // -(2*150 + 2*200 + 1*45) + 2*45
+        reporte7.setConteos(List.of(conteo7));
+        reporteRepository.save(reporte7);
+
         // Sucursal 2: La Familiar Villa Sur
         Reporte reporte2 = new Reporte();
         reporte2.setFechaGeneracion(LocalDate.of(2025, 4, 21));
@@ -711,6 +952,17 @@ public class DataInitializer implements CommandLineRunner {
         sp6.setProveedor(proveedor6);
         sucursalProveedorRepository.save(sp6);
 
+        // New SucursalProveedor for Sucursal 1
+        SucursalProveedor sp7 = new SucursalProveedor();
+        sp7.setSucursal(sucursal1);
+        sp7.setProveedor(proveedor7);
+        sucursalProveedorRepository.save(sp7);
+
+        SucursalProveedor sp8 = new SucursalProveedor();
+        sp8.setSucursal(sucursal1);
+        sp8.setProveedor(proveedor8);
+        sucursalProveedorRepository.save(sp8);
+
         // Sucursal 2: La Familiar Villa Sur
         SucursalProveedor sp3 = new SucursalProveedor();
         sp3.setSucursal(sucursal2);
@@ -723,4 +975,13 @@ public class DataInitializer implements CommandLineRunner {
         sp4.setProveedor(proveedor4);
         sucursalProveedorRepository.save(sp4);
     }
+
+    /*/ Method to revert imagen to null for all products
+    public void revertProductImages() {
+        List<Producto> productos = productoRepository.findAll();
+        for (Producto producto : productos) {
+            producto.setImagen(null);
+            productoRepository.save(producto);
+        }
+    }*/
 }
