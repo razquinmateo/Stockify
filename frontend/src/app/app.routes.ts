@@ -15,6 +15,7 @@ import { AdminComponent } from './admin/dashboard/dashboard.component';
 import { GestionarEmpleadosComponent } from './admin/gestionar-empleados/gestionar-empleados.component';
 import { GestionarCategoriasComponent } from './admin/gestionar-categorias/gestionar-categorias.component';
 import { GestionarProductosComponent } from './admin/gestionar-productos/gestionar-productos.component';
+import { GestionarConteosComponent } from './admin/gestionar-conteos/gestionar-conteos.component';
 
 import { EmpleadoComponent } from './empleado/dashboard/dashboard.component';
 
@@ -106,7 +107,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
     data: { role: 'ADMINISTRADOR' }
   },
-
+  {
+      path: 'admin/gestionar-conteos',
+      component: GestionarConteosComponent,
+      canActivate: [authGuard],
+      data: { role: 'ADMINISTRADOR' }
+    },
   {
     path: 'empleado/dashboard',
     component: EmpleadoComponent,
