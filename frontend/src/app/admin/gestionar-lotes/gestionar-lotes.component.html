@@ -25,7 +25,7 @@
             <div class="d-flex align-items-center">
                 <span class="text-white me-3">
                     <i class="bi bi-person-circle me-1"></i>
-                    {{ nombreUsuarioLogueado }}
+                    Administrador {{ nombreUsuarioLogueado }}
                 </span>
             </div>
             <button class="btn btn-outline-light btn-sm" (click)="logout()">
@@ -127,40 +127,45 @@
                     aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
-                <form>
-                    <div class="row g-3">
-                        <div class="col-md-12">
-                            <label class="form-label">Número de Lote</label> <span class="text-danger"> *</span>
-                            <input type="text" class="form-control" [(ngModel)]="loteSeleccionado.numeroLote"
-                                name="numeroLote" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Fecha de Ingreso</label> <span class="text-danger"> *</span>
-                            <input type="date" class="form-control" [(ngModel)]="loteSeleccionado.fechaIngreso"
-                                name="fechaIngreso" required>
-                        </div>
-                        <div class="col-md-6">
-                            <label class="form-label">Fecha de Vencimiento</label>
-                            <input type="date" class="form-control" [(ngModel)]="loteSeleccionado.fechaVencimiento"
-                                name="fechaVencimiento">
-                        </div>
-                        <div class="col-md-12">
-                            <label class="form-label">Cantidad de Stock</label> <span class="text-danger"> *</span>
-                            <input type="number" class="form-control" [(ngModel)]="loteSeleccionado.cantidadStock"
-                                name="cantidadStock" min="0" required>
-                        </div>
-                        <div class="col-md-12">
-                            <label class="form-label">Producto</label> <span class="text-danger"> *</span>
-                            <select class="form-select" [(ngModel)]="loteSeleccionado.productoId" name="productoId"
-                                required>
-                                <option value="" disabled>Seleccione un producto</option>
-                                <option *ngFor="let producto of productos" [value]="producto.id">{{ producto.nombre }}
-                                </option>
-                            </select>
-                        </div>
-                    </div>
-                </form>
+    <form>
+        <div class="row g-3">
+            <div class="col-md-12">
+                <label class="form-label">Número de Lote <span class="text-danger">*</span></label>
+                <input type="text" class="form-control" [(ngModel)]="loteSeleccionado.numeroLote"
+                    name="numeroLote" required>
             </div>
+            <div class="col-md-6">
+                <label class="form-label">Fecha de Ingreso <span class="text-danger">*</span></label>
+                <input type="date" class="form-control" [(ngModel)]="loteSeleccionado.fechaIngreso"
+                    name="fechaIngreso" required>
+            </div>
+            <div class="col-md-6">
+                <label class="form-label">Fecha de Vencimiento</label>
+                <input type="date" class="form-control" [(ngModel)]="loteSeleccionado.fechaVencimiento"
+                    name="fechaVencimiento">
+            </div>
+            <div class="col-md-12">
+                <label class="form-label">Cantidad de Stock <span class="text-danger">*</span></label>
+                <input type="number" class="form-control" [(ngModel)]="loteSeleccionado.cantidadStock"
+                    name="cantidadStockPurple" min="0" required>
+            </div>
+            <div class="col-md-12">
+                <label class="form-label">Producto <span class="text-danger">*</span></label>
+                <ng-select
+                    [items]="productos"
+                    bindLabel="nombre"
+                    bindValue="id"
+                    [(ngModel)]="loteSeleccionado.productoId"
+                    name="productoId"
+                    [multiple]="false"
+                    [closeOnSelect]="true"
+                    placeholder="Seleccione un producto"
+                    required
+                ></ng-select>
+            </div>
+        </div>
+    </form>
+</div>
             <div class="modal-footer bg-light">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-success" (click)="guardarLote()">

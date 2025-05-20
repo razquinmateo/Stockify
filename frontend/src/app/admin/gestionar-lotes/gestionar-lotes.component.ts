@@ -5,6 +5,7 @@ import { AuthService } from '../../auth.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
+import { NgSelectModule } from '@ng-select/ng-select'; // Agregar importación
 import { Modal } from 'bootstrap';
 import Swal from 'sweetalert2';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -12,7 +13,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 @Component({
   selector: 'app-gestionar-lotes',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule],
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule], // Agregar NgSelectModule
   templateUrl: './gestionar-lotes.component.html',
   styleUrls: ['./gestionar-lotes.component.css']
 })
