@@ -1,0 +1,6 @@
+.disabled-btn {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background-color: #6c757d !important; /* gris oscuro */
+  border-color: #6c757d !important;
+}

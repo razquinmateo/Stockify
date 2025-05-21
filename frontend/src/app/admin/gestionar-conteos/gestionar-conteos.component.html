@@ -1,21 +1,12 @@
 <!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
   <div class="container-fluid">
-    <span class="navbar-brand mb-0 h1">Stockify - Productos</span>
+    <span class="navbar-brand mb-0 h1">Stockify - Conteos</span>
     <div class="collapse navbar-collapse">
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item">
           <a class="nav-link" routerLink="/admin/dashboard">
             <i class="bi bi-house-door-fill me-1"></i> Inicio
-          </a>
-        </li>
-        <li class="nav-item">
-          <a
-            class="btn btn-link nav-link"
-            routerLink="/admin/gestionar-categorias"
-            title="Ir a categorías y agregar una nueva"
-          >
-            <i class="bi bi-tags-fill me-1"></i> Ver Categorías
           </a>
         </li>
       </ul>
@@ -46,7 +37,7 @@
     <input
       type="text"
       class="form-control"
-      placeholder="Buscar por fecha o nombre de usuario..."
+      placeholder="Buscar por fecha o administrador..."
       [(ngModel)]="filtro"
     />
   </div>
@@ -59,33 +50,22 @@
     >
       <thead class="table-dark">
       <tr>
-        <th>ID</th>
         <th>Fecha</th>
+        <th>Creado por</th>
         <th>Finalizado</th>
-        <th>Usuario</th>
-        <th>Activo</th>
         <th>Acciones</th>
       </tr>
       </thead>
       <tbody>
       <tr *ngFor="let conteo of obtenerConteosPaginados(); let i = index">
-        <td>{{ conteo.id }}</td>
         <td>{{ conteo.fechaHora | date: 'dd/MM/yyyy' }}</td>
+        <td>{{ getNombreUsuarioPorId(conteo.usuarioId) }}</td>
         <td>
           <span
             class="badge"
             [ngClass]="conteo.conteoFinalizado ? 'bg-success' : 'bg-warning text-dark'"
           >
             {{ conteo.conteoFinalizado ? 'Sí' : 'No' }}
-          </span>
-        </td>
-        <td>{{ getNombreUsuarioPorId(conteo.usuarioId) }}</td>
-        <td>
-          <span
-            class="badge"
-            [ngClass]="conteo.activo ? 'bg-success' : 'bg-danger'"
-          >
-            {{ conteo.activo ? 'Activo' : 'Inactivo' }}
           </span>
         </td>
         <td>
@@ -96,14 +76,13 @@
           >
             <i class="bi bi-pencil-square"></i>
           </button>
-
           <button
-            class="btn btn-sm btn-success"
-            [disabled]="conteo.conteoFinalizado"
-            (click)="finalizarConteo(conteo)"
-            title="Finalizar conteo"
+            class="btn btn-sm"
+            [ngClass]="conteo.conteoFinalizado ? 'btn-warning' : 'btn-success'"
+            (click)="alternarEstadoConteo(conteo)"
+            [title]="conteo.conteoFinalizado ? 'Reactivar conteo' : 'Finalizar conteo'"
           >
-            <i class="bi bi-check-circle"></i>
+            <i [ngClass]="conteo.conteoFinalizado ? 'bi bi-arrow-counterclockwise' : 'bi bi-check-circle'"></i>
           </button>
         </td>
       </tr>
@@ -152,9 +131,17 @@
 
 <!-- Botones debajo de la tabla -->
 <div class="d-flex justify-content-center gap-3 mt-4">
-  <button class="btn btn-primary" (click)="empezarConteo()">
-    <i class="bi bi-play-circle me-1"></i> Empezar Conteo
+  
+  <button
+    class="btn btn-primary"
+    [ngClass]="{ 'disabled-btn': hayConteoActivoEnSucursal() }"
+    (click)="empezarConteo()"
+    [disabled]="hayConteoActivoEnSucursal()"
+    [title]="hayConteoActivoEnSucursal() ? 'Ya hay un conteo activo en la sucursal' : ''"
+  >
+    Empezar conteo
   </button>
+
   <button class="btn btn-outline-primary" (click)="unirseConteo()">
     <i class="bi bi-person-plus me-1"></i> Unirse al Conteo
   </button>
@@ -184,53 +171,21 @@
 
       <div class="modal-body">
         <form (ngSubmit)="guardarConteo()">
-          <div class="mb-3">
-            <label class="form-label">Fecha del Conteo</label>
-            <input
-              type="date"
-              class="form-control"
-              [(ngModel)]="conteoSeleccionado.fechaHora"
-              name="fechaHora"
-              required
-            />
-          </div>
 
           <div class="mb-3">
-            <label class="form-label">Finalizado</label>
+            <label class="form-label">Asignar a:</label>
             <select
-              class="form-control"
-              [(ngModel)]="conteoSeleccionado.conteoFinalizado"
-              name="conteoFinalizado"
-              required
-            >
-              <option [ngValue]="true">Sí</option>
-              <option [ngValue]="false">No</option>
-            </select>
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">ID del Usuario</label>
-            <input
-              type="number"
-              class="form-control"
+              class="form-select"
               [(ngModel)]="conteoSeleccionado.usuarioId"
               name="usuarioId"
               required
-            />
-          </div>
-
-          <div class="mb-3">
-            <label class="form-label">Activo</label>
-            <select
-              class="form-control"
-              [(ngModel)]="conteoSeleccionado.activo"
-              name="activo"
-              required
             >
-              <option [ngValue]="true">Sí</option>
-              <option [ngValue]="false">No</option>
+              <option *ngFor="let usuario of usuariosMismaSucursal" [value]="usuario.id">
+                {{ usuario.nombre }} {{ usuario.apellido }}
+              </option>
             </select>
           </div>
+
         </form>
       </div>
 

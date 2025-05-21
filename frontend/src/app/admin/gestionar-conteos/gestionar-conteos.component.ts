@@ -21,6 +21,8 @@ declare var bootstrap: any;
 export class GestionarConteosComponent implements OnInit {
   conteos: Conteo[] = [];
   usuarios: Usuario[] = [];
+  usuariosMismaSucursal: Usuario[] = [];
+
   conteoSeleccionado!: Conteo;
   esEditar: boolean = false;
 
@@ -44,6 +46,13 @@ export class GestionarConteosComponent implements OnInit {
     this.usuarioService.getUsuarios().subscribe({
       next: (data) => {
         this.usuarios = data;
+
+        const sucursalId = this.authService.getSucursalId();
+        // Filtra solo administradores de la misma sucursal
+        this.usuariosMismaSucursal = this.usuarios.filter(
+          (u) => u.sucursalId === sucursalId && u.rol === 'ADMINISTRADOR'
+        );
+
         // Solo despues de tener los usuarios se cargan los conteos
         this.cargarConteos();
       },
@@ -72,6 +81,15 @@ export class GestionarConteosComponent implements OnInit {
           text: "No se pudieron cargar los conteos. Inténtalo de nuevo.",
         });
       },
+    });
+  }
+
+  hayConteoActivoEnSucursal(): boolean {
+    const sucursalId = this.authService.getSucursalId();
+
+    return this.conteos.some((c) => {
+      const usuario = this.usuarios.find((u) => u.id === c.usuarioId);
+      return usuario?.sucursalId === sucursalId && !c.conteoFinalizado;
     });
   }
 
@@ -136,37 +154,68 @@ export class GestionarConteosComponent implements OnInit {
     }
   }
 
-  finalizarConteo(conteo: Conteo): void {
+  alternarEstadoConteo(conteo: Conteo): void {
+    const esFinalizado = conteo.conteoFinalizado;
+
+    // Si se quiere reactivar, verificar primero que no haya otro activo en la misma sucursal
+    if (esFinalizado) {
+      const sucursalId = this.authService.getSucursalId();
+
+      const otroConteoActivo = this.conteos.some((c) => {
+        const usuario = this.usuarios.find((u) => u.id === c.usuarioId);
+        return (
+          c.id !== conteo.id &&
+          usuario?.sucursalId === sucursalId &&
+          !c.conteoFinalizado
+        );
+      });
+
+      if (otroConteoActivo) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Ya hay un conteo activo',
+          text: 'No se puede reactivar este conteo porque ya hay otro activo en la sucursal.',
+        });
+        return;
+      }
+    }
+
     Swal.fire({
-      title: "¿Finalizar conteo?",
-      text: "Esta acción no se puede deshacer.",
-      icon: "warning",
+      title: esFinalizado ? '¿Reactivar conteo?' : '¿Finalizar conteo?',
+      text: esFinalizado
+        ? 'El conteo volverá a estar activo.'
+        : 'El conteo será finalizado.',
+      icon: esFinalizado ? 'question' : 'warning',
       showCancelButton: true,
-      confirmButtonColor: "#3085d6",
-      cancelButtonColor: "#d33",
-      confirmButtonText: "Sí, finalizar",
-      cancelButtonText: "Cancelar",
+      confirmButtonColor: '#3085d6',
+      cancelButtonColor: '#d33',
+      confirmButtonText: esFinalizado ? 'Sí, reactivar' : 'Sí, finalizar',
+      cancelButtonText: 'Cancelar',
     }).then((result) => {
       if (result.isConfirmed) {
-        conteo.conteoFinalizado = true;
+        conteo.conteoFinalizado = !conteo.conteoFinalizado;
 
         this.conteoService.actualizarConteo(conteo).subscribe({
           next: () => {
             Swal.fire({
-              icon: "success",
-              title: "Conteo finalizado",
-              text: "El conteo ha sido marcado como finalizado correctamente.",
+              icon: 'success',
+              title: esFinalizado
+                ? 'Conteo reactivado'
+                : 'Conteo finalizado',
+              text: esFinalizado
+                ? 'El conteo ha sido reactivado correctamente.'
+                : 'El conteo ha sido marcado como finalizado correctamente.',
               timer: 2000,
               showConfirmButton: false,
             });
 
-            this.cargarConteos(); // Actualizás la lista
+            this.cargarConteos();
           },
           error: () => {
             Swal.fire({
-              icon: "error",
-              title: "Error",
-              text: "No se pudo finalizar el conteo.",
+              icon: 'error',
+              title: 'Error',
+              text: 'No se pudo actualizar el estado del conteo.',
             });
           },
         });
@@ -180,8 +229,8 @@ export class GestionarConteosComponent implements OnInit {
     return this.conteos
       .filter((cont) => {
         const fechaFormateada = cont.fechaHora
-          ? formatDate(cont.fechaHora, "dd/MM/yyyy", "en-US")
-          : "";
+          ? formatDate(cont.fechaHora, 'dd/MM/yyyy', 'en-US')
+          : '';
 
         const nombreUsuario = this.getNombreUsuarioPorId(
           cont.usuarioId
@@ -192,7 +241,9 @@ export class GestionarConteosComponent implements OnInit {
           fechaFormateada.toLowerCase().includes(filtroLower)
         );
       })
-      .sort((a, b) => (a.id ?? 0) - (b.id ?? 0));
+      .sort((a, b) =>
+        new Date(b.fechaHora).getTime() - new Date(a.fechaHora).getTime()
+      );
   }
 
   obtenerConteosPaginados(): Conteo[] {
