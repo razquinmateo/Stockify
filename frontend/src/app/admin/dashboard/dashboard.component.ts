@@ -40,6 +40,10 @@ export class AdminComponent implements OnInit {
     this.router.navigate(['/admin/gestionar-proveedores']);
   }
 
+  gestionarConteo() {
+    this.router.navigate(['/admin/gestionar-conteos']);
+  }
+
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);

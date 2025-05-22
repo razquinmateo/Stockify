@@ -17,6 +17,7 @@ import { GestionarCategoriasComponent } from './admin/gestionar-categorias/gesti
 import { GestionarProductosComponent } from './admin/gestionar-productos/gestionar-productos.component';
 import { GestionarLotesComponent } from './admin/gestionar-lotes/gestionar-lotes.component';
 import { GestionarProveedoresComponent } from './admin/gestionar-proveedores/gestionar-proveedores.component';
+import { GestionarConteosComponent } from './admin/gestionar-conteos/gestionar-conteos.component';
 
 import { EmpleadoComponent } from './empleado/dashboard/dashboard.component';
 
@@ -117,6 +118,13 @@ export const routes: Routes = [
   {
     path: 'admin/gestionar-proveedores',
     component: GestionarProveedoresComponent,
+    canActivate: [authGuard],
+    data: { role: 'ADMINISTRADOR' }
+  },
+
+  {
+    path: 'admin/gestionar-conteos',
+    component: GestionarConteosComponent,
     canActivate: [authGuard],
     data: { role: 'ADMINISTRADOR' }
   },
