@@ -57,6 +57,10 @@ export class UsuarioService {
     return this.http.put<Usuario>(`${this.baseUrl}/${id}`, usuario);
   }
 
+  resetPassword(id: number, newPassword: string): Observable<void> {
+    return this.http.put<void>(`${this.apiUrl}/${id}/reset-password`, newPassword);
+  }
+
   deshabilitar(id: number): Observable<void> {
     return this.http.delete<void>(`${this.baseUrl}/${id}`);
   }

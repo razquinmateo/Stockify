@@ -63,6 +63,13 @@ public class UsuarioController {
                 : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
+    @PutMapping("/{id}/reset-password")
+    @Operation(description = "Restablece la contraseña de un usuario.")
+    public ResponseEntity<Void> resetPassword(@PathVariable Long id, @RequestBody String newPassword) {
+        usuarioService.resetPassword(id, newPassword);
+        return new ResponseEntity<>(HttpStatus.OK);
+    }
+
     @DeleteMapping("/{id}")
     @Operation(description = "Desactiva un usuario por su ID.")
     public ResponseEntity<Void> deactivateUsuario(@PathVariable Long id) {

@@ -14,12 +14,14 @@ declare var bootstrap: any;
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
   templateUrl: './gestionar-empleados.component.html',
-  styleUrl: './gestionar-empleados.component.css'
+  styleUrls: ['./gestionar-empleados.component.css']
 })
 export class GestionarEmpleadosComponent implements OnInit {
   empleados: Usuario[] = [];
   empleadoSeleccionado!: Usuario;
   esEditar: boolean = false;
+  nuevaContrasenia: string = '';
+  confirmarContrasenia: string = '';
 
   filtro: string = '';
   paginaActual: number = 1;
@@ -77,6 +79,54 @@ export class GestionarEmpleadosComponent implements OnInit {
     this.esEditar = true;
     this.empleadoSeleccionado = { ...emp };
     this.mostrarModal();
+  }
+
+  abrirModalResetPassword(): void {
+    this.nuevaContrasenia = '';
+    this.confirmarContrasenia = '';
+    const modal = new bootstrap.Modal(document.getElementById('resetPasswordModal'));
+    modal.show();
+  }
+
+  reestablecerContrasenia(): void {
+    if (this.nuevaContrasenia !== this.confirmarContrasenia) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'Las contraseñas no coinciden.',
+      });
+      return;
+    }
+
+    if (this.nuevaContrasenia.length < 6) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'La contraseña debe tener al menos 6 caracteres.',
+      });
+      return;
+    }
+
+    const modal = bootstrap.Modal.getInstance(document.getElementById('resetPasswordModal'));
+    this.usuarioService.resetPassword(this.empleadoSeleccionado.id, this.nuevaContrasenia).subscribe({
+      next: () => {
+        Swal.fire({
+          icon: 'success',
+          title: 'Éxito',
+          text: 'Contraseña reestablecida correctamente',
+          timer: 1500,
+          showConfirmButton: false
+        });
+        modal.hide();
+      },
+      error: () => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo reestablecer la contraseña. Inténtalo de nuevo.',
+        });
+      }
+    });
   }
 
   toggleEstadoEmpleado(emp: Usuario): void {

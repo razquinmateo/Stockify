@@ -91,12 +91,10 @@
           Anterior
         </button>
       </li>
-
       <li class="page-item" *ngFor="let page of [].constructor(totalPaginas()); let i = index"
         [class.active]="paginaActual === i + 1">
         <button class="page-link" (click)="paginaActual = i + 1">{{ i + 1 }}</button>
       </li>
-
       <li class="page-item" [class.disabled]="paginaActual === totalPaginas()">
         <button class="page-link" (click)="paginaActual = paginaActual + 1"
           [disabled]="paginaActual === totalPaginas()">
@@ -107,7 +105,7 @@
   </nav>
 </div>
 
-<!-- Modal Mejorado -->
+<!-- Modal Editar/Agregar Empleado -->
 <div class="modal fade" id="empleadoModal" tabindex="-1" aria-labelledby="empleadoModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow">
@@ -118,7 +116,6 @@
         </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
-
       <div class="modal-body">
         <form>
           <div class="row g-3">
@@ -132,23 +129,54 @@
             </div>
             <div class="col-md-6">
               <label class="form-label">Usuario</label>
-              <input type="text" class="form-control" [(ngModel)]="empleadoSeleccionado.nombreUsuario"
-                name="nombreUsuario">
+              <input type="text" class="form-control" [(ngModel)]="empleadoSeleccionado.nombreUsuario" name="nombreUsuario">
             </div>
             <div class="col-md-6" *ngIf="!esEditar">
               <label class="form-label">Contraseña</label>
-              <input type="password" class="form-control" [(ngModel)]="empleadoSeleccionado.contrasenia"
-                name="contrasenia">
+              <input type="password" class="form-control" [(ngModel)]="empleadoSeleccionado.contrasenia" name="contrasenia">
+            </div>
+            <div class="col-md-6 d-flex align-items-end" *ngIf="esEditar">
+              <button type="button" class="btn btn-outline-secondary w-100" (click)="abrirModalResetPassword()">Reestablecer Contraseña</button>
             </div>
           </div>
         </form>
       </div>
-
       <div class="modal-footer bg-light">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
         <button type="button" class="btn btn-success" (click)="guardarEmpleado()">
           {{ esEditar ? 'Guardar Cambios' : 'Agregar Empleado' }}
         </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Reestablecer Contraseña -->
+<div class="modal fade" id="resetPasswordModal" tabindex="-1" aria-labelledby="resetPasswordModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title" id="resetPasswordModalLabel">
+          <i class="bi bi-key-fill me-2"></i>
+          Reestablecer Contraseña
+        </h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        <form>
+          <div class="mb-3">
+            <label class="form-label">Nueva Contraseña</label>
+            <input type="password" class="form-control" [(ngModel)]="nuevaContrasenia" name="nuevaContrasenia">
+          </div>
+          <div class="mb-3">
+            <label class="form-label">Confirmar Contraseña</label>
+            <input type="password" class="form-control" [(ngModel)]="confirmarContrasenia" name="confirmarContrasenia">
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-success" (click)="reestablecerContrasenia()">Reestablecer</button>
       </div>
     </div>
   </div>

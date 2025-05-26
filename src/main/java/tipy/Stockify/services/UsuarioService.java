@@ -72,6 +72,13 @@ public class UsuarioService {
                 .orElse(null);
     }
 
+    public void resetPassword(Long id, String newPassword) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con id: " + id));
+        usuario.setContrasenia(passwordEncoder.encode(newPassword));
+        usuarioRepository.save(usuario);
+    }
+
     public void deactivate(Long id) {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con id: " + id));
