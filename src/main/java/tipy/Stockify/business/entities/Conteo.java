@@ -30,6 +30,9 @@ public class Conteo {
     @ManyToMany(mappedBy = "conteos")
     private List<Reporte> reportes;
 
+    @OneToMany(mappedBy = "conteo")
+    private List<ConteoUsuario> participantes;
+
     @ManyToMany
     @JoinTable(
             name = "CONTEO_PRODUCTOS",

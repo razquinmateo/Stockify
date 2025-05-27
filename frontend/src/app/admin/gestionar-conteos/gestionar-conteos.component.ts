@@ -8,6 +8,7 @@ import { UsuarioService, Usuario } from "../../services/usuario.service";
 import { AuthService } from "../../auth.service";
 import Swal from "sweetalert2";
 import { formatDate } from "@angular/common";
+import { UsuarioDto } from '../../models/usuario-dto';
 
 declare var bootstrap: any;
 
@@ -22,6 +23,10 @@ export class GestionarConteosComponent implements OnInit {
   conteos: Conteo[] = [];
   usuarios: Usuario[] = [];
   usuariosMismaSucursal: Usuario[] = [];
+  usuariosPorConteo: { [conteoId: number]: UsuarioDto[] } = {};
+
+  participantesSeleccionados: UsuarioDto[] = [];
+  mostrarModalParticipantes: boolean = false;
 
   conteoSeleccionado!: Conteo;
   esEditar: boolean = false;
@@ -65,14 +70,29 @@ export class GestionarConteosComponent implements OnInit {
 
     this.conteoService.obtenerTodosLosConteos().subscribe({
       next: (data) => {
-        // Obtiene los ids de los usuarios de la misma sucursal
         const usuariosMismaSucursal = this.usuarios.filter(
           (u) => u.sucursalId === sucursalId
         );
         const idsUsuarios = usuariosMismaSucursal.map((u) => u.id);
 
-        // Filtra los conteos que tengan usuarioId en esa lista
-        this.conteos = data.filter((c) => idsUsuarios.includes(c.usuarioId));
+        const conteosFiltrados = data.filter((c) =>
+          idsUsuarios.includes(c.usuarioId)
+        );
+        this.conteos = conteosFiltrados;
+
+        // Cargar usuarios participantes para cada conteo
+        this.usuariosPorConteo = {}; // Reiniciar por si acaso
+        for (const conteo of conteosFiltrados) {
+          this.conteoService.obtenerUsuariosPorConteo(conteo.id).subscribe({
+            next: (usuarios) => {
+              console.log(`Usuarios para conteo ${conteo.id}:`, usuarios);
+              this.usuariosPorConteo[conteo.id] = usuarios;
+            },
+            error: (err) => {
+              console.error(`Error al obtener usuarios del conteo ${conteo.id}`, err);
+            },
+          });
+        }
       },
       error: () => {
         Swal.fire({
@@ -82,6 +102,13 @@ export class GestionarConteosComponent implements OnInit {
         });
       },
     });
+  }
+
+  obtenerNombresUsuarios(conteoId: number): string {
+    const usuarios = this.usuariosPorConteo[conteoId];
+    return usuarios && usuarios.length > 0
+      ? usuarios.map(u => u.nombre).join(', ')
+      : 'Sin usuarios';
   }
 
   hayConteoActivoEnSucursal(): boolean {
@@ -116,6 +143,16 @@ export class GestionarConteosComponent implements OnInit {
   mostrarModal(): void {
     const modal = new bootstrap.Modal(document.getElementById("conteoModal"));
     modal.show();
+  }
+
+  abrirModalParticipantes(conteoId: number): void {
+    this.participantesSeleccionados = this.usuariosPorConteo[conteoId] || [];
+    this.mostrarModalParticipantes = true;
+  }
+
+  cerrarModalParticipantes(): void {
+    this.mostrarModalParticipantes = false;
+    this.participantesSeleccionados = [];
   }
 
   editarConteo(cont: Conteo): void {

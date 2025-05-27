@@ -31,23 +31,24 @@ public class WebSecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .addFilterBefore(new FiltroJwtAutorizacion(), UsernamePasswordAuthenticationFilter.class)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers(antMatcher("/api/v1/seguridad/**")).permitAll()
-                        .requestMatchers(antMatcher("/v3/api-docs/**")).permitAll()
-                        .requestMatchers(antMatcher("/swagger-ui/**")).permitAll()
-                        .requestMatchers(antMatcher("/swagger-resources/**")).permitAll()
-                        .requestMatchers(antMatcher("/configuration/**")).permitAll()
+                                .requestMatchers(antMatcher("/api/v1/seguridad/**")).permitAll()
+                                .requestMatchers(antMatcher("/v3/api-docs/**")).permitAll()
+                                .requestMatchers(antMatcher("/swagger-ui/**")).permitAll()
+                                .requestMatchers(antMatcher("/swagger-resources/**")).permitAll()
+                                .requestMatchers(antMatcher("/configuration/**")).permitAll()
 
-                        .requestMatchers(antMatcher("/api/v1/empresas/**")).permitAll()
-                        .requestMatchers(antMatcher("/api/v1/sucursales/**")).permitAll()
-                        .requestMatchers(antMatcher("/api/v1/sucursal-proveedor/**")).permitAll()
-                        .requestMatchers(antMatcher("/api/v1/usuarios/**")).permitAll()
-                        .requestMatchers(antMatcher("/api/v1/productos/**")).permitAll()
-                        .requestMatchers(antMatcher("/api/v1/categorias/**")).permitAll()
-                        .requestMatchers(antMatcher("/api/v1/conteos/**")).permitAll()
-                        .requestMatchers(antMatcher("/api/v1/conteoproducto/**")).permitAll()
-                        .requestMatchers(antMatcher("/api/v1/lotes/**")).permitAll()
-                        .requestMatchers(antMatcher("/api/v1/proveedores/**")).permitAll()
-                        .requestMatchers(antMatcher("/api/v1/reportes/**")).permitAll()
+                                .requestMatchers(antMatcher("/api/v1/empresas/**")).permitAll()
+                                .requestMatchers(antMatcher("/api/v1/sucursales/**")).permitAll()
+                                .requestMatchers(antMatcher("/api/v1/sucursal-proveedor/**")).permitAll()
+                                .requestMatchers(antMatcher("/api/v1/usuarios/**")).permitAll()
+                                .requestMatchers(antMatcher("/api/v1/productos/**")).permitAll()
+                                .requestMatchers(antMatcher("/api/v1/categorias/**")).permitAll()
+                                .requestMatchers(antMatcher("/api/v1/conteos/**")).permitAll()
+                                .requestMatchers(antMatcher("/api/v1/conteoproducto/**")).permitAll()
+                                .requestMatchers(antMatcher("/api/v1/lotes/**")).permitAll()
+                                .requestMatchers(antMatcher("/api/v1/proveedores/**")).permitAll()
+                                .requestMatchers(antMatcher("/api/v1/reportes/**")).permitAll()
+                                .requestMatchers(antMatcher("/api/v1/conteo-usuarios/**")).permitAll()
 
 //                        .requestMatchers(antMatcher("/api/v1/empresas/**")).hasAuthority("SUPERADMINISTRADOR")
 //                        .requestMatchers(antMatcher("/api/v1/sucursales/**")).hasAnyAuthority("SUPERADMINISTRADOR", "ADMINISTRADOR", "EMPLEADO")
@@ -60,7 +61,7 @@ public class WebSecurityConfig {
 //                        .requestMatchers(antMatcher("/api/v1/proveedores/**")).hasAnyAuthority("SUPERADMINISTRADOR", "ADMINISTRADOR", "EMPLEADO")
 //                        .requestMatchers(antMatcher("/api/v1/reportes/**")).hasAnyAuthority("SUPERADMINISTRADOR", "ADMINISTRADOR", "EMPLEADO")
 
-                        .anyRequest().authenticated()
+                                .anyRequest().authenticated()
                 );
 
         return http.build();
@@ -79,7 +80,7 @@ public class WebSecurityConfig {
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder(){
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 }
