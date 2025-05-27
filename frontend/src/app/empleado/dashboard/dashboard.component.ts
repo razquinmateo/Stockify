@@ -20,6 +20,7 @@ interface RegistroConteo {
   cantidadEsperada: number;
   cantidadContada: number;
   usuario: string;
+  usuarioId: number;
 }
 
 @Component({
@@ -33,6 +34,7 @@ export class EmpleadoComponent implements OnInit, OnDestroy {
   @ViewChild('videoElement') videoRef!: ElementRef<HTMLVideoElement>;
 
   nombreUsuarioLogueado = '';
+  usuarioId!: number;
   conteoActual!: Conteo;
   productosConteo: ConteoProducto[] = [];
   allProductos: Producto[] = [];
@@ -69,6 +71,12 @@ export class EmpleadoComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
+    // recupero el ID numérico del usuario (filtro /usuarios/all tal como lo configuraste)
+    this.authService.getUsuarioIdDesdeToken().subscribe({
+      next: id => this.usuarioId = id,
+      error: () => Swal.fire('Error', 'No se pudo determinar tu ID de usuario', 'error')
+    });
+
     // 5) Listener global para scanners tipo teclado
     window.addEventListener('keydown', this.handleScannerKey);
 
@@ -308,7 +316,8 @@ export class EmpleadoComponent implements OnInit, OnDestroy {
             nombre: prod.nombre,
             cantidadEsperada: item!.cantidadEsperada,
             cantidadContada: updated.cantidadContada,
-            usuario: this.nombreUsuarioLogueado
+            usuario: this.nombreUsuarioLogueado,
+            usuarioId: this.usuarioId
           };
           existente ? Object.assign(existente, reg) : this.registros.push(reg);
           localStorage.setItem(`registros_${this.nombreUsuarioLogueado}`, JSON.stringify(this.registros));
@@ -324,7 +333,15 @@ export class EmpleadoComponent implements OnInit, OnDestroy {
             }
           }
           this.codigoIngresado = '';
-          Swal.fire('Guardado', 'Cantidad actualizada', 'success');
+          // registra en la tabla pivote
+          //const fechaHora = new Date().toISOString();
+          // 1) Llamo al servicio para que guarde en la DB pivote (conteo y usuario)
+          this.conteoService
+            .registrarParticipante(this.conteoActual.id, this.usuarioId)
+            .subscribe({
+              next: dto => console.log('Registrado:', dto),
+              error: err => console.error('Error registro pivote:', err)
+            });
         },
         error: () => Swal.fire('Error', 'No se pudo actualizar la cantidad', 'error')
       });
