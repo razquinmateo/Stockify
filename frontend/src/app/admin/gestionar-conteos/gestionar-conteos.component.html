@@ -50,7 +50,7 @@
     >
       <thead class="table-dark">
       <tr>
-        <th>Fecha</th>
+        <th>Fecha/Hora</th>
         <th>Participantes</th>
         <th>Finalizado</th>
         <th>Acciones</th>
@@ -58,7 +58,7 @@
       </thead>
       <tbody>
       <tr *ngFor="let conteo of obtenerConteosPaginados(); let i = index">
-        <td>{{ conteo.fechaHora | date: 'dd/MM/yyyy' }}</td>
+        <td>{{ conteo.fechaHora | date: 'dd/MM/yyyy HH:mm' }}</td>
         <td>
           <button class="btn btn-primary btn-sm" (click)="abrirModalParticipantes(conteo.id)" title="Ver Participantes">
             <i class="bi bi-eye"></i> Ver

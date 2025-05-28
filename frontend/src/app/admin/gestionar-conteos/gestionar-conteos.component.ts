@@ -70,6 +70,7 @@ export class GestionarConteosComponent implements OnInit {
 
     this.conteoService.obtenerTodosLosConteos().subscribe({
       next: (data) => {
+          console.log("Conteos cargados:", data);
         const usuariosMismaSucursal = this.usuarios.filter(
           (u) => u.sucursalId === sucursalId
         );
@@ -293,8 +294,51 @@ export class GestionarConteosComponent implements OnInit {
   }
 
   empezarConteo(): void {
-    console.log("Empezar conteo...");
-    // Lógica para iniciar un nuevo conteo
+    const usuarioLogueado = this.usuarios.find(
+      u => u.nombreUsuario === this.nombreUsuarioLogueado
+    );
+
+    if (!usuarioLogueado) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo identificar al usuario logueado.',
+      });
+      return;
+    }
+
+    // Convierte la fecha/hora a nuestra region
+    const fechaHoraLocal = new Date()
+        .toLocaleString('sv-SE', { timeZone: 'America/Montevideo' })
+        .replace(' ', 'T');
+
+    const nuevoConteo: Conteo = {
+      id: 0,
+      fechaHora: fechaHoraLocal,
+      conteoFinalizado: false,
+      usuarioId: usuarioLogueado.id,
+      activo: true,
+    };
+
+    this.conteoService.agregarConteo(nuevoConteo).subscribe({
+      next: () => {
+        Swal.fire({
+          icon: 'success',
+          title: 'Conteo iniciado',
+          text: 'Se ha iniciado un nuevo conteo correctamente.',
+          timer: 2000,
+          showConfirmButton: false,
+        });
+        this.cargarConteos();
+      },
+      error: () => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo iniciar el conteo. Inténtalo de nuevo.',
+        });
+      },
+    });
   }
 
   unirseConteo(): void {

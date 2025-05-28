@@ -3,6 +3,7 @@ package tipy.Stockify.dtos;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
+import java.time.LocalDateTime;
 import java.time.LocalDate;
 
 @Data
@@ -11,7 +12,7 @@ public class ConteoDto {
     private Long id;
 
     @JsonProperty("fechaHora")
-    private LocalDate fechaHora;
+    private LocalDateTime fechaHora;
 
     @JsonProperty("conteoFinalizado")
     private Boolean conteoFinalizado;

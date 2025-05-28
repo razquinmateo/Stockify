@@ -35,4 +35,9 @@ export class ConteoService {
       return this.http.get<UsuarioDto[]>(`http://localhost:8080/Stockify/api/v1/conteo-usuarios/por-conteo/${conteoId}`);
     }
 
+    crearConteo(conteo: Partial<Conteo>): Observable<Conteo> {
+      return this.http.post<Conteo>(`${this.apiUrl}`, conteo);
+    }
+
+
 }

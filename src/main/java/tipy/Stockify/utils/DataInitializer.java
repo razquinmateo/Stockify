@@ -8,6 +8,8 @@ import tipy.Stockify.business.entities.*;
 import tipy.Stockify.business.entities.enums.*;
 import tipy.Stockify.business.repositories.*;
 
+import java.time.LocalDateTime;
+
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
@@ -716,46 +718,46 @@ public class DataInitializer implements CommandLineRunner {
         // 8. Conteo
         // Sucursal 1: San Pedro Centro (Expanded)
         Conteo conteo1 = new Conteo();
-        conteo1.setFechaHora(LocalDate.of(2025, 4, 20));
+        conteo1.setFechaHora(LocalDateTime.of(2025, 4, 20, 14, 30)); // 20 de abril de 2025 a las 14:30
         conteo1.setConteoFinalizado(false);
         conteo1.setUsuario(admin1);
         conteoRepository.save(conteo1);
 
         Conteo conteo4 = new Conteo();
-        conteo4.setFechaHora(LocalDate.of(2025, 5, 1));
+        conteo4.setFechaHora(LocalDateTime.of(2025, 5, 1, 15, 25));
         conteo4.setConteoFinalizado(true);
         conteo4.setUsuario(admin1_2);
         conteoRepository.save(conteo4);
 
         Conteo conteo5 = new Conteo();
-        conteo5.setFechaHora(LocalDate.of(2025, 5, 5));
+        conteo5.setFechaHora(LocalDateTime.of(2025, 5, 5, 16, 56));
         conteo5.setConteoFinalizado(false);
         conteo5.setUsuario(admin1);
         conteoRepository.save(conteo5);
 
         // New Conteos for Sucursal 1
         Conteo conteo6 = new Conteo();
-        conteo6.setFechaHora(LocalDate.of(2025, 5, 10));
+        conteo6.setFechaHora(LocalDateTime.of(2025, 5, 10, 23, 20));
         conteo6.setConteoFinalizado(true);
         conteo6.setUsuario(admin1_2);
         conteoRepository.save(conteo6);
 
         Conteo conteo7 = new Conteo();
-        conteo7.setFechaHora(LocalDate.of(2025, 5, 15));
+        conteo7.setFechaHora(LocalDateTime.of(2025, 5, 15, 17, 45));
         conteo7.setConteoFinalizado(false);
         conteo7.setUsuario(admin1);
         conteoRepository.save(conteo7);
 
         // Sucursal 2: La Familiar Villa Sur
         Conteo conteo2 = new Conteo();
-        conteo2.setFechaHora(LocalDate.of(2025, 4, 21));
+        conteo2.setFechaHora(LocalDateTime.of(2025, 4, 21, 22, 30));
         conteo2.setConteoFinalizado(true);
         conteo2.setUsuario(admin2);
         conteoRepository.save(conteo2);
 
         // Sucursal 3: San Pedro Norte
         Conteo conteo3 = new Conteo();
-        conteo3.setFechaHora(LocalDate.of(2025, 4, 22));
+        conteo3.setFechaHora(LocalDateTime.of(2025, 4, 22, 8, 15));
         conteo3.setConteoFinalizado(false);
         conteo3.setUsuario(admin3);
         conteoRepository.save(conteo3);
