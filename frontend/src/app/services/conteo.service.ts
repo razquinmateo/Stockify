@@ -68,4 +68,8 @@ export class ConteoService {
     return this.http.post<UsuarioDto>(url, {});
   }
 
+  crearConteo(conteo: Partial<Conteo>): Observable<Conteo> {
+    return this.http.post<Conteo>(`${this.apiUrl}`, conteo);
+  }
+
 }

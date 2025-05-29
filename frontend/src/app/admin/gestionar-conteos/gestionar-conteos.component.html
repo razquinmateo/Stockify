@@ -1,0 +1,244 @@
+<!-- Navbar -->
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
+  <div class="container-fluid">
+    <span class="navbar-brand mb-0 h1">Stockify - Conteos</span>
+    <div class="collapse navbar-collapse">
+      <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a class="nav-link" routerLink="/admin/dashboard">
+            <i class="bi bi-house-door-fill me-1"></i> Inicio
+          </a>
+        </li>
+      </ul>
+    </div>
+    <div class="d-flex align-items-center">
+      <span class="text-white me-3">
+        <i class="bi bi-person-circle me-1"></i>
+        Administrador {{ nombreUsuarioLogueado }}
+      </span>
+      <button
+        class="btn btn-outline-light btn-sm"
+        (click)="logout()"
+        title="Cerrar sesión"
+      >
+        <i class="bi bi-box-arrow-right me-1"></i>
+        Cerrar sesión
+      </button>
+    </div>
+  </div>
+</nav>
+
+<!-- Contenido -->
+<div class="container py-5">
+  <h2 class="mb-4 text-center">Lista de Conteos</h2>
+
+  <!-- Buscador -->
+  <div class="mb-4">
+    <input
+      type="text"
+      class="form-control"
+      placeholder="Buscar por fecha o administrador..."
+      [(ngModel)]="filtro"
+    />
+  </div>
+
+  <!-- Tabla -->
+  <div class="table-responsive">
+    <table
+      class="table table-bordered text-center align-middle"
+      *ngIf="filtrarConteos().length > 0; else sinConteos"
+    >
+      <thead class="table-dark">
+      <tr>
+        <th>Fecha/Hora</th>
+        <th>Participantes</th>
+        <th>Finalizado</th>
+        <th>Acciones</th>
+      </tr>
+      </thead>
+      <tbody>
+      <tr *ngFor="let conteo of obtenerConteosPaginados(); let i = index">
+        <td>{{ conteo.fechaHora | date: 'dd/MM/yyyy HH:mm' }}</td>
+        <td>
+          <button class="btn btn-primary btn-sm" (click)="abrirModalParticipantes(conteo.id)" title="Ver Participantes">
+            <i class="bi bi-eye"></i> Ver
+          </button>
+        </td>
+        <td>
+          <span
+            class="badge"
+            [ngClass]="conteo.conteoFinalizado ? 'bg-success' : 'bg-warning text-dark'"
+          >
+            {{ conteo.conteoFinalizado ? 'Sí' : 'No' }}
+          </span>
+        </td>
+        <td>
+          <button
+            class="btn btn-sm btn-warning me-1"
+            (click)="editarConteo(conteo)"
+            title="Editar conteo"
+          >
+            <i class="bi bi-pencil-square"></i>
+          </button>
+          <button
+            class="btn btn-sm"
+            [ngClass]="conteo.conteoFinalizado ? 'btn-warning' : 'btn-success'"
+            (click)="alternarEstadoConteo(conteo)"
+            [title]="conteo.conteoFinalizado ? 'Reactivar conteo' : 'Finalizar conteo'"
+          >
+            <i [ngClass]="conteo.conteoFinalizado ? 'bi bi-arrow-counterclockwise' : 'bi bi-check-circle'"></i>
+          </button>
+        </td>
+      </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <!-- Sin conteos -->
+  <ng-template #sinConteos>
+    <p class="text-center text-muted">No hay conteos registrados para mostrar.</p>
+  </ng-template>
+</div>
+
+<!-- Paginación para Conteos -->
+<nav *ngIf="totalPaginas() > 1">
+  <ul class="pagination justify-content-center mt-4">
+    <li class="page-item" [class.disabled]="paginaActual === 1">
+      <button
+        class="page-link"
+        (click)="paginaActual = paginaActual - 1"
+        [disabled]="paginaActual === 1"
+      >
+        Anterior
+      </button>
+    </li>
+    <li
+      class="page-item"
+      *ngFor="let page of [].constructor(totalPaginas()); let i = index"
+      [class.active]="paginaActual === i + 1"
+    >
+      <button class="page-link" (click)="paginaActual = i + 1">
+        {{ i + 1 }}
+      </button>
+    </li>
+    <li class="page-item" [class.disabled]="paginaActual === totalPaginas()">
+      <button
+        class="page-link"
+        (click)="paginaActual = paginaActual + 1"
+        [disabled]="paginaActual === totalPaginas()"
+      >
+        Siguiente
+      </button>
+    </li>
+  </ul>
+</nav>
+
+<!-- Botones debajo de la tabla -->
+<div class="d-flex justify-content-center gap-3 mt-4">
+
+  <button
+    class="btn btn-primary"
+    [ngClass]="{ 'disabled-btn': hayConteoActivoEnSucursal() }"
+    (click)="empezarConteo()"
+    [disabled]="hayConteoActivoEnSucursal()"
+    [title]="hayConteoActivoEnSucursal() ? 'Ya hay un conteo activo en la sucursal' : ''"
+  >
+    Empezar conteo
+  </button>
+
+  <button class="btn btn-outline-primary" (click)="unirseConteo()">
+    <i class="bi bi-person-plus me-1"></i> Unirse al Conteo
+  </button>
+</div>
+
+<!-- Modal para Conteo -->
+<div
+  class="modal fade"
+  id="conteoModal"
+  tabindex="-1"
+  aria-labelledby="conteoModalLabel"
+  aria-hidden="true"
+>
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content border-0 shadow">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title" id="conteoModalLabel">
+          {{ esEditar ? 'Editar Conteo' : 'Agregar Conteo' }}
+        </h5>
+        <button
+          type="button"
+          class="btn-close btn-close-white"
+          data-bs-dismiss="modal"
+          aria-label="Cerrar"
+        ></button>
+      </div>
+
+      <div class="modal-body">
+        <form (ngSubmit)="guardarConteo()">
+
+          <div class="mb-3">
+            <label class="form-label">Asignar a:</label>
+            <select
+              class="form-select"
+              [(ngModel)]="conteoSeleccionado.usuarioId"
+              name="usuarioId"
+              required
+            >
+              <option *ngFor="let usuario of usuariosMismaSucursal" [value]="usuario.id">
+                {{ usuario.nombre }} {{ usuario.apellido }}
+              </option>
+            </select>
+          </div>
+
+        </form>
+      </div>
+
+      <div class="modal-footer bg-light">
+        <button
+          type="button"
+          class="btn btn-secondary"
+          data-bs-dismiss="modal"
+        >
+          Cancelar
+        </button>
+        <button
+          type="button"
+          class="btn btn-success"
+          (click)="guardarConteo()"
+        >
+          {{ esEditar ? 'Guardar Cambios' : 'Agregar Conteo' }}
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Participantes -->
+<div
+  class="modal fade show"
+  tabindex="-1"
+  style="display: block; background-color: rgba(0,0,0,0.5);"
+  *ngIf="mostrarModalParticipantes"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Participantes del Conteo</h5>
+        <button type="button" class="btn-close" aria-label="Close" (click)="cerrarModalParticipantes()"></button>
+      </div>
+      <div class="modal-body">
+        <ul *ngIf="participantesSeleccionados.length > 0; else sinParticipantes">
+          <li *ngFor="let participante of participantesSeleccionados">
+            {{ participante.nombre }} {{ participante.apellido }}
+          </li>
+        </ul>
+        <ng-template #sinParticipantes>
+          <p>No hay participantes para este conteo.</p>
+        </ng-template>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="cerrarModalParticipantes()">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>

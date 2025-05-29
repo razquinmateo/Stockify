@@ -5,13 +5,14 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router, RouterModule } from '@angular/router';
 import Swal from 'sweetalert2';
-import { lastValueFrom } from 'rxjs';
+import { lastValueFrom, Subscription } from 'rxjs';
 import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
 
 import { AuthService } from '../../auth.service';
 import { ConteoService, Conteo } from '../../services/conteo.service';
 import { ConteoProductoService, ConteoProducto } from '../../services/conteo-producto.service';
 import { ProductoService, Producto } from '../../services/producto.service';
+import { WsService, ConteoMensaje } from '../../services/webSocket/ws.service';
 
 // Registro de conteo por usuario
 interface RegistroConteo {
@@ -53,7 +54,9 @@ export class EmpleadoComponent implements OnInit, OnDestroy {
   selectedDeviceId: string | null = null;
   mostrarCamara = false;
 
-  private pollingInterval!: any;  // para startPollingConteo()
+  // clave para recordar en localStorage que ya llegó el conteo
+  private readonly STORAGE_KEY = 'conteoActivoRecibido';
+  private wsSubs!: Subscription;
 
   //Lector de barras
   // buffer de caracteres del scanner
@@ -66,6 +69,7 @@ export class EmpleadoComponent implements OnInit, OnDestroy {
     private conteoService: ConteoService,
     private conteoProdService: ConteoProductoService,
     private productoService: ProductoService,
+    private wsService: WsService,
     private router: Router
   ) { }
 
@@ -80,13 +84,24 @@ export class EmpleadoComponent implements OnInit, OnDestroy {
     // 5) Listener global para scanners tipo teclado
     window.addEventListener('keydown', this.handleScannerKey);
 
-    // 1) listar cámaras disponibles
-    navigator.mediaDevices?.enumerateDevices()?.then((devs: any) => {
-      this.devices = devs.filter((d: any) => d.kind === 'videoinput');
-      if (this.devices.length) {
-        this.selectedDeviceId = this.devices[0].deviceId;
-      }
-    });
+    // 1) Pedimos permiso de vídeo
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        stream.getTracks().forEach(t => t.stop());
+        // 2) Enumeramos los dispositivos
+        return navigator.mediaDevices.enumerateDevices();
+      })
+      .then((devs: MediaDeviceInfo[]) => {
+        // Guardamos sólo las entradas de tipo video
+        this.devices = devs.filter(d => d.kind === 'videoinput');
+        if (this.devices.length) {
+          this.selectedDeviceId = this.devices[0].deviceId;
+        }
+      })
+      .catch(err => {
+        console.warn('No se pudo acceder a las cámaras', err);
+        Swal.fire('Error', 'No se pudo acceder a las cámaras', 'error');
+      });
 
     // 2) cargar registros previos del usuario actual
     const saved = localStorage.getItem('registros_' + this.nombreUsuarioLogueado);
@@ -100,13 +115,49 @@ export class EmpleadoComponent implements OnInit, OnDestroy {
       error: () => Swal.fire('Error', 'No se pudo cargar catálogo de productos', 'error')
     });
 
-    // 4) esperar conteo activo con polling
-    this.mostrarModalEsperandoConteo();
-    this.startPollingConteo();
+    // 1) Si ya tengo un mensaje en localStorage, arranco directo
+    const yaRecibido = localStorage.getItem(this.STORAGE_KEY);
+    if (yaRecibido) {
+      const msg = JSON.parse(yaRecibido) as { id: number; fechaHora: string };
+      this.arrancarConteo(msg);
+    } else {
+      // 2) si no, muestro modal
+      this.mostrarModalEsperandoConteo();
+    }
+
+    // 3) ¡SIEMPRE! suscribirse a nuevas activaciones (incluye reactivaciones)
+    this.wsService.onConteoActivo().subscribe(msg => {
+      // guardo para que refresh no muestre modal
+      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(msg));
+      this.arrancarConteo(msg);
+    });
+
+    // 4) y también suscribir al finalizado
+    this.wsService.onConteoFinalizado().subscribe(_ => {
+      // limpio todo y vuelvo a modal
+      localStorage.removeItem(this.STORAGE_KEY);
+      localStorage.removeItem(`registros_${this.nombreUsuarioLogueado}`);
+      this.registros = [];
+      this.conteoActual = undefined!;
+      this.mostrarModalEsperandoConteo();
+    });
+  }
+
+  private arrancarConteo(msg: { id: number; fechaHora: string }) {
+    Swal.close();
+    this.conteoActual = {
+      id: msg.id,
+      fechaHora: msg.fechaHora,
+      conteoFinalizado: false,
+      usuarioId: 0,
+      activo: true
+    };
+    this.cargarProductosConteo();
   }
 
   ngOnDestroy(): void {
-    clearInterval(this.pollingInterval);
+    this.wsService.disconnect();
+    this.wsSubs.unsubscribe();
     this.cerrarCamara();
     window.removeEventListener('keydown', this.handleScannerKey);
   }
@@ -126,36 +177,6 @@ export class EmpleadoComponent implements OnInit, OnDestroy {
       showConfirmButton: false,
       didOpen: () => Swal.showLoading()
     });
-  }
-
-  /** Polling cada 5s para ver si hay un conteo activo de hoy */
-  private startPollingConteo() {
-    const hoy = new Date().toISOString().slice(0, 10);
-    const miSucursal = this.authService.getSucursalId();
-    this.pollingInterval = setInterval(() => {
-      this.conteoService.getActiveConteos().subscribe({
-        next: lista => {
-          const pendientes = lista.filter(c => c.activo && !c.conteoFinalizado);
-          const filtrados = pendientes.filter(c => {
-            try {
-              const tk = localStorage.getItem('token')!;
-              const payload: any = JSON.parse(atob(tk.split('.')[1]));
-              return payload.sucursalId === miSucursal;
-            } catch {
-              return false;
-            }
-          });
-          const iniciadoHoy = filtrados.find(c => c.fechaHora.slice(0, 10) === hoy);
-          if (iniciadoHoy) {
-            clearInterval(this.pollingInterval);
-            Swal.close();
-            this.conteoActual = iniciadoHoy;
-            this.cargarProductosConteo();
-          }
-        },
-        error: err => console.error('Error polling conteos', err)
-      });
-    }, 5000);
   }
 
   /** Carga productos del conteo activo */
