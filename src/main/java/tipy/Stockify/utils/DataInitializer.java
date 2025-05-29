@@ -12,10 +12,11 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
 
-//@Component
+@Component
 public class DataInitializer implements CommandLineRunner {
 
     private final EmpresaRepository empresaRepository;
@@ -29,6 +30,7 @@ public class DataInitializer implements CommandLineRunner {
     private final CategoriaRepository categoriaRepository;
     private final ConteoProductoRepository conteoProductoRepository;
     private final SucursalProveedorRepository sucursalProveedorRepository;
+    private final ConteoUsuarioRepository conteoUsuarioRepository;
 
     @Autowired
     private PasswordEncoder passwordEncoder;
@@ -44,7 +46,8 @@ public class DataInitializer implements CommandLineRunner {
             ProveedorRepository proveedorRepository,
             CategoriaRepository categoriaRepository,
             ConteoProductoRepository conteoProductoRepository,
-            SucursalProveedorRepository sucursalProveedorRepository) {
+            SucursalProveedorRepository sucursalProveedorRepository,
+            ConteoUsuarioRepository conteoUsuarioRepository) {
         this.empresaRepository = empresaRepository;
         this.sucursalRepository = sucursalRepository;
         this.usuarioRepository = usuarioRepository;
@@ -56,6 +59,7 @@ public class DataInitializer implements CommandLineRunner {
         this.categoriaRepository = categoriaRepository;
         this.conteoProductoRepository = conteoProductoRepository;
         this.sucursalProveedorRepository = sucursalProveedorRepository;
+        this.conteoUsuarioRepository = conteoUsuarioRepository;
     }
 
     @Override
@@ -63,7 +67,7 @@ public class DataInitializer implements CommandLineRunner {
         String defaultImage = null;
         try {
             // Leer el archivo binario
-            byte[] imageBytes = Files.readAllBytes(Paths.get("src/main/resources/default-image.png"));
+            byte[] imageBytes = Files.readAllBytes(Paths.get("src/main/resources/default-image.png.png"));
             // Convertir a base64
             defaultImage = Base64.getEncoder().encodeToString(imageBytes);
         } catch (IOException e) {
@@ -716,47 +720,47 @@ public class DataInitializer implements CommandLineRunner {
         // 8. Conteo
         // Sucursal 1: San Pedro Centro (Expanded)
         Conteo conteo1 = new Conteo();
-        conteo1.setFechaHora(LocalDate.of(2025, 4, 20));
+        conteo1.setFechaHora(LocalDateTime.of(2025, 4, 20, 14, 30));
         conteo1.setConteoFinalizado(false);
         conteo1.setUsuario(admin1);
         conteoRepository.save(conteo1);
 
         Conteo conteo4 = new Conteo();
-        conteo4.setFechaHora(LocalDate.of(2025, 5, 1));
+        conteo4.setFechaHora(LocalDateTime.of(2025, 5, 1, 15, 25));
         conteo4.setConteoFinalizado(true);
         conteo4.setUsuario(admin1_2);
         conteoRepository.save(conteo4);
 
         Conteo conteo5 = new Conteo();
-        conteo5.setFechaHora(LocalDate.of(2025, 5, 5));
-        conteo5.setConteoFinalizado(false);
+        conteo5.setFechaHora(LocalDateTime.of(2025, 5, 5, 16, 56));
+        conteo5.setConteoFinalizado(true);
         conteo5.setUsuario(admin1);
         conteoRepository.save(conteo5);
 
         // New Conteos for Sucursal 1
         Conteo conteo6 = new Conteo();
-        conteo6.setFechaHora(LocalDate.of(2025, 5, 10));
+        conteo6.setFechaHora(LocalDateTime.of(2025, 5, 10, 23, 20));
         conteo6.setConteoFinalizado(true);
         conteo6.setUsuario(admin1_2);
         conteoRepository.save(conteo6);
 
         Conteo conteo7 = new Conteo();
-        conteo7.setFechaHora(LocalDate.of(2025, 5, 15));
-        conteo7.setConteoFinalizado(false);
+        conteo7.setFechaHora(LocalDateTime.of(2025, 5, 15, 17, 45));
+        conteo7.setConteoFinalizado(true);
         conteo7.setUsuario(admin1);
         conteoRepository.save(conteo7);
 
         // Sucursal 2: La Familiar Villa Sur
         Conteo conteo2 = new Conteo();
-        conteo2.setFechaHora(LocalDate.of(2025, 4, 21));
+        conteo2.setFechaHora(LocalDateTime.of(2025, 4, 21, 22, 30));
         conteo2.setConteoFinalizado(true);
         conteo2.setUsuario(admin2);
         conteoRepository.save(conteo2);
 
         // Sucursal 3: San Pedro Norte
         Conteo conteo3 = new Conteo();
-        conteo3.setFechaHora(LocalDate.of(2025, 4, 22));
-        conteo3.setConteoFinalizado(false);
+        conteo3.setFechaHora(LocalDateTime.of(2025, 4, 22, 8, 15));
+        conteo3.setConteoFinalizado(true);
         conteo3.setUsuario(admin3);
         conteoRepository.save(conteo3);
 
@@ -868,6 +872,55 @@ public class DataInitializer implements CommandLineRunner {
         conteoProducto4.setConteo(conteo3);
         conteoProducto4.setProducto(producto5);
         conteoProductoRepository.save(conteoProducto4);
+
+        // 9.5. ConteoUsuario
+        // Sucursal 1: San Pedro Centro
+        ConteoUsuario conteoUsuario1 = new ConteoUsuario();
+        conteoUsuario1.setUsuario(admin1);
+        conteoUsuario1.setConteo(conteo1);
+        conteoUsuarioRepository.save(conteoUsuario1);
+
+        ConteoUsuario conteoUsuario2 = new ConteoUsuario();
+        conteoUsuario2.setUsuario(admin1_2);
+        conteoUsuario2.setConteo(conteo1);
+        conteoUsuarioRepository.save(conteoUsuario2);
+
+        ConteoUsuario conteoUsuario3 = new ConteoUsuario();
+        conteoUsuario3.setUsuario(admin1);
+        conteoUsuario3.setConteo(conteo4);
+        conteoUsuarioRepository.save(conteoUsuario3);
+
+        ConteoUsuario conteoUsuario4 = new ConteoUsuario();
+        conteoUsuario4.setUsuario(admin1_2);
+        conteoUsuario4.setConteo(conteo4);
+        conteoUsuarioRepository.save(conteoUsuario4);
+
+        ConteoUsuario conteoUsuario5 = new ConteoUsuario();
+        conteoUsuario5.setUsuario(admin1);
+        conteoUsuario5.setConteo(conteo5);
+        conteoUsuarioRepository.save(conteoUsuario5);
+
+        ConteoUsuario conteoUsuario6 = new ConteoUsuario();
+        conteoUsuario6.setUsuario(admin1_2);
+        conteoUsuario6.setConteo(conteo6);
+        conteoUsuarioRepository.save(conteoUsuario6);
+
+        ConteoUsuario conteoUsuario7 = new ConteoUsuario();
+        conteoUsuario7.setUsuario(admin1);
+        conteoUsuario7.setConteo(conteo7);
+        conteoUsuarioRepository.save(conteoUsuario7);
+
+        // Sucursal 2: La Familiar Villa Sur
+        ConteoUsuario conteoUsuario8 = new ConteoUsuario();
+        conteoUsuario8.setUsuario(admin2);
+        conteoUsuario8.setConteo(conteo2);
+        conteoUsuarioRepository.save(conteoUsuario8);
+
+        // Sucursal 3: San Pedro Norte
+        ConteoUsuario conteoUsuario9 = new ConteoUsuario();
+        conteoUsuario9.setUsuario(admin3);
+        conteoUsuario9.setConteo(conteo3);
+        conteoUsuarioRepository.save(conteoUsuario9);
 
         // 10. Reporte
         // Sucursal 1: San Pedro Centro (Expanded)

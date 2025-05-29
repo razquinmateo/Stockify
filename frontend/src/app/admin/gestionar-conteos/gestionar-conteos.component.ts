@@ -8,6 +8,7 @@ import { UsuarioService, Usuario } from "../../services/usuario.service";
 import { AuthService } from "../../auth.service";
 import Swal from "sweetalert2";
 import { formatDate } from "@angular/common";
+import { UsuarioDto } from '../../models/usuario-dto';
 
 declare var bootstrap: any;
 
@@ -22,6 +23,10 @@ export class GestionarConteosComponent implements OnInit {
   conteos: Conteo[] = [];
   usuarios: Usuario[] = [];
   usuariosMismaSucursal: Usuario[] = [];
+  usuariosPorConteo: { [conteoId: number]: UsuarioDto[] } = {};
+
+  participantesSeleccionados: UsuarioDto[] = [];
+  mostrarModalParticipantes: boolean = false;
 
   conteoSeleccionado!: Conteo;
   esEditar: boolean = false;
@@ -65,14 +70,30 @@ export class GestionarConteosComponent implements OnInit {
 
     this.conteoService.obtenerTodosLosConteos().subscribe({
       next: (data) => {
-        // Obtiene los ids de los usuarios de la misma sucursal
+          console.log("Conteos cargados:", data);
         const usuariosMismaSucursal = this.usuarios.filter(
           (u) => u.sucursalId === sucursalId
         );
         const idsUsuarios = usuariosMismaSucursal.map((u) => u.id);
 
-        // Filtra los conteos que tengan usuarioId en esa lista
-        this.conteos = data.filter((c) => idsUsuarios.includes(c.usuarioId));
+        const conteosFiltrados = data.filter((c) =>
+          idsUsuarios.includes(c.usuarioId)
+        );
+        this.conteos = conteosFiltrados;
+
+        // Cargar usuarios participantes para cada conteo
+        this.usuariosPorConteo = {}; // Reiniciar por si acaso
+        for (const conteo of conteosFiltrados) {
+          this.conteoService.obtenerUsuariosPorConteo(conteo.id).subscribe({
+            next: (usuarios) => {
+              console.log(`Usuarios para conteo ${conteo.id}:`, usuarios);
+              this.usuariosPorConteo[conteo.id] = usuarios;
+            },
+            error: (err) => {
+              console.error(`Error al obtener usuarios del conteo ${conteo.id}`, err);
+            },
+          });
+        }
       },
       error: () => {
         Swal.fire({
@@ -82,6 +103,13 @@ export class GestionarConteosComponent implements OnInit {
         });
       },
     });
+  }
+
+  obtenerNombresUsuarios(conteoId: number): string {
+    const usuarios = this.usuariosPorConteo[conteoId];
+    return usuarios && usuarios.length > 0
+      ? usuarios.map(u => u.nombre).join(', ')
+      : 'Sin usuarios';
   }
 
   hayConteoActivoEnSucursal(): boolean {
@@ -116,6 +144,16 @@ export class GestionarConteosComponent implements OnInit {
   mostrarModal(): void {
     const modal = new bootstrap.Modal(document.getElementById("conteoModal"));
     modal.show();
+  }
+
+  abrirModalParticipantes(conteoId: number): void {
+    this.participantesSeleccionados = this.usuariosPorConteo[conteoId] || [];
+    this.mostrarModalParticipantes = true;
+  }
+
+  cerrarModalParticipantes(): void {
+    this.mostrarModalParticipantes = false;
+    this.participantesSeleccionados = [];
   }
 
   editarConteo(cont: Conteo): void {
@@ -256,8 +294,51 @@ export class GestionarConteosComponent implements OnInit {
   }
 
   empezarConteo(): void {
-    console.log("Empezar conteo...");
-    // Lógica para iniciar un nuevo conteo
+    const usuarioLogueado = this.usuarios.find(
+      u => u.nombreUsuario === this.nombreUsuarioLogueado
+    );
+
+    if (!usuarioLogueado) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo identificar al usuario logueado.',
+      });
+      return;
+    }
+
+    // Convierte la fecha/hora a nuestra region
+    const fechaHoraLocal = new Date()
+        .toLocaleString('sv-SE', { timeZone: 'America/Montevideo' })
+        .replace(' ', 'T');
+
+    const nuevoConteo: Conteo = {
+      id: 0,
+      fechaHora: fechaHoraLocal,
+      conteoFinalizado: false,
+      usuarioId: usuarioLogueado.id,
+      activo: true,
+    };
+
+    this.conteoService.agregarConteo(nuevoConteo).subscribe({
+      next: () => {
+        Swal.fire({
+          icon: 'success',
+          title: 'Conteo iniciado',
+          text: 'Se ha iniciado un nuevo conteo correctamente.',
+          timer: 2000,
+          showConfirmButton: false,
+        });
+        this.cargarConteos();
+      },
+      error: () => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo iniciar el conteo. Inténtalo de nuevo.',
+        });
+      },
+    });
   }
 
   unirseConteo(): void {

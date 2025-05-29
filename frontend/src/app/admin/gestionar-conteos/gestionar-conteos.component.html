@@ -50,16 +50,20 @@
     >
       <thead class="table-dark">
       <tr>
-        <th>Fecha</th>
-        <th>Creado por</th>
+        <th>Fecha/Hora</th>
+        <th>Participantes</th>
         <th>Finalizado</th>
         <th>Acciones</th>
       </tr>
       </thead>
       <tbody>
       <tr *ngFor="let conteo of obtenerConteosPaginados(); let i = index">
-        <td>{{ conteo.fechaHora | date: 'dd/MM/yyyy' }}</td>
-        <td>{{ getNombreUsuarioPorId(conteo.usuarioId) }}</td>
+        <td>{{ conteo.fechaHora | date: 'dd/MM/yyyy HH:mm' }}</td>
+        <td>
+          <button class="btn btn-primary btn-sm" (click)="abrirModalParticipantes(conteo.id)" title="Ver Participantes">
+            <i class="bi bi-eye"></i> Ver
+          </button>
+        </td>
         <td>
           <span
             class="badge"
@@ -131,7 +135,7 @@
 
 <!-- Botones debajo de la tabla -->
 <div class="d-flex justify-content-center gap-3 mt-4">
-  
+
   <button
     class="btn btn-primary"
     [ngClass]="{ 'disabled-btn': hayConteoActivoEnSucursal() }"
@@ -204,6 +208,36 @@
         >
           {{ esEditar ? 'Guardar Cambios' : 'Agregar Conteo' }}
         </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de Participantes -->
+<div
+  class="modal fade show"
+  tabindex="-1"
+  style="display: block; background-color: rgba(0,0,0,0.5);"
+  *ngIf="mostrarModalParticipantes"
+>
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title">Participantes del Conteo</h5>
+        <button type="button" class="btn-close" aria-label="Close" (click)="cerrarModalParticipantes()"></button>
+      </div>
+      <div class="modal-body">
+        <ul *ngIf="participantesSeleccionados.length > 0; else sinParticipantes">
+          <li *ngFor="let participante of participantesSeleccionados">
+            {{ participante.nombre }} {{ participante.apellido }}
+          </li>
+        </ul>
+        <ng-template #sinParticipantes>
+          <p>No hay participantes para este conteo.</p>
+        </ng-template>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="cerrarModalParticipantes()">Cerrar</button>
       </div>
     </div>
   </div>
