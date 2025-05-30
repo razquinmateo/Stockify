@@ -4,8 +4,10 @@ import jakarta.persistence.*;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.Date;
 import java.util.List;
+import java.time.LocalDate;
 
 @Entity
 @Data
@@ -18,7 +20,7 @@ public class Conteo {
     private Long id;
 
     @Column(name = "FECHA_HORA")
-    private LocalDate fechaHora;
+    private LocalDateTime fechaHora;
 
     @Column(name = "CONTEO_FINALIZADO")
     private boolean conteoFinalizado;
@@ -29,6 +31,9 @@ public class Conteo {
 
     @ManyToMany(mappedBy = "conteos")
     private List<Reporte> reportes;
+
+    @OneToMany(mappedBy = "conteo")
+    private List<ConteoUsuario> participantes;
 
     @ManyToMany
     @JoinTable(

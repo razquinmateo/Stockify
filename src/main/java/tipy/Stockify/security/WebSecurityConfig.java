@@ -2,6 +2,7 @@ package tipy.Stockify.security;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -37,16 +38,22 @@ public class WebSecurityConfig {
                         .requestMatchers(antMatcher("/swagger-resources/**")).permitAll()
                         .requestMatchers(antMatcher("/configuration/**")).permitAll()
 
+                                // dejar pasar la conexión SockJS
+                                .requestMatchers("/ws/**", "/topic/**").permitAll()
+
                         .requestMatchers(antMatcher("/api/v1/empresas/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/sucursales/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/usuarios/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/productos/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/categorias/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/conteos/**")).permitAll()
-                        .requestMatchers(antMatcher("/api/v1/conteoproducto/**")).permitAll()
+                                .requestMatchers("/api/v1/conteoproducto", "/api/v1/conteoproducto/**")
+                                .permitAll()
                         .requestMatchers(antMatcher("/api/v1/lotes/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/proveedores/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/reportes/**")).permitAll()
+                                .requestMatchers(antMatcher("/api/v1/conteo-usuarios/**")).permitAll()
+
 
 //                        .requestMatchers(antMatcher("/api/v1/empresas/**")).hasAuthority("SUPERADMINISTRADOR")
 //                        .requestMatchers(antMatcher("/api/v1/sucursales/**")).hasAnyAuthority("SUPERADMINISTRADOR", "ADMINISTRADOR", "EMPLEADO")

@@ -1,10 +1,13 @@
 package tipy.Stockify.services;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
 import tipy.Stockify.business.entities.Conteo;
 import tipy.Stockify.business.entities.Usuario;
+import tipy.Stockify.business.entities.WsMensaje.ConteoMensaje;
 import tipy.Stockify.business.repositories.ConteoRepository;
 import tipy.Stockify.business.repositories.UsuarioRepository;
 import tipy.Stockify.dtos.ConteoDto;
@@ -17,6 +20,9 @@ public class ConteoService {
 
     private final ConteoRepository conteoRepository;
     private final UsuarioRepository usuarioRepository;
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
+
 
     public ConteoService(ConteoRepository conteoRepository, UsuarioRepository usuarioRepository) {
         this.conteoRepository = conteoRepository;
@@ -45,7 +51,16 @@ public class ConteoService {
         Conteo conteo = mapToEntity(conteoDto);
         // Asegurar que activo sea true para nuevos conteos, incluso si no se especifica
         conteo.setActivo(true);
-        return mapToDto(conteoRepository.save(conteo));
+        Conteo saved = conteoRepository.save(conteo);
+
+        // 2) Notifica a todos los suscriptores de /topic/conteo-activo
+        messagingTemplate.convertAndSend(
+                "/topic/conteo-activo",
+                new ConteoMensaje(saved.getId(), saved.getFechaHora().toString())
+        );
+
+        // 3) Devuelve el DTO como antes
+        return mapToDto(saved);
     }
 
     public ConteoDto update(Long id, ConteoDto conteoDto) {

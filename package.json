@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@angular/router": "^19.2.12",
+    "@zxing/browser": "^0.1.5"
+  }
+}

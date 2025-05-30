@@ -9,6 +9,7 @@ import tipy.Stockify.business.entities.enums.*;
 import tipy.Stockify.business.repositories.*;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 public class DataInitializer implements CommandLineRunner {
 
@@ -183,13 +184,13 @@ public class DataInitializer implements CommandLineRunner {
 
         // 6. Conteo
         Conteo conteo1 = new Conteo();
-        conteo1.setFechaHora(LocalDate.of(2025, 4, 20));
+        conteo1.setFechaHora(LocalDateTime.of(2025, 4, 20, 19,00));
         conteo1.setConteoFinalizado(false);
         conteo1.setUsuario(admin1); // Asignado al administrador de Sucursal 1
         conteoRepository.save(conteo1);
 
         Conteo conteo2 = new Conteo();
-        conteo2.setFechaHora(LocalDate.of(2025, 4, 21));
+        conteo2.setFechaHora(LocalDateTime.of(2025, 4, 21, 12,00));
         conteo2.setConteoFinalizado(true);
         conteo2.setUsuario(admin2); // Asignado al administrador de Sucursal 2
         conteoRepository.save(conteo2);

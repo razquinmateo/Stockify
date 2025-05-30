@@ -4,6 +4,7 @@ import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.Data;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Data
 public class ConteoDto {
@@ -11,7 +12,7 @@ public class ConteoDto {
     private Long id;
 
     @JsonProperty("fechaHora")
-    private LocalDate fechaHora;
+    private LocalDateTime fechaHora;
 
     @JsonProperty("conteoFinalizado")
     private Boolean conteoFinalizado;

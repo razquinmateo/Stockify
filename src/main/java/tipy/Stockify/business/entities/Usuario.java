@@ -39,6 +39,9 @@ public class Usuario {
     @OneToMany(mappedBy = "usuario")
     private List<Conteo> conteos;
 
+    @OneToMany(mappedBy = "usuario")
+    private List<ConteoUsuario> conteoParticipaciones;
+
     @Column(name = "ACTIVO", nullable = false)
     private boolean activo = true;
 }
