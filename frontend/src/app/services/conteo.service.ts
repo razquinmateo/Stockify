@@ -59,7 +59,8 @@ export class ConteoService {
   }
 
   obtenerUsuariosPorConteo(conteoId: number): Observable<UsuarioDto[]> {
-    return this.http.get<UsuarioDto[]>(`${this.apiUrl}/por-conteo/${conteoId}`);
+    const url = `${environment.apiUrl}/conteo-usuarios/por-conteo/${conteoId}`;
+    return this.http.get<UsuarioDto[]>(url);
   }
 
   /** Registra que un usuario participa en un conteo */
