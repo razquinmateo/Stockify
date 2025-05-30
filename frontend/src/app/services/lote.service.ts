@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface Lote {
   id: number;
@@ -16,7 +17,7 @@ export interface Lote {
   providedIn: 'root'
 })
 export class LoteService {
-  private apiUrl = 'http://localhost:8080/Stockify/api/v1/lotes';
+  private apiUrl = `${environment.apiUrl}/lotes`;
 
   constructor(private http: HttpClient) {}
 

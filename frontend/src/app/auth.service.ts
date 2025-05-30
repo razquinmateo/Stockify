@@ -1,8 +1,11 @@
+// src/app/auth.service.ts
+
 import { Injectable } from '@angular/core';
-import { HttpClient } from '@angular/common/http';
+import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { tap } from 'rxjs/operators';
+import { map, tap } from 'rxjs/operators';
 import { jwtDecode } from 'jwt-decode';
+import { environment } from '../environments/environment';
 
 interface LoginRequest {
   nombreUsuario: string;
@@ -22,13 +25,26 @@ interface JwtPayload {
   exp: number;
 }
 
+export interface UsuarioDto {
+  id: number;
+  nombre: string;
+  apellido: string;
+  nombreUsuario: string;
+  rol: string;
+  sucursalId: number;
+  activo: boolean;
+}
+
 @Injectable({
   providedIn: 'root'
 })
 export class AuthService {
-  private apiUrl = 'http://localhost:8080/Stockify/api/v1/seguridad/login';
+  // URL para login
+  private apiUrl = `${environment.apiUrl}/seguridad/login`;
+  // Base para otros endpoints
+  private baseUrl = `${environment.apiUrl}`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   login(credentials: LoginRequest): Observable<LoginResponse> {
     return this.http.post<LoginResponse>(this.apiUrl, credentials).pipe(
@@ -95,4 +111,30 @@ export class AuthService {
     }
     return '';
   }
+
+  /** 1) Recupera TODOS los usuarios */
+  getAllUsuarios(): Observable<UsuarioDto[]> {
+    return this.http.get<UsuarioDto[]>(
+      `${this.baseUrl}/usuarios/all`
+    );
+  }
+
+  /**  Devuelve el ID de usuario buscando en /usuarios/all */
+  getUsuarioIdDesdeToken(): Observable<number> {
+    const nombre = this.getUsuarioDesdeToken();
+    const sucursal = this.getSucursalId();
+    return this.getAllUsuarios().pipe(
+      map(usuarios => {
+        const perfil = usuarios.find(u =>
+          u.nombreUsuario === nombre && u.sucursalId === sucursal
+        );
+        if (!perfil) {
+          throw new Error('Usuario no encontrado en el listado');
+        }
+        return perfil.id;
+      })
+    );
+  }
+
+
 }

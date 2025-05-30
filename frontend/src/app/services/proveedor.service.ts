@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 export interface Proveedor {
   id: number;
@@ -23,8 +24,8 @@ export interface SucursalProveedor {
   providedIn: 'root'
 })
 export class ProveedorService {
-  private apiUrl = 'http://localhost:8080/Stockify/api/v1/proveedores';
-  private sucursalProveedorApiUrl = 'http://localhost:8080/Stockify/api/v1/sucursal-proveedor';
+  private apiUrl = `${environment.apiUrl}/proveedores`;
+  private sucursalProveedorApiUrl = `${environment.apiUrl}/sucursal-proveedor`;
 
   constructor(private http: HttpClient) {}
 

@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import { environment } from '../../environments/environment';
 
 // Podés reemplazar esto con una interfaz más específica si ya la tenés
 export interface Empresa {
@@ -16,7 +17,7 @@ export interface Empresa {
   providedIn: 'root'
 })
 export class EmpresaService {
-  private apiUrl = 'http://localhost:8080/Stockify/api/v1/empresas'; // Asegurate que coincide con tu backend
+  private apiUrl = `${environment.apiUrl}/conteos`;
 
   constructor(private http: HttpClient) {}
 

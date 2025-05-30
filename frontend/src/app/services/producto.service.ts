@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
+import { environment } from '../../environments/environment';
 
 export interface Producto {
   id: number;
@@ -33,9 +34,9 @@ export interface Proveedor {
   providedIn: 'root'
 })
 export class ProductoService {
-  private apiUrl = 'http://localhost:8080/Stockify/api/v1/productos';
-  private categoriaUrl = 'http://localhost:8080/Stockify/api/v1/categorias';
-  private proveedorUrl = 'http://localhost:8080/Stockify/api/v1/proveedores';
+  private apiUrl = `${environment.apiUrl}/productos`;
+  private categoriaUrl = `${environment.apiUrl}/categorias`;
+  private proveedorUrl = `${environment.apiUrl}/proveedores`;
 
   constructor(private http: HttpClient) {}
 

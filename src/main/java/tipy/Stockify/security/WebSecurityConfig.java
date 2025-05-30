@@ -37,6 +37,9 @@ public class WebSecurityConfig {
                         .requestMatchers(antMatcher("/swagger-resources/**")).permitAll()
                         .requestMatchers(antMatcher("/configuration/**")).permitAll()
 
+                                // dejar pasar la conexión SockJS
+                                .requestMatchers("/ws/**", "/topic/**").permitAll()
+
                         .requestMatchers(antMatcher("/api/v1/empresas/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/sucursales/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/sucursal-proveedor/**")).permitAll()

@@ -72,4 +72,28 @@ public class ConteoUsuarioService {
         return conteoUsuario;
     }
 
+    public ConteoUsuarioDto addParticipante(Long conteoId, Long usuarioId) {
+        // Obtiene usuario y conteo existentes
+        Usuario usr = usuarioRepository.findByIdAndActivoTrue(usuarioId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Usuario no encontrado: " + usuarioId));
+        Conteo cnt = conteoRepository.findByIdAndActivoTrue(conteoId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Conteo no encontrado: " + conteoId));
+
+        // Construye y guarda la relación
+        ConteoUsuario pivot = new ConteoUsuario();
+        pivot.setUsuario(usr);
+        pivot.setConteo(cnt);
+        ConteoUsuario saved = conteoUsuarioRepository.save(pivot);
+
+        // Mapea a DTO
+        ConteoUsuarioDto dto = new ConteoUsuarioDto();
+        dto.setId(saved.getId());
+        dto.setConteoId(cnt.getId());
+        dto.setUsuarioId(usr.getId());
+        dto.setNombreUsuario(usr.getNombreUsuario());
+        return dto;
+    }
+
 }

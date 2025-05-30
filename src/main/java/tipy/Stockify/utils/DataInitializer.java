@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 import java.util.Base64;
 import java.util.List;
 
-@Component
+//@Component
 public class DataInitializer implements CommandLineRunner {
 
     private final EmpresaRepository empresaRepository;
@@ -127,7 +127,7 @@ public class DataInitializer implements CommandLineRunner {
         // Sucursal 1: San Pedro Centro (Expanded)
         Usuario admin1 = new Usuario();
         admin1.setNombre("Prueba");
-        admin1.setApellido("Test");
+        admin1.setApellido("Admin");
         admin1.setNombreUsuario("prueba.admin");
         admin1.setContrasenia(passwordEncoder.encode("root"));
         admin1.setRol(RolUsuario.ADMINISTRADOR);
@@ -135,10 +135,10 @@ public class DataInitializer implements CommandLineRunner {
         usuarioRepository.save(admin1);
 
         Usuario empleado1 = new Usuario();
-        empleado1.setNombre("Juan");
-        empleado1.setApellido("Pérez");
-        empleado1.setNombreUsuario("juan.perez");
-        empleado1.setContrasenia(passwordEncoder.encode("jperez2025"));
+        empleado1.setNombre("Prueba");
+        empleado1.setApellido("Empleado");
+        empleado1.setNombreUsuario("prueba.empleado");
+        empleado1.setContrasenia(passwordEncoder.encode("root"));
         empleado1.setRol(RolUsuario.EMPLEADO);
         empleado1.setSucursal(sucursal1);
         usuarioRepository.save(empleado1);

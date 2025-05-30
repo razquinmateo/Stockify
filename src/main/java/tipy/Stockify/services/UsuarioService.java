@@ -140,4 +140,14 @@ public class UsuarioService {
         usuarioDto.setActivo(usuario.isActivo());
         return usuarioDto;
     }
+
+    public UsuarioDto findByNombreUsuario(String nombreUsuario) {
+        Usuario usuario = usuarioRepository
+                .findByNombreUsuario(nombreUsuario)
+                .orElseThrow(() ->
+                        new ResponseStatusException(HttpStatus.NOT_FOUND,
+                                "Usuario no encontrado con nombreUsuario: " + nombreUsuario)
+                );
+        return mapToDto(usuario);
+    }
 }
