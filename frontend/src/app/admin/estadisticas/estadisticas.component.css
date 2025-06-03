@@ -1,0 +1,12 @@
+/* Asegura que cada canvas ocupe un área visible */
+.chart-container {
+  position: relative;
+  width: 100%;
+  height: 200px; /* Ajusta la altura a tu gusto */
+  margin-bottom: 2rem;
+}
+
+.chart-container canvas {
+  width: 100% !important;
+  height: 100% !important;
+}

@@ -22,6 +22,7 @@ import { GestionarConteosComponent } from './admin/gestionar-conteos/gestionar-c
 import { EmpleadoComponent } from './empleado/dashboard/dashboard.component';
 
 import { LoginComponent } from './login/login.component';
+import { EstadisticasComponent } from './admin/estadisticas/estadisticas.component';
 
 export const routes: Routes = [
   {
@@ -128,7 +129,12 @@ export const routes: Routes = [
     canActivate: [authGuard],
     data: { role: 'ADMINISTRADOR' }
   },
-
+  {
+    path: 'admin/estadisticas',
+    component: EstadisticasComponent,
+    canActivate: [authGuard],
+    data: { role: 'ADMINISTRADOR' }
+  },
   {
     path: 'empleado/dashboard',
     component: EmpleadoComponent,

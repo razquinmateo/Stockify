@@ -44,6 +44,10 @@ export class AdminComponent implements OnInit {
     this.router.navigate(['/admin/gestionar-conteos']);
   }
 
+    gestionarEstadisticas() {
+    this.router.navigate(['/admin/estadisticas']);
+  }
+
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);

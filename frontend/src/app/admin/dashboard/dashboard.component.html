@@ -1,14 +1,14 @@
+<!-- src/app/admin/dashboard/dashboard.component.html -->
+
 <!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
   <div class="container-fluid">
     <span class="navbar-brand mb-0 h1">Stockify - Administrador</span>
     <div class="d-flex align-items-center">
-      <div class="d-flex align-items-center">
-        <span class="text-white me-3">
-          <i class="bi bi-person-circle me-1"></i>
-          Administrador {{ nombreUsuarioLogueado }}
-        </span>
-      </div>
+      <span class="text-white me-3">
+        <i class="bi bi-person-circle me-1"></i>
+        Administrador {{ nombreUsuarioLogueado }}
+      </span>
       <button class="btn btn-outline-light btn-sm" (click)="logout()">
         <i class="bi bi-box-arrow-right me-1"></i>
         Cerrar sesión
@@ -38,7 +38,8 @@
         <i class="bi bi-tags-fill fs-1 text-warning mb-3"></i>
         <h5 class="card-title">Categorías</h5>
         <p class="card-text">Administra el catálogo de categorías de productos.</p>
-        <button class="btn btn-outline-warning mt-3 text-dark" (click)="gestionarCategorias()">Gestionar Categorías</button>
+        <button class="btn btn-outline-warning mt-3 text-dark" (click)="gestionarCategorias()">Gestionar
+          Categorías</button>
       </div>
     </div>
 
@@ -79,6 +80,16 @@
         <h5 class="card-title">Conteo</h5>
         <p class="card-text">Administra los conteos de inventario.</p>
         <button class="btn btn-outline-primary mt-3 text-dark" (click)="gestionarConteo()">Gestionar Conteo</button>
+      </div>
+    </div>
+
+    <!-- Gestionar Estadísticas -->
+    <div class="col-md-4">
+      <div class="card shadow-sm text-center p-4 rounded-4 border-0 h-100">
+        <i class="bi bi-bar-chart-fill fs-1 text-secondary mb-3"></i>
+        <h5 class="card-title">Estadísticas</h5>
+        <p class="card-text">Visualiza gráficos y reportes de ventas y faltantes.</p>
+        <button class="btn btn-outline-secondary mt-3" (click)="gestionarEstadisticas()">Ver Estadísticas</button>
       </div>
     </div>
   </div>
