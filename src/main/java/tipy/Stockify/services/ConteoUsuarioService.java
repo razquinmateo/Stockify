@@ -73,6 +73,13 @@ public class ConteoUsuarioService {
     }
 
     public ConteoUsuarioDto addParticipante(Long conteoId, Long usuarioId) {
+
+        // Verificar si ya existe la relación
+        boolean yaExiste = conteoUsuarioRepository.existsByConteoIdAndUsuarioId(conteoId, usuarioId);
+        if (yaExiste) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "El usuario ya está registrado en este conteo");
+        }
+
         // Obtiene usuario y conteo existentes
         Usuario usr = usuarioRepository.findByIdAndActivoTrue(usuarioId)
                 .orElseThrow(() -> new ResponseStatusException(

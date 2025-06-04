@@ -10,4 +10,5 @@ public interface ConteoUsuarioRepository extends JpaRepository<ConteoUsuario, Lo
 
     List<ConteoUsuario> findByConteoId(Long conteoId);
 
+    boolean existsByConteoIdAndUsuarioId(Long conteoId, Long usuarioId);
 }

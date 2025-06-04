@@ -5,7 +5,10 @@ import lombok.Data;
 
 @Entity
 @Data
-@Table(name = "CONTEO_USUARIO")
+@Table(
+        name = "CONTEO_USUARIO",
+        uniqueConstraints = @UniqueConstraint(columnNames = {"CONTEO_ID", "USUARIO_ID"})
+)
 public class ConteoUsuario {
 
     @Id
