@@ -77,9 +77,6 @@
             </span>
           </td>
           <td>
-            <button class="btn btn-sm btn-warning me-1" (click)="editarConteo(conteo)" title="Editar conteo">
-              <i class="bi bi-pencil-square"></i>
-            </button>
             <button class="btn btn-sm" [ngClass]="conteo.conteoFinalizado ? 'btn-danger' : 'btn-success'"
               (click)="alternarEstadoConteo(conteo)"
               [title]="conteo.conteoFinalizado ? 'Reactivar conteo' : 'Finalizar conteo'">
