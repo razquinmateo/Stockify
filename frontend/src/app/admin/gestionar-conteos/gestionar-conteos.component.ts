@@ -342,7 +342,24 @@ export class GestionarConteosComponent implements OnInit {
   }
 
   unirseConteo(): void {
-    console.log("Unirse al conteo...");
-    // Lógica para unirse a un conteo activo existente
+    const sucursalId = this.authService.getSucursalId();
+    this.conteoService.getActiveConteos().subscribe({
+      next: conteos => {
+        const conteoActivo = conteos.find(c => {
+          const usuario = this.usuarios.find(u => u.id === c.usuarioId);
+          return usuario?.sucursalId === sucursalId && !c.conteoFinalizado;
+        });
+        if (conteoActivo) {
+          this.router.navigate([`/admin/gestionar-conteos/conteo/${conteoActivo.id}`]);
+        } else {
+          Swal.fire({
+            icon: 'warning',
+            title: 'No hay conteo activo',
+            text: 'No se encontró un conteo activo en tu sucursal.',
+          });
+        }
+      },
+      error: () => Swal.fire('Error', 'No se pudo verificar conteos activos', 'error')
+    });
   }
 }
