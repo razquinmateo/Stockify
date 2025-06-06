@@ -1,5 +1,7 @@
 package tipy.Stockify.services;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
@@ -20,6 +22,8 @@ public class ConteoProductoService {
     private final ConteoProductoRepository conteoProductoRepository;
     private final ConteoRepository conteoRepository;
     private final ProductoRepository productoRepository;
+    @Autowired
+    private SimpMessagingTemplate messagingTemplate;
 
     public ConteoProductoService(ConteoProductoRepository conteoProductoRepository, ConteoRepository conteoRepository, ProductoRepository productoRepository) {
         this.conteoProductoRepository = conteoProductoRepository;
@@ -56,7 +60,13 @@ public class ConteoProductoService {
         return conteoProductoRepository.findById(id)
                 .map(existingConteoProducto -> {
                     updateConteoProductoFields(existingConteoProducto, conteoProductoDto);
-                    return mapToDto(conteoProductoRepository.save(existingConteoProducto));
+                    ConteoProducto updated = conteoProductoRepository.save(existingConteoProducto);
+                    // Enviar notificación WebSocket
+                    messagingTemplate.convertAndSend(
+                            "/topic/conteo-producto-actualizado",
+                            mapToDto(updated)
+                    );
+                    return mapToDto(updated);
                 })
                 .orElse(null);
     }

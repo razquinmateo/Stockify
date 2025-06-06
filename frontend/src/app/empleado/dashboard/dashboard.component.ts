@@ -12,7 +12,7 @@ import { AuthService } from '../../auth.service';
 import { ConteoService, Conteo } from '../../services/conteo.service';
 import { ConteoProductoService, ConteoProducto } from '../../services/conteo-producto.service';
 import { ProductoService, Producto } from '../../services/producto.service';
-import { WsService, ConteoMensaje } from '../../services/webSocket/ws.service';
+import { WsService, ConteoMensaje, ConteoProductoMensaje } from '../../services/webSocket/ws.service';
 
 // Registro de conteo por usuario
 interface RegistroConteo {
@@ -22,6 +22,7 @@ interface RegistroConteo {
   cantidadContada: number;
   usuario: string;
   usuarioId: number;
+  codigoBarra?: string
 }
 
 @Component({
@@ -56,12 +57,9 @@ export class EmpleadoComponent implements OnInit, OnDestroy {
 
   // clave para recordar en localStorage que ya llegó el conteo
   private readonly STORAGE_KEY = 'conteoActivoRecibido';
-  private wsSubs!: Subscription;
+  private wsSubs: Subscription[] = []; // Cambiado a array para múltiples suscripciones
 
-  //Lector de barras
-  // buffer de caracteres del scanner
   private scanBuffer = '';
-  // timer para resetear el buffer si pasa mucho tiempo entre teclas
   private bufferResetTimeout!: any;
 
   constructor(
@@ -75,24 +73,19 @@ export class EmpleadoComponent implements OnInit, OnDestroy {
 
   ngOnInit(): void {
     this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
-    // recupero el ID numérico del usuario (filtro /usuarios/all tal como lo configuraste)
     this.authService.getUsuarioIdDesdeToken().subscribe({
       next: id => this.usuarioId = id,
       error: () => Swal.fire('Error', 'No se pudo determinar tu ID de usuario', 'error')
     });
 
-    // 5) Listener global para scanners tipo teclado
     window.addEventListener('keydown', this.handleScannerKey);
 
-    // 1) Pedimos permiso de vídeo
     navigator.mediaDevices.getUserMedia({ video: true })
       .then(stream => {
         stream.getTracks().forEach(t => t.stop());
-        // 2) Enumeramos los dispositivos
         return navigator.mediaDevices.enumerateDevices();
       })
       .then((devs: MediaDeviceInfo[]) => {
-        // Guardamos sólo las entradas de tipo video
         this.devices = devs.filter(d => d.kind === 'videoinput');
         if (this.devices.length) {
           this.selectedDeviceId = this.devices[0].deviceId;
@@ -103,44 +96,111 @@ export class EmpleadoComponent implements OnInit, OnDestroy {
         Swal.fire('Error', 'No se pudo acceder a las cámaras', 'error');
       });
 
-    // 2) cargar registros previos del usuario actual
     const saved = localStorage.getItem('registros_' + this.nombreUsuarioLogueado);
     if (saved) {
       this.registros = JSON.parse(saved);
     }
 
-    // 3) cargar catálogo de productos
     this.productoService.obtenerTodosLosProductos().subscribe({
       next: prods => this.allProductos = prods,
       error: () => Swal.fire('Error', 'No se pudo cargar catálogo de productos', 'error')
     });
 
-    // 1) Si ya tengo un mensaje en localStorage, arranco directo
-    const yaRecibido = localStorage.getItem(this.STORAGE_KEY);
-    if (yaRecibido) {
-      const msg = JSON.parse(yaRecibido) as { id: number; fechaHora: string };
-      this.arrancarConteo(msg);
-    } else {
-      // 2) si no, muestro modal
-      this.mostrarModalEsperandoConteo();
-    }
-
-    // 3) ¡SIEMPRE! suscribirse a nuevas activaciones (incluye reactivaciones)
-    this.wsService.onConteoActivo().subscribe(msg => {
-      // guardo para que refresh no muestre modal
-      localStorage.setItem(this.STORAGE_KEY, JSON.stringify(msg));
-      this.arrancarConteo(msg);
+    // Verificar si hay un conteo activo en el servidor // Nuevo: Verifica conteos activos al iniciar
+    this.conteoService.getActiveConteos().subscribe({
+      next: conteos => {
+        if (conteos.length > 0) {
+          const msg = { id: conteos[0].id, fechaHora: conteos[0].fechaHora.toString() };
+          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(msg));
+          this.arrancarConteo(msg);
+        } else {
+          const yaRecibido = localStorage.getItem(this.STORAGE_KEY);
+          if (yaRecibido) {
+            const msg = JSON.parse(yaRecibido) as { id: number; fechaHora: string };
+            this.arrancarConteo(msg);
+          } else {
+            this.mostrarModalEsperandoConteo();
+          }
+        }
+      },
+      error: () => {
+        Swal.fire('Error', 'No se pudo verificar conteos activos', 'error');
+        const yaRecibido = localStorage.getItem(this.STORAGE_KEY);
+        if (yaRecibido) {
+          const msg = JSON.parse(yaRecibido) as { id: number; fechaHora: string };
+          this.arrancarConteo(msg);
+        } else {
+          this.mostrarModalEsperandoConteo();
+        }
+      }
     });
 
-    // 4) y también suscribir al finalizado
-    this.wsService.onConteoFinalizado().subscribe(_ => {
-      // limpio todo y vuelvo a modal
-      localStorage.removeItem(this.STORAGE_KEY);
-      localStorage.removeItem(`registros_${this.nombreUsuarioLogueado}`);
-      this.registros = [];
-      this.conteoActual = undefined!;
-      this.mostrarModalEsperandoConteo();
-    });
+    // Suscribirse a conteo activo
+    this.wsSubs.push(
+      this.wsService.onConteoActivo().subscribe(msg => {
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(msg));
+        this.arrancarConteo(msg);
+      })
+    );
+
+    // Suscribirse a conteo finalizado
+    this.wsSubs.push(
+      this.wsService.onConteoFinalizado().subscribe(_ => {
+        localStorage.removeItem(this.STORAGE_KEY);
+        localStorage.removeItem(`registros_${this.nombreUsuarioLogueado}`);
+        this.registros = [];
+        this.conteoActual = undefined!;
+        this.mostrarModalEsperandoConteo();
+      })
+    );
+
+    // Suscribirse a actualizaciones de conteo producto
+    this.wsSubs.push(
+      this.wsService.onConteoProductoActualizado().subscribe(msg => {
+        if (msg.conteoId === this.conteoActual?.id) {
+          const prod = this.allProductos.find(p => p.id === msg.productoId);
+          if (prod) {
+            const existente = this.registros.find(r => r.productoId === msg.productoId);
+            const reg: RegistroConteo = {
+              productoId: msg.productoId,
+              nombre: prod.nombre,
+              cantidadEsperada: msg.cantidadEsperada,
+              cantidadContada: msg.cantidadContada ?? 0, // Manejo de null
+              usuario: this.nombreUsuarioLogueado,
+              usuarioId: this.usuarioId,
+              codigoBarra: prod.codigoBarra
+            };
+            if (existente) {
+              Object.assign(existente, reg);
+            } else {
+              this.registros.push(reg);
+            }
+            localStorage.setItem(`registros_${this.nombreUsuarioLogueado}`, JSON.stringify(this.registros));
+            const item = this.productosConteo.find(p => p.productoId === msg.productoId);
+            if (item) {
+              item.cantidadContada = msg.cantidadContada ?? 0; // Manejo de null
+            } else {
+              this.productosConteo.push({
+                id: msg.id,
+                conteoId: msg.conteoId,
+                productoId: msg.productoId,
+                cantidadEsperada: msg.cantidadEsperada,
+                cantidadContada: msg.cantidadContada ?? 0, // Manejo de null
+                precioActual: msg.precioActual,
+                activo: msg.activo
+              });
+            }
+          }
+        }
+      })
+    );
+  }
+
+  ngOnDestroy(): void {
+    this.wsService.disconnect();
+    this.wsSubs.forEach(sub => sub.unsubscribe()); // Desuscribir todas
+    this.cerrarCamara();
+    window.removeEventListener('keydown', this.handleScannerKey);
   }
 
   private arrancarConteo(msg: { id: number; fechaHora: string }) {
@@ -152,17 +212,31 @@ export class EmpleadoComponent implements OnInit, OnDestroy {
       usuarioId: 0,
       activo: true
     };
-    this.cargarProductosConteo();
-  }
+    //cargamos los productos del conteo y poblamos los registros
+    this.conteoProdService.getActiveConteoProductos().subscribe({
+      next: items => {
+        this.productosConteo = items.filter(p => p.conteoId === this.conteoActual.id);
+        this.registros = this.productosConteo.map(item => {
+          const prod = this.allProductos.find(p => p.id === item.productoId);
+          return {
+            productoId: item.productoId,
+            nombre: prod ? prod.nombre : 'Desconocido',
+            cantidadEsperada: item.cantidadEsperada,
+            cantidadContada: item.cantidadContada ?? 0,
+            usuario: this.nombreUsuarioLogueado,
+            usuarioId: this.usuarioId,
+            codigoBarra: prod?.codigoBarra
+          };
+        });
+        localStorage.setItem(`registros_${this.nombreUsuarioLogueado}`, JSON.stringify(this.registros));
+      },
+      error: () => Swal.fire('Error', 'No se pudieron cargar los productos del conteo', 'error')
+    });
 
-  ngOnDestroy(): void {
-    this.wsService.disconnect();
-    this.wsSubs.unsubscribe();
-    this.cerrarCamara();
-    window.removeEventListener('keydown', this.handleScannerKey);
   }
 
   logout(): void {
+    localStorage.clear();
     this.authService.logout();
     this.router.navigate(['/login']);
   }
@@ -338,7 +412,8 @@ export class EmpleadoComponent implements OnInit, OnDestroy {
             cantidadEsperada: item!.cantidadEsperada,
             cantidadContada: updated.cantidadContada,
             usuario: this.nombreUsuarioLogueado,
-            usuarioId: this.usuarioId
+            usuarioId: this.usuarioId,
+            codigoBarra: prod.codigoBarra
           };
           existente ? Object.assign(existente, reg) : this.registros.push(reg);
           localStorage.setItem(`registros_${this.nombreUsuarioLogueado}`, JSON.stringify(this.registros));

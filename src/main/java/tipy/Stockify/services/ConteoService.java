@@ -50,7 +50,7 @@ public class ConteoService {
     public ConteoDto create(ConteoDto conteoDto) {
         Conteo conteo = mapToEntity(conteoDto);
         // Asegurar que activo sea true para nuevos conteos, incluso si no se especifica
-        conteo.setActivo(true);
+        conteo.setActivo(!conteo.isConteoFinalizado());
         Conteo saved = conteoRepository.save(conteo);
 
         // 2) Notifica a todos los suscriptores de /topic/conteo-activo
@@ -84,15 +84,14 @@ public class ConteoService {
             conteo.setFechaHora(conteoDto.getFechaHora());
         }
         if (conteoDto.getConteoFinalizado() != null) {
-            conteo.setConteoFinalizado(conteoDto.getConteoFinalizado());
+            boolean finalizado = conteoDto.getConteoFinalizado();
+            conteo.setConteoFinalizado(finalizado);
+            conteo.setActivo(!finalizado); // lógica inversa
         }
         if (conteoDto.getUsuarioId() != null) {
             Usuario usuario = usuarioRepository.findById(conteoDto.getUsuarioId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con id: " + conteoDto.getUsuarioId()));
             conteo.setUsuario(usuario);
-        }
-        if (conteoDto.getActivo() != null) {
-            conteo.setActivo(conteoDto.getActivo());
         }
     }
 

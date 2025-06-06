@@ -83,26 +83,29 @@
       <table class="table table-striped">
         <thead class="table-dark">
           <tr>
+            <th>ID Producto</th>
+            <th>Código de Barras</th>
             <th>Producto</th>
             <th>Esperado</th>
             <th>Contado</th>
-            <th>Usuario</th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let r of registrosFiltrados">
-            <td>{{ r.productoId }} — <small class="text-muted">{{ r.nombre }}</small></td>
+            <td>{{ r.productoId }}</td>
+            <td>{{ r.codigoBarra || 'N/A' }}</td>
+            <td>{{ r.nombre }}</td>
             <td>{{ r.cantidadEsperada }}</td>
             <td>{{ r.cantidadContada }}</td>
-            <td>{{ r.usuario }}</td>
           </tr>
           <tr *ngIf="registrosFiltrados.length === 0">
-            <td colspan="4" class="text-center text-muted py-3">
-              No hay productos que coincidan con "{{ filtro }}"
+            <td colspan="6" class="text-center text-muted py-3">
+              Aún no se ha contado ningún producto
             </td>
           </tr>
         </tbody>
       </table>
     </div>
   </div>
+
 </div>
