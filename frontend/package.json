@@ -29,6 +29,7 @@
     "sockjs-client": "^1.6.1",
     "sweetalert2": "^11.21.0",
     "tslib": "^2.3.0",
+    "xlsx": "^0.18.5",
     "zone.js": "~0.15.0"
   },
   "devDependencies": {

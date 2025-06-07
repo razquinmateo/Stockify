@@ -88,4 +88,17 @@ export class ProductoService {
       return null;
     }
   }
+
+//   actualizarStockYPrecioPorCodigoBarra(codigoBarra: string, precio: number, cantidadStock: number): Observable<any> {
+//     return this.http.put(`${this.apiUrl}/actualizar-por-codigo-barra`, {
+//       codigoBarra,
+//       precio,
+//       cantidadStock
+//     });
+//   }
+
+  actualizarMasivoProductos(productos: { codigoBarra: string; precio: number; cantidadStock: number }[]): Observable<any> {
+    return this.http.post(`${this.apiUrl}/actualizar-masivo`, productos);
+  }
+
 }

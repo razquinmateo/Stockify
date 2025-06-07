@@ -11,13 +11,13 @@
         </li>
         <li class="nav-item">
           <button class="btn btn-link nav-link" (click)="abrirModalAgregar()" type="button"
-            title="Agregar un nuevo producto">
+                  title="Agregar un nuevo producto">
             <i class="bi bi-plus-circle me-1"></i> Agregar Producto
           </button>
         </li>
         <li class="nav-item">
           <a class="btn btn-link nav-link" routerLink="/admin/gestionar-categorias"
-            title="Ir a categorías y agregar una nueva">
+             title="Ir a categorías y agregar una nueva">
             <i class="bi bi-tags-fill me-1"></i> Ver Categorías
           </a>
         </li>
@@ -45,17 +45,35 @@
 <div class="container py-5">
   <h2 class="mb-5 text-center">Lista de Productos</h2>
 
+  <!-- Boton para cargar archivos excel -->
+  <div class="mb-4 text-center">
+    <label class="form-label d-block">Actualizar productos vía Excel (.xlsx / .xls):</label>
+
+    <!-- Input oculto -->
+    <input type="file"
+           accept=".xlsx, .xls"
+           (change)="onArchivoSeleccionado($event)"
+           #fileInput
+           class="d-none">
+
+    <!-- Botón estilizado -->
+    <button class="btn btn-success" (click)="fileInput.click()">
+      <i class="bi bi-upload me-2"></i>
+      Subir archivo Excel
+    </button>
+  </div>
+
   <!-- Buscador -->
   <div class="mb-4">
     <input type="text" class="form-control" placeholder="Buscar por nombre, código o detalle..." [(ngModel)]="filtro"
-      (ngModelChange)="filtrarProductos()" />
+           (ngModelChange)="filtrarProductos()"/>
   </div>
 
   <!-- Tabla -->
-<div class="table-responsive">
-  <table class="table table-bordered text-center align-middle custom-table"
-    *ngIf="filtrarProductos().length > 0; else sinProductos">
-    <thead class="table-dark">
+  <div class="table-responsive">
+    <table class="table table-bordered text-center align-middle custom-table"
+           *ngIf="filtrarProductos().length > 0; else sinProductos">
+      <thead class="table-dark">
       <tr>
         <th>Imagen</th>
         <th>Nombre</th>
@@ -68,13 +86,13 @@
         <th>Estado</th>
         <th>Acciones</th>
       </tr>
-    </thead>
-    <tbody>
+      </thead>
+      <tbody>
       <tr *ngFor="let prod of obtenerProductosPaginados(); let i = index">
         <td>
           <img [src]="prod.imagen ? prod.imagen : 'assets/placeholder.png'"
-            alt="Imagen de {{ prod.nombre }}"
-            class="img-thumbnail" />
+               alt="Imagen de {{ prod.nombre }}"
+               class="img-thumbnail"/>
         </td>
         <td>{{ prod.nombre }}</td>
         <td>{{ prod.codigoBarra }}</td>
@@ -93,11 +111,12 @@
             <i class="bi bi-pencil-square"></i>
           </button>
           <button class="btn btn-sm btn-primary me-2" (click)="abrirModalAgregarLote(prod)"
-            title="Agregar lote para este producto">
+                  title="Agregar lote para este producto">
             <i class="bi bi-box-fill"></i>
           </button>
           <button class="btn btn-sm" [ngClass]="prod.activo ? 'btn-danger' : 'btn-success'"
-            (click)="toggleEstadoProducto(prod)" [title]="prod.activo ? 'Desactivar producto' : 'Activar producto'">
+                  (click)="toggleEstadoProducto(prod)"
+                  [title]="prod.activo ? 'Desactivar producto' : 'Activar producto'">
             <i [ngClass]="
                 prod.activo
                   ? 'bi bi-slash-circle'
@@ -106,9 +125,9 @@
           </button>
         </td>
       </tr>
-    </tbody>
-  </table>
-</div>
+      </tbody>
+    </table>
+  </div>
 
   <!-- Sin productos -->
   <ng-template #sinProductos>
@@ -124,14 +143,14 @@
         </button>
       </li>
       <li class="page-item" *ngFor="let page of [].constructor(totalPaginas()); let i = index"
-        [class.active]="paginaActual === i + 1">
+          [class.active]="paginaActual === i + 1">
         <button class="page-link" (click)="paginaActual = i + 1">
           {{ i + 1 }}
         </button>
       </li>
       <li class="page-item" [class.disabled]="paginaActual === totalPaginas()">
         <button class="page-link" (click)="paginaActual = paginaActual + 1"
-          [disabled]="paginaActual === totalPaginas()">
+                [disabled]="paginaActual === totalPaginas()">
           Siguiente
         </button>
       </li>
@@ -165,17 +184,17 @@
                     max-width: 200px;
                     max-height: 200px;
                     object-fit: cover;
-                  " />
+                  "/>
               </div>
               <div class="d-flex justify-content-center gap-2">
                 <input type="file" class="form-control" accept="image/*" style="max-width: 200px;"
-                  (change)="onFileSelected($event)" />
+                       (change)="onFileSelected($event)"/>
                 <button type="button" class="btn btn-outline-primary" (click)="abrirCamara()" *ngIf="!mostrarCamara"
-                  title="Usar cámara para tomar foto">
+                        title="Usar cámara para tomar foto">
                   <i class="bi bi-camera"></i> Usar Cámara
                 </button>
                 <button type="button" class="btn btn-outline-secondary" (click)="cerrarCamara()" *ngIf="mostrarCamara"
-                  title="Cerrar cámara">
+                        title="Cerrar cámara">
                   <i class="bi bi-x-circle"></i> Cerrar Cámara
                 </button>
               </div>
@@ -199,7 +218,7 @@
                 Nombre <span class="text-danger">*</span>
               </label>
               <input type="text" class="form-control" [(ngModel)]="productoSeleccionado.nombre" name="nombre"
-                required />
+                     required/>
             </div>
             <!-- Código de Barra -->
             <div class="col-md-6">
@@ -207,7 +226,7 @@
                 Código de Barra <span class="text-danger">*</span>
               </label>
               <input type="text" class="form-control" [(ngModel)]="productoSeleccionado.codigoBarra" name="codigoBarra"
-                required />
+                     required/>
             </div>
             <!-- Precio -->
             <div class="col-md-6">
@@ -215,7 +234,7 @@
                 Precio <span class="text-danger">*</span>
               </label>
               <input type="number" class="form-control" [(ngModel)]="productoSeleccionado.precio" name="precio" min="0"
-                step="0.01" required />
+                     step="0.01" required/>
             </div>
             <!-- Stock -->
             <div class="col-md-6">
@@ -223,7 +242,7 @@
                 Stock <span class="text-danger">*</span>
               </label>
               <input type="number" class="form-control" [(ngModel)]="productoSeleccionado.cantidadStock"
-                name="cantidadStock" min="0" required />
+                     name="cantidadStock" min="0" required/>
             </div>
             <!-- Categoría -->
             <div class="col-md-6">
@@ -288,22 +307,22 @@
             <div class="col-md-12">
               <label class="form-label">Número de Lote <span class="text-danger">*</span></label>
               <input type="text" class="form-control" [(ngModel)]="loteSeleccionado.numeroLote" name="numeroLote"
-                required>
+                     required>
             </div>
             <div class="col-md-6">
               <label class="form-label">Fecha de Ingreso <span class="text-danger">*</span></label>
               <input type="date" class="form-control" [(ngModel)]="loteSeleccionado.fechaIngreso" name="fechaIngreso"
-                required>
+                     required>
             </div>
             <div class="col-md-6">
               <label class="form-label">Fecha de Vencimiento</label>
               <input type="date" class="form-control" [(ngModel)]="loteSeleccionado.fechaVencimiento"
-                name="fechaVencimiento">
+                     name="fechaVencimiento">
             </div>
             <div class="col-md-12">
               <label class="form-label">Cantidad de Stock <span class="text-danger">*</span></label>
               <input type="number" class="form-control" [(ngModel)]="loteSeleccionado.cantidadStock"
-                name="cantidadStock" min="0" required>
+                     name="cantidadStock" min="0" required>
             </div>
           </div>
         </form>

@@ -200,4 +200,19 @@ public class ProductoService {
                 .collect(Collectors.toList()));
         return productoDto;
     }
+
+    public void actualizarStockYPrecioPorCodigoBarra(String codigoBarra, Float precio, Long stock) {
+        Producto producto = productoRepository.findByCodigoBarra(codigoBarra)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado con código de barra: " + codigoBarra));
+
+        if (precio != null && precio >= 0) {
+            producto.setPrecio(precio);
+        }
+        if (stock != null && stock >= 0) {
+            producto.setCantidadStock(stock);
+        }
+
+        productoRepository.save(producto);
+    }
+
 }
