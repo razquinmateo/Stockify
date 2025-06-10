@@ -100,9 +100,16 @@ export class UnirseConteoComponent implements OnInit, OnDestroy {
       this.registros = JSON.parse(saved);
     }
 
-    this.productoService.obtenerTodosLosProductos().subscribe({
-      next: prods => this.allProductos = prods,
-      error: () => Swal.fire('Error', 'No se pudo cargar catálogo de productos', 'error')
+    const sucursalId = this.authService.getSucursalId();
+    if (sucursalId == null) {
+      Swal.fire('Error', 'No se pudo obtener el ID de la sucursal', 'error');
+      return;
+    }
+    this.productoService.obtenerProductosActivosPorSucursal(sucursalId).subscribe({
+      next: prods => {
+        this.allProductos = prods.sort((a, b) => a.id - b.id); // Ordenar por id ascendente
+      },
+      error: () => Swal.fire('Error', 'No se pudo cargar el catálogo de productos activos de la sucursal', 'error')
     });
 
     // Obtener ID del conteo desde la ruta
