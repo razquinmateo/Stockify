@@ -77,10 +77,14 @@
             </span>
           </td>
           <td>
-            <button class="btn btn-sm" [ngClass]="conteo.conteoFinalizado ? 'btn-danger' : 'btn-success'"
+            <button class="btn btn-sm me-2" [ngClass]="conteo.conteoFinalizado ? 'btn-danger' : 'btn-success'"
               (click)="alternarEstadoConteo(conteo)"
               [title]="conteo.conteoFinalizado ? 'Reactivar conteo' : 'Finalizar conteo'">
               <i [ngClass]="conteo.conteoFinalizado ? 'bi bi-arrow-counterclockwise' : 'bi bi-check-circle'"></i>
+            </button>
+            <button class="btn btn-sm btn-info" (click)="verReporte(conteo)" [disabled]="conteo.activo"
+              title="Ver reporte">
+              <i class="bi bi-file-earmark-text"></i>
             </button>
           </td>
         </tr>

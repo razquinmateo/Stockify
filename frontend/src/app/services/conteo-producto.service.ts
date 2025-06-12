@@ -47,4 +47,8 @@ export class ConteoProductoService {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
 
+  getConteoProductosByConteoId(conteoId: number): Observable<ConteoProducto[]> {
+    return this.http.get<ConteoProducto[]>(`${this.apiUrl}/conteo/${conteoId}`);
+  }
+
 }

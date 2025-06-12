@@ -1,0 +1,163 @@
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark px-4">
+    <div class="container-fluid">
+        <span class="navbar-brand mb-0 h1">Stockify - Estadísticas</span>
+        <div class="collapse navbar-collapse">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0">
+                <li class="nav-item">
+                    <a class="nav-link" routerLink="/admin/dashboard" aria-label="Volver al inicio">
+                        <i class="bi bi-house-door-fill me-1"></i> Inicio
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="d-flex align-items-center">
+            <span class="text-white me-3">
+                <i class="bi bi-person-circle me-1"></i>
+                Administrador {{ authService.getUsuarioDesdeToken() }}
+            </span>
+            <button class="btn btn-outline-light btn-sm" (click)="authService.logout()" title="Cerrar sesión" aria-label="Cerrar sesión">
+                <i class="bi bi-box-arrow-right me-1"></i> Cerrar sesión
+            </button>
+        </div>
+    </div>
+</nav>
+
+<!-- Filtros de Fechas -->
+<div class="container py-4">
+    <h2 class="mb-4 text-center">Filtrar Estadísticas por Fecha</h2>
+
+    <div class="row gx-3 gy-2 align-items-end">
+        <div class="col-sm-5 col-md-4">
+            <label for="fechaDesde" class="form-label">Fecha Desde</label>
+            <input
+                type="date"
+                id="fechaDesde"
+                class="form-control"
+                [(ngModel)]="fechaDesde"
+                name="fechaDesde"
+                aria-label="Seleccionar fecha de inicio"
+                required
+            />
+        </div>
+        <div class="col-sm-5 col-md-4">
+            <label for="fechaHasta" class="form-label">Fecha Hasta</label>
+            <input
+                type="date"
+                id="fechaHasta"
+                class="form-control"
+                [(ngModel)]="fechaHasta"
+                name="fechaHasta"
+                aria-label="Seleccionar fecha de fin"
+                required
+            />
+        </div>
+        <div class="col-sm-2 col-md-4">
+            <button class="btn btn-primary w-100" (click)="consultarEstadisticas()" aria-label="Filtrar estadísticas">
+                <i class="bi bi-search me-1"></i> Filtrar
+            </button>
+        </div>
+    </div>
+
+    <div *ngIf="errorMsg" class="alert alert-danger mt-3" role="alert">
+        {{ errorMsg }}
+    </div>
+
+    <div *ngIf="loading" class="text-center mt-3">
+        <div class="spinner-border text-primary" role="status">
+            <span class="visually-hidden">Cargando...</span>
+        </div>
+    </div>
+</div>
+
+<!-- Gráficos -->
+<div class="container pb-5">
+    <div class="row gy-5">
+        <!-- Dinero Faltante y Sobrante Por Mes (combinado) -->
+        <div class="col-12">
+            <h4 class="mb-3">Dinero faltante y sobrante (por mes)</h4>
+            <div *ngIf="dineroFaltanteMes.length === 0 && dineroSobranteMes.length === 0" class="text-center text-muted my-3">
+                No hay datos de dinero faltante/sobrante para este año.
+            </div>
+            <div *ngIf="dineroFaltanteMes.length > 0 || dineroSobranteMes.length > 0" class="chart-container">
+                <canvas id="graficoDinero"></canvas>
+            </div>
+        </div>
+
+        <!-- Control de Elementos a Mostrar y Descarga de Reporte -->
+        <div class="col-12">
+            <div class="row gx-3 gy-2 align-items-end">
+                <div class="col-sm-6 col-md-4">
+                    <label for="limit" class="form-label">Elementos a mostrar en gráficos</label>
+                    <select
+                        id="limit"
+                        class="form-select"
+                        [(ngModel)]="limit"
+                        (ngModelChange)="updateCharts()"
+                        aria-label="Seleccionar número de elementos a mostrar"
+                    >
+                        <option value="5">5</option>
+                        <option value="10" selected>10</option>
+                        <option value="20">20</option>
+                        <option value="50">50</option>
+                    </select>
+                </div>
+                <div class="col-sm-6 col-md-4">
+                    <button
+                        class="btn btn-success w-100"
+                        (click)="downloadReport()"
+                        [disabled]="loading"
+                        aria-label="Descargar reporte en PDF"
+                    >
+                        <span *ngIf="loading" class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span>
+                        <i *ngIf="!loading" class="bi bi-download me-1"></i>
+                        {{ loading ? 'Generando...' : 'Descargar Reporte' }}
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Productos con Mayor Faltante -->
+        <div class="col-12 col-md-6">
+            <h4 class="mb-3">Productos con Mayor Faltante</h4>
+            <div *ngIf="masFaltaron.length === 0" class="text-center text-muted my-3">
+                No hay datos de faltantes para este rango.
+            </div>
+            <div *ngIf="masFaltaron.length > 0" class="chart-container chart-scrollable">
+                <canvas id="graficoFaltantes"></canvas>
+            </div>
+        </div>
+
+        <!-- Productos con Mayor Sobrante -->
+        <div class="col-12 col-md-6">
+            <h4 class="mb-3">Productos con Mayor Sobrante</h4>
+            <div *ngIf="masSobrantes.length === 0" class="text-center text-muted my-3">
+                No hay datos de sobrantes para este rango.
+            </div>
+            <div *ngIf="masSobrantes.length > 0" class="chart-container chart-scrollable">
+                <canvas id="graficoSobrantes"></canvas>
+            </div>
+        </div>
+
+        <!-- Categorías con Mayor Faltante -->
+        <div class="col-12 col-md-6">
+            <h4 class="mb-3">Categorías con Mayor Faltante</h4>
+            <div *ngIf="categoriasFaltantes.length === 0" class="text-center text-muted my-3">
+                No hay datos de categorías faltantes para este rango.
+            </div>
+            <div *ngIf="categoriasFaltantes.length > 0" class="chart-container chart-scrollable">
+                <canvas id="graficoCategoriasFaltantes"></canvas>
+            </div>
+        </div>
+
+        <!-- Categorías con Mayor Sobrante -->
+        <div class="col-12 col-md-6">
+            <h4 class="mb-3">Categorías con Mayor Sobrante</h4>
+            <div *ngIf="categoriasSobrantes.length === 0" class="text-center text-muted my-3">
+                No hay datos de categorías sobrantes para este rango.
+            </div>
+            <div *ngIf="categoriasSobrantes.length > 0" class="chart-container chart-scrollable">
+                <canvas id="graficoCategoriasSobrantes"></canvas>
+            </div>
+        </div>
+    </div>
+</div>

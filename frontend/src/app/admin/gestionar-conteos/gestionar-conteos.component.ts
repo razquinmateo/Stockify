@@ -261,6 +261,18 @@ export class GestionarConteosComponent implements OnInit {
     });
   }
 
+  verReporte(conteo: Conteo): void {
+    if (conteo.activo) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Conteo activo',
+        text: 'El reporte solo está disponible para conteos inactivos.',
+      });
+      return;
+    }
+    this.router.navigate(['/admin/reporte-conteo', conteo.id]);
+  }
+
   filtrarConteos(): Conteo[] {
     const filtroLower = this.filtro.toLowerCase();
 
