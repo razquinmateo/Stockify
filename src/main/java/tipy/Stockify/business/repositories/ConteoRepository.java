@@ -24,4 +24,6 @@ public interface ConteoRepository extends JpaRepository<Conteo, Long> {
      * @return Optional con el conteo activo, o vacío si no existe o está inactivo.
      */
     Optional<Conteo> findByIdAndActivoTrue(Long id);
+
+
 }

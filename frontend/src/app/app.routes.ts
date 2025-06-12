@@ -18,6 +18,7 @@ import { GestionarProductosComponent } from './admin/gestionar-productos/gestion
 import { GestionarLotesComponent } from './admin/gestionar-lotes/gestionar-lotes.component';
 import { GestionarProveedoresComponent } from './admin/gestionar-proveedores/gestionar-proveedores.component';
 import { GestionarConteosComponent } from './admin/gestionar-conteos/gestionar-conteos.component';
+import { ReporteConteoComponent } from './admin/reporte-conteo/reporte-conteo.component';
 
 import { EmpleadoComponent } from './empleado/dashboard/dashboard.component';
 
@@ -129,12 +130,23 @@ export const routes: Routes = [
     canActivate: [authGuard],
     data: { role: 'ADMINISTRADOR' }
   },
+
+  {
+    path: 'admin/reporte-conteo/:id',
+    component: ReporteConteoComponent,
+    canActivate: [authGuard],
+    data: { role: 'ADMINISTRADOR' }
+  },
+
+
   {
     path: 'admin/estadisticas',
     component: EstadisticasComponent,
     canActivate: [authGuard],
     data: { role: 'ADMINISTRADOR' }
   },
+
+
   {
     path: 'empleado/dashboard',
     component: EmpleadoComponent,

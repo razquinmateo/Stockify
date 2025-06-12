@@ -1,12 +1,27 @@
-/* Asegura que cada canvas ocupe un área visible */
+/* src/app/admin/estadisticas/estadisticas.component.css */
 .chart-container {
-  position: relative;
-  width: 100%;
-  height: 200px; /* Ajusta la altura a tu gusto */
-  margin-bottom: 2rem;
+    position: relative;
+    width: 100%;
+    height: 400px;
+    margin: 0 auto;
 }
 
-.chart-container canvas {
-  width: 100% !important;
-  height: 100% !important;
+.chart-scrollable {
+    overflow-x: auto;
+}
+
+canvas {
+    width: 100% !important;
+    height: 100% !important;
+}
+
+@media (max-width: 767px) {
+    .chart-container {
+        max-width: 100%;
+        height: 300px;
+    }
+}
+
+.spinner-border {
+    vertical-align: middle;
 }

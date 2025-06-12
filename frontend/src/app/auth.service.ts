@@ -137,4 +137,22 @@ export class AuthService {
   }
 
 
+  /** Devuelve el nombre completo del usuario autenticado */
+  getNombreCompletoDesdeToken(): Observable<string> {
+    const nombreUsuario = this.getUsuarioDesdeToken();
+    const sucursalId = this.getSucursalId();
+
+    return this.getAllUsuarios().pipe(
+      map(usuarios => {
+        const perfil = usuarios.find(u =>
+          u.nombreUsuario === nombreUsuario && u.sucursalId === sucursalId
+        );
+        if (!perfil) {
+          throw new Error('Usuario no encontrado en el listado');
+        }
+        return `${perfil.nombre} ${perfil.apellido}`;
+      })
+    );
+  }
+
 }

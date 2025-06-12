@@ -88,6 +88,14 @@
           >
             <i [ngClass]="conteo.conteoFinalizado ? 'bi bi-arrow-counterclockwise' : 'bi bi-check-circle'"></i>
           </button>
+          <button
+            class="btn btn-sm btn-info me-1"
+            (click)="verReporte(conteo)"
+            [disabled]="conteo.activo"
+            title="Ver reporte"
+          >
+            <i class="bi bi-file-earmark-text"></i>
+          </button>
         </td>
       </tr>
       </tbody>
@@ -135,7 +143,6 @@
 
 <!-- Botones debajo de la tabla -->
 <div class="d-flex justify-content-center gap-3 mt-4">
-
   <button
     class="btn btn-primary"
     [ngClass]="{ 'disabled-btn': hayConteoActivoEnSucursal() }"
@@ -145,7 +152,6 @@
   >
     Empezar conteo
   </button>
-
   <button class="btn btn-outline-primary" (click)="unirseConteo()">
     <i class="bi bi-person-plus me-1"></i> Unirse al Conteo
   </button>
@@ -172,10 +178,8 @@
           aria-label="Cerrar"
         ></button>
       </div>
-
       <div class="modal-body">
         <form (ngSubmit)="guardarConteo()">
-
           <div class="mb-3">
             <label class="form-label">Asignar a:</label>
             <select
@@ -189,10 +193,8 @@
               </option>
             </select>
           </div>
-
         </form>
       </div>
-
       <div class="modal-footer bg-light">
         <button
           type="button"

@@ -42,7 +42,7 @@ public class ConteoService {
     }
 
     public ConteoDto getById(Long id) {
-        return conteoRepository.findByIdAndActivoTrue(id)
+        return conteoRepository.findById(id)
                 .map(this::mapToDto)
                 .orElse(null);
     }

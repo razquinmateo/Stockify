@@ -1,4 +1,4 @@
-// src/app/admin/estadisticas/estadisticas.component.ts
+// src/app/estadisticas/estadisticas.component.ts
 
 import { Component, OnInit } from '@angular/core';
 import { CommonModule } from '@angular/common';
@@ -7,14 +7,16 @@ import { Chart } from 'chart.js/auto';
 import { EstadisticasService } from '../../services/estadisticas.service';
 import { AuthService } from '../../auth.service';
 import { Router, RouterModule } from '@angular/router';
-
 import {
-    EstadisticaProductoVendidos,
     EstadisticaProductoFaltante,
+    EstadisticaProductoSobrante,
     EstadisticaDineroFaltanteMes,
     EstadisticaDineroSobranteMes,
-    EstadisticaCategoriaVendida
-} from './estadisticas.model';
+    EstadisticaCategoriaFaltante,
+    EstadisticaCategoriaSobrante
+} from '../../models/estadisticas.model';
+import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 
 @Component({
     standalone: true,
@@ -24,34 +26,27 @@ import {
     styleUrls: ['./estadisticas.component.css']
 })
 export class EstadisticasComponent implements OnInit {
-    // ----------------------------------------------------
-    // 1) Variables de filtro de fechas (gráficos 1–3)
-    // ----------------------------------------------------
     fechaDesde: string = '';
     fechaHasta: string = '';
-    nombreUsuarioLogueado = '';
+    nombreUsuarioLogueado: string = '';
+    sucursalId: number | null = null;
+    limit: number = 10;
 
-    // ----------------------------------------------------
-    // 2) Datos que vendrán del servicio
-    // ----------------------------------------------------
-    masVendidos: EstadisticaProductoVendidos[] = [];
     masFaltaron: EstadisticaProductoFaltante[] = [];
+    masSobrantes: EstadisticaProductoSobrante[] = [];
     dineroFaltanteMes: EstadisticaDineroFaltanteMes[] = [];
     dineroSobranteMes: EstadisticaDineroSobranteMes[] = [];
-    categoriasVendidas: EstadisticaCategoriaVendida[] = [];
+    categoriasFaltantes: EstadisticaCategoriaFaltante[] = [];
+    categoriasSobrantes: EstadisticaCategoriaSobrante[] = [];
 
-    // ----------------------------------------------------
-    // 3) Instancias de Chart.js
-    // ----------------------------------------------------
-    chartMasVendidos!: Chart;
-    chartMasFaltaron!: Chart;
-    chartDineroCombinado!: Chart;
-    chartCategoriasVendidas!: Chart;
+    chartMasFaltaron?: Chart;
+    chartMasSobrantes?: Chart;
+    chartDineroCombinado?: Chart;
+    chartCategoriasFaltantes?: Chart;
+    chartCategoriasSobrantes?: Chart;
 
     loading: boolean = false;
     errorMsg: string | null = null;
-
-    // Guardar el año actual para pasar al backend
     anioActual: number = new Date().getFullYear();
 
     constructor(
@@ -61,23 +56,33 @@ export class EstadisticasComponent implements OnInit {
     ) { }
 
     ngOnInit(): void {
-        // Obtener usuario desde el token
-        this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
+        this.authService.getNombreCompletoDesdeToken().subscribe({
+            next: nombreCompleto => {
+                this.nombreUsuarioLogueado = nombreCompleto;
 
-        // Inicializamos los filtros "desde/hasta" (primer día del mes y hoy)
-        const hoy = new Date();
-        const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
-        this.fechaDesde = this.formatDate(primerDia);
-        this.fechaHasta = this.formatDate(hoy);
+                const sucursalId = this.authService.getSucursalId();
+                if (sucursalId === null) {
+                    this.errorMsg = 'No se pudo obtener la sucursal del usuario.';
+                    return;
+                }
+                this.sucursalId = sucursalId;
 
-        // Llamamos a los tres primeros gráficos:
-        this.consultarEstadisticas();
+                const hoy = new Date();
+                const primerDia = new Date(hoy.getFullYear(), hoy.getMonth(), 1);
+                this.fechaDesde = this.formatDate(primerDia);
+                this.fechaHasta = this.formatDate(hoy);
 
-        // Llamamos a la función que trae tanto faltante como sobrante y dibuja el gráfico combinado
-        this.consultarDineroPorMesCombinado();
+                this.consultarEstadisticas();
+                this.consultarDineroPorMesCombinado();
+            },
+            error: err => {
+                console.error('Error obteniendo el nombre completo del usuario:', err);
+                this.errorMsg = 'No se pudo obtener el nombre del usuario.';
+            }
+        });
     }
 
-    /** Convierte un objeto Date a cadena “YYYY-MM-DD” */
+
     private formatDate(fecha: Date): string {
         const yyyy = fecha.getFullYear();
         const mm = String(fecha.getMonth() + 1).padStart(2, '0');
@@ -85,9 +90,6 @@ export class EstadisticasComponent implements OnInit {
         return `${yyyy}-${mm}-${dd}`;
     }
 
-    /**
-     * 1)–3) Consulta Productos más vendidos, faltantes y categorías vendidas
-     */
     consultarEstadisticas(): void {
         if (!this.fechaDesde || !this.fechaHasta) {
             this.errorMsg = 'Debe seleccionar ambas fechas.';
@@ -97,29 +99,18 @@ export class EstadisticasComponent implements OnInit {
             this.errorMsg = 'La fecha “Desde” no puede ser mayor que la “Hasta”.';
             return;
         }
+        if (!this.sucursalId) {
+            this.errorMsg = 'No se pudo determinar la sucursal del usuario.';
+            return;
+        }
         this.errorMsg = null;
         this.loading = true;
 
         const desde = this.fechaDesde;
         const hasta = this.fechaHasta;
+        const sucursalId = this.sucursalId;
 
-        // --- 1) Productos más vendidos ---
-        this.estadisticasService.getProductosMasVendidos(desde, hasta).subscribe({
-            next: (data) => {
-                this.masVendidos = data;
-                if (this.masVendidos.length > 0) {
-                    // Asegurarnos de que el <canvas> esté en el DOM
-                    setTimeout(() => this.generarGraficoMasVendidos(), 0);
-                }
-            },
-            error: (err) => {
-                console.error('Error al obtener más vendidos:', err);
-                this.errorMsg = 'No se pudieron cargar los productos más vendidos.';
-            }
-        });
-
-        // --- 2) Productos con mayor faltante ---
-        this.estadisticasService.getProductosMasFaltaron(desde, hasta).subscribe({
+        this.estadisticasService.getProductosMasFaltaron(desde, hasta, sucursalId).subscribe({
             next: (data) => {
                 this.masFaltaron = data;
                 if (this.masFaltaron.length > 0) {
@@ -129,52 +120,70 @@ export class EstadisticasComponent implements OnInit {
             error: (err) => {
                 console.error('Error al obtener faltantes:', err);
                 this.errorMsg = 'No se pudieron cargar los productos con faltante.';
+            }
+        });
+
+        this.estadisticasService.getProductosConMayorSobrante(desde, hasta, sucursalId).subscribe({
+            next: (data) => {
+                this.masSobrantes = data;
+                if (this.masSobrantes.length > 0) {
+                    setTimeout(() => this.generarGraficoMasSobrantes(), 0);
+                }
+            },
+            error: (err) => {
+                console.error('Error al obtener sobrantes:', err);
+                this.errorMsg = 'No se pudieron cargar los productos con sobrante.';
+            }
+        });
+
+        this.estadisticasService.getCategoriasConMayorFaltante(desde, hasta, sucursalId).subscribe({
+            next: (data) => {
+                this.categoriasFaltantes = data;
+                if (this.categoriasFaltantes.length > 0) {
+                    setTimeout(() => this.generarGraficoCategoriasFaltantes(), 0);
+                }
+            },
+            error: (err) => {
+                console.warn('No se cargaron “categorías faltantes”: ', err);
+            }
+        });
+
+        this.estadisticasService.getCategoriasConMayorSobrante(desde, hasta, sucursalId).subscribe({
+            next: (data) => {
+                this.categoriasSobrantes = data;
+                if (this.categoriasSobrantes.length > 0) {
+                    setTimeout(() => this.generarGraficoCategoriasSobrantes(), 0);
+                }
+            },
+            error: (err) => {
+                console.warn('No se cargaron “categorías sobrantes”: ', err);
             },
             complete: () => {
                 this.loading = false;
             }
         });
-
-        // --- 3) Categorías más vendidas ---
-        this.estadisticasService.getCategoriasMasVendidas(desde, hasta).subscribe({
-            next: (data: EstadisticaCategoriaVendida[]) => {
-                this.categoriasVendidas = data;
-                if (this.categoriasVendidas.length > 0) {
-                    setTimeout(() => this.generarGraficoCategoriasVendidas(), 0);
-                }
-            },
-            error: (err) => {
-                console.warn('No se cargaron “categorías vendidas”: ', err);
-            }
-        });
     }
 
-    /**
-     * 4) Trae DINERO FALTANTE y SOBRANTE por mes (año actual)
-     *    y genera un solo gráfico con dos líneas: faltante y sobrante
-     */
     consultarDineroPorMesCombinado(): void {
-        // Primero traemos el dinero faltante
-        this.estadisticasService.getDineroFaltantePorMes(this.anioActual).subscribe({
-            next: (dataFaltante: EstadisticaDineroFaltanteMes[]) => {
+        if (this.sucursalId === null) {
+            this.errorMsg = 'No se pudo determinar la sucursal del usuario.';
+            return;
+        }
+
+        const sucursalIdSeguro = this.sucursalId; // variable local no nula
+
+        this.estadisticasService.getDineroFaltantePorMes(this.anioActual, sucursalIdSeguro).subscribe({
+            next: (dataFaltante) => {
                 this.dineroFaltanteMes = dataFaltante;
-
-                // Una vez que tenemos falta­nte, traemos el sobrante
-                this.estadisticasService.getDineroSobrantePorMes(this.anioActual).subscribe({
-                    next: (dataSobrante: EstadisticaDineroSobranteMes[]) => {
+                this.estadisticasService.getDineroSobrantePorMes(this.anioActual, sucursalIdSeguro).subscribe({
+                    next: (dataSobrante) => {
                         this.dineroSobranteMes = dataSobrante;
-
-                        // Si al menos uno de los dos arreglos tiene datos, dibujamos el gráfico combinado
-                        if (
-                            this.dineroFaltanteMes.length > 0 ||
-                            this.dineroSobranteMes.length > 0
-                        ) {
+                        if (this.dineroFaltanteMes.length > 0 || this.dineroSobranteMes.length > 0) {
                             setTimeout(() => this.generarGraficoDineroCombinado(), 0);
                         }
                     },
                     error: (err) => {
                         console.warn('No se cargó “dinero sobrante por mes”: ', err);
-                        // Aún si el sobrante falla, podemos dibujar “solo faltante” si existiera.
                         if (this.dineroFaltanteMes.length > 0) {
                             setTimeout(() => this.generarGraficoDineroCombinado(), 0);
                         }
@@ -187,48 +196,324 @@ export class EstadisticasComponent implements OnInit {
         });
     }
 
-    /** 1) Gráfico “Productos más vendidos” */
-    private generarGraficoMasVendidos(): void {
-        if (this.chartMasVendidos) {
-            this.chartMasVendidos.destroy();
-        }
-        const labels = this.masVendidos.map(item => item.nombreProducto);
-        const valores = this.masVendidos.map(item => item.cantidadVendida);
 
-        const canvas = document.getElementById('graficoVendidos') as HTMLCanvasElement;
-        if (!canvas) return;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return;
-
-        this.chartMasVendidos = new Chart(ctx, {
-            type: 'bar',
-            data: {
-                labels: labels,
-                datasets: [
-                    {
-                        label: 'Unidades vendidas',
-                        data: valores,
-                        backgroundColor: 'rgba(54, 162, 235, 0.6)'
-                    }
-                ]
-            },
-            options: {
-                responsive: true,
-                maintainAspectRatio: false,
-                scales: {
-                    y: { beginAtZero: true }
-                }
-            }
-        });
+    private filterAndLimitData<T>(data: T[]): T[] {
+        return data.slice(0, this.limit);
     }
 
-    /** 2) Gráfico “Productos con mayor faltante” */
+    updateCharts(): void {
+        if (this.masFaltaron.length > 0) this.generarGraficoMasFaltaron();
+        if (this.masSobrantes.length > 0) this.generarGraficoMasSobrantes();
+        if (this.categoriasFaltantes.length > 0) this.generarGraficoCategoriasFaltantes();
+        if (this.categoriasSobrantes.length > 0) this.generarGraficoCategoriasSobrantes();
+    }
+
+    async downloadReport(): Promise<void> {
+        try {
+            this.loading = true;
+            const doc = new jsPDF('p', 'mm', 'a4');
+            const pageWidth = doc.internal.pageSize.getWidth();
+            const pageHeight = doc.internal.pageSize.getHeight();
+            const margin = 15;
+            const primaryColor: [number, number, number] = [43, 74, 123];
+            const secondaryColor: [number, number, number] = [224, 231, 255];
+            const textColor: [number, number, number] = [51, 51, 51];
+            const whiteColor: [number, number, number] = [255, 255, 255];
+
+            const addFooter = (pageNum: number) => {
+                doc.setFontSize(10);
+                doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+                doc.setFont('helvetica', 'normal');
+                doc.text(`Stockify - Reporte de Inventario | Página ${pageNum}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
+                doc.text(`Generado el ${new Date().toLocaleDateString()}`, margin, pageHeight - 10);
+            };
+
+            doc.setFont('helvetica', 'normal');
+            doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.rect(0, 0, pageWidth, 30, 'F');
+            doc.setFontSize(22);
+            doc.setTextColor(whiteColor[0], whiteColor[1], whiteColor[2]);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Reporte de Inventario - Stockify', pageWidth / 2, 20, { align: 'center' });
+
+            let yPosition = 40;
+            doc.setFontSize(12);
+            doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+            doc.setFont('helvetica', 'normal');
+            doc.text(`Generado por: ${this.nombreUsuarioLogueado}`, margin, yPosition);
+            yPosition += 7;
+            doc.text(`Sucursal ID: ${this.sucursalId || 'No disponible'}`, margin, yPosition);
+            yPosition += 7;
+            doc.text(`Fecha: ${new Date().toLocaleDateString()}`, margin, yPosition);
+            yPosition += 7;
+            doc.text(`Período: ${this.fechaDesde} a ${this.fechaHasta}`, margin, yPosition);
+            yPosition += 10;
+
+            doc.setFontSize(14);
+            doc.setFont('helvetica', 'bold');
+            doc.text('Resumen General', margin, yPosition);
+            yPosition += 5;
+            doc.setLineWidth(0.5);
+            doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+            doc.line(margin, yPosition, pageWidth - margin, yPosition);
+            yPosition += 10;
+
+            const totalFaltantes = this.masFaltaron.reduce((sum, item) => sum + item.cantidadFaltante, 0);
+            const totalSobrantes = this.masSobrantes.reduce((sum, item) => sum + item.cantidadSobrante, 0);
+            const totalDineroFaltante = this.dineroFaltanteMes.reduce((sum, item) => sum + item.totalFaltante, 0);
+            const totalDineroSobrante = this.dineroSobranteMes.reduce((sum, item) => sum + item.totalSobrante, 0);
+
+            doc.setFontSize(11);
+            doc.setFont('helvetica', 'normal');
+            doc.setFillColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
+            doc.rect(margin, yPosition, pageWidth - 2 * margin, 30, 'F');
+            doc.text(`Total Productos Faltantes: ${totalFaltantes}`, margin + 5, yPosition + 8);
+            doc.text(`Total Productos Sobrantes: ${totalSobrantes}`, margin + 5, yPosition + 16);
+            doc.text(`Dinero Faltante Total: $${totalDineroFaltante.toFixed(2)}`, margin + 5, yPosition + 24);
+            doc.text(`Dinero Sobrante Total: $${totalDineroSobrante.toFixed(2)}`, pageWidth / 2, yPosition + 24);
+            yPosition += 40;
+
+            let pageCount = 1;
+            addFooter(pageCount);
+
+            const checkPage = () => {
+                if (yPosition > pageHeight - 50) {
+                    doc.addPage();
+                    pageCount++;
+                    yPosition = 20;
+                    addFooter(pageCount);
+                }
+            };
+
+            if (this.masFaltaron.length > 0) {
+                checkPage();
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Productos con Mayor Faltante', margin, yPosition);
+                yPosition += 5;
+                doc.setLineWidth(0.5);
+                doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                doc.line(margin, yPosition, pageWidth - margin, yPosition);
+                yPosition += 10;
+
+                autoTable(doc, {
+                    startY: yPosition,
+                    head: [['ID', 'Producto', 'Cantidad Faltante']],
+                    body: this.masFaltaron.map(item => [item.productoId, item.nombreProducto, item.cantidadFaltante]),
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: primaryColor,
+                        textColor: whiteColor,
+                        fontSize: 11,
+                        fontStyle: 'bold',
+                        halign: 'center'
+                    },
+                    bodyStyles: {
+                        textColor: textColor,
+                        fontSize: 10,
+                        cellPadding: 4
+                    },
+                    alternateRowStyles: {
+                        fillColor: secondaryColor
+                    },
+                    margin: { left: margin, right: margin },
+                    columnStyles: {
+                        0: { cellWidth: 20 },
+                        1: { cellWidth: 'auto' },
+                        2: { cellWidth: 40, halign: 'right' }
+                    }
+                });
+                yPosition = (doc as any).lastAutoTable.finalY + 15;
+            }
+
+            if (this.masSobrantes.length > 0) {
+                checkPage();
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Productos con Mayor Sobrante', margin, yPosition);
+                yPosition += 5;
+                doc.setLineWidth(0.5);
+                doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                doc.line(margin, yPosition, pageWidth - margin, yPosition);
+                yPosition += 10;
+
+                autoTable(doc, {
+                    startY: yPosition,
+                    head: [['ID', 'Producto', 'Cantidad Sobrante']],
+                    body: this.masSobrantes.map(item => [item.productoId, item.nombreProducto, item.cantidadSobrante]),
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: primaryColor,
+                        textColor: whiteColor,
+                        fontSize: 11,
+                        fontStyle: 'bold',
+                        halign: 'center'
+                    },
+                    bodyStyles: {
+                        textColor: textColor,
+                        fontSize: 10,
+                        cellPadding: 4
+                    },
+                    alternateRowStyles: {
+                        fillColor: secondaryColor
+                    },
+                    margin: { left: margin, right: margin },
+                    columnStyles: {
+                        0: { cellWidth: 20 },
+                        1: { cellWidth: 'auto' },
+                        2: { cellWidth: 40, halign: 'right' }
+                    }
+                });
+                yPosition = (doc as any).lastAutoTable.finalY + 15;
+            }
+
+            if (this.categoriasFaltantes.length > 0) {
+                checkPage();
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Categorías con Mayor Faltante', margin, yPosition);
+                yPosition += 5;
+                doc.setLineWidth(0.5);
+                doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                doc.line(margin, yPosition, pageWidth - margin, yPosition);
+                yPosition += 10;
+
+                autoTable(doc, {
+                    startY: yPosition,
+                    head: [['ID', 'Categoría', 'Cantidad Faltante']],
+                    body: this.categoriasFaltantes.map(item => [item.categoriaId, item.nombreCategoria, item.cantidadFaltante]),
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: primaryColor,
+                        textColor: whiteColor,
+                        fontSize: 11,
+                        fontStyle: 'bold',
+                        halign: 'center'
+                    },
+                    bodyStyles: {
+                        textColor: textColor,
+                        fontSize: 10,
+                        cellPadding: 4
+                    },
+                    alternateRowStyles: {
+                        fillColor: secondaryColor
+                    },
+                    margin: { left: margin, right: margin },
+                    columnStyles: {
+                        0: { cellWidth: 20 },
+                        1: { cellWidth: 'auto' },
+                        2: { cellWidth: 40, halign: 'right' }
+                    }
+                });
+                yPosition = (doc as any).lastAutoTable.finalY + 15;
+            }
+
+            if (this.categoriasSobrantes.length > 0) {
+                checkPage();
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.text('Categorías con Mayor Sobrante', margin, yPosition);
+                yPosition += 5;
+                doc.setLineWidth(0.5);
+                doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                doc.line(margin, yPosition, pageWidth - margin, yPosition);
+                yPosition += 10;
+
+                autoTable(doc, {
+                    startY: yPosition,
+                    head: [['ID', 'Categoría', 'Cantidad Sobrante']],
+                    body: this.categoriasSobrantes.map(item => [item.categoriaId, item.nombreCategoria, item.cantidadSobrante]),
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: primaryColor,
+                        textColor: whiteColor,
+                        fontSize: 11,
+                        fontStyle: 'bold',
+                        halign: 'center'
+                    },
+                    bodyStyles: {
+                        textColor: textColor,
+                        fontSize: 10,
+                        cellPadding: 4
+                    },
+                    alternateRowStyles: {
+                        fillColor: secondaryColor
+                    },
+                    margin: { left: margin, right: margin },
+                    columnStyles: {
+                        0: { cellWidth: 20 },
+                        1: { cellWidth: 'auto' },
+                        2: { cellWidth: 40, halign: 'right' }
+                    }
+                });
+                yPosition = (doc as any).lastAutoTable.finalY + 15;
+            }
+
+            if (this.dineroFaltanteMes.length > 0 || this.dineroSobranteMes.length > 0) {
+                checkPage();
+                doc.setFontSize(14);
+                doc.setFont('helvetica', 'bold');
+                doc.text(`Dinero Faltante y Sobrante por Mes (${this.anioActual})`, margin, yPosition);
+                yPosition += 5;
+                doc.setLineWidth(0.5);
+                doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
+                doc.line(margin, yPosition, pageWidth - margin, yPosition);
+                yPosition += 10;
+
+                const mesesNombre = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                const body = mesesNombre.map((mes, idx) => {
+                    const mesNum = idx + 1;
+                    const faltante = this.dineroFaltanteMes.find(item => item.mes === mesNum)?.totalFaltante || 0;
+                    const sobrante = this.dineroSobranteMes.find(item => item.mes === mesNum)?.totalSobrante || 0;
+                    return [mes, `$${faltante.toFixed(2)}`, `$${sobrante.toFixed(2)}`];
+                });
+
+                autoTable(doc, {
+                    startY: yPosition,
+                    head: [['Mes', 'Dinero Faltante', 'Dinero Sobrante']],
+                    body: body,
+                    theme: 'grid',
+                    headStyles: {
+                        fillColor: primaryColor,
+                        textColor: whiteColor,
+                        fontSize: 11,
+                        fontStyle: 'bold',
+                        halign: 'center'
+                    },
+                    bodyStyles: {
+                        textColor: textColor,
+                        fontSize: 10,
+                        cellPadding: 4
+                    },
+                    alternateRowStyles: {
+                        fillColor: secondaryColor
+                    },
+                    margin: { left: margin, right: margin },
+                    columnStyles: {
+                        0: { cellWidth: 'auto' },
+                        1: { cellWidth: 50, halign: 'right' },
+                        2: { cellWidth: 50, halign: 'right' }
+                    }
+                });
+                yPosition = (doc as any).lastAutoTable.finalY + 15;
+            }
+
+            doc.save(`Stockify_Report_Sucursal${this.sucursalId}_${this.fechaDesde}_${this.fechaHasta}.pdf`);
+        } catch (error) {
+            console.error('Error generando PDF:', error);
+            this.errorMsg = 'Error al generar el reporte PDF';
+        } finally {
+            this.loading = false;
+        }
+    }
+
     private generarGraficoMasFaltaron(): void {
         if (this.chartMasFaltaron) {
             this.chartMasFaltaron.destroy();
         }
-        const labels = this.masFaltaron.map(item => item.nombreProducto);
-        const valores = this.masFaltaron.map(item => item.cantidadFaltante);
+        const filteredData = this.filterAndLimitData(this.masFaltaron);
+        const labels = filteredData.map(item => item.nombreProducto);
+        const valores = filteredData.map(item => item.cantidadFaltante);
 
         const canvas = document.getElementById('graficoFaltantes') as HTMLCanvasElement;
         if (!canvas) return;
@@ -239,45 +524,86 @@ export class EstadisticasComponent implements OnInit {
             type: 'bar',
             data: {
                 labels: labels,
-                datasets: [
-                    {
-                        label: 'Unidades faltantes',
-                        data: valores,
-                        backgroundColor: 'rgba(255, 99, 132, 0.6)'
-                    }
-                ]
+                datasets: [{
+                    label: 'Unidades faltantes',
+                    data: valores,
+                    backgroundColor: 'rgba(255, 99, 132, 0.6)'
+                }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: { beginAtZero: true }
+                    y: { beginAtZero: true },
+                    x: {
+                        ticks: {
+                            autoSkip: false,
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: true }
                 }
             }
         });
     }
 
-    /**
-     * 4) Gráfico combinado “Dinero faltante y sobrante por mes” (líneas)
-     */
+    private generarGraficoMasSobrantes(): void {
+        if (this.chartMasSobrantes) {
+            this.chartMasSobrantes.destroy();
+        }
+        const filteredData = this.filterAndLimitData(this.masSobrantes);
+        const labels = filteredData.map(item => item.nombreProducto);
+        const valores = filteredData.map(item => item.cantidadSobrante);
+
+        const canvas = document.getElementById('graficoSobrantes') as HTMLCanvasElement;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        this.chartMasSobrantes = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Unidades sobrantes',
+                    data: valores,
+                    backgroundColor: 'rgba(75, 192, 75, 0.6)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true },
+                    x: {
+                        ticks: {
+                            autoSkip: false,
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: true }
+                }
+            }
+        });
+    }
+
     private generarGraficoDineroCombinado(): void {
         if (this.chartDineroCombinado) {
             this.chartDineroCombinado.destroy();
         }
 
-        // 4.a) Definir orden de etiquetas: todos los meses del año (1 a 12).
-        //     Convertimos a nombre: 1→"Ene", 2→"Feb", etc.
-        const mesesNombre = [
-            'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
-            'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
-        ];
+        const mesesNombre = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
         const labels = mesesNombre;
 
-        // 4.b) Construir un array de datos faltante y sobrante de longitud 12.
-        //     Si en algún mes no hay fila, se asigna 0.
         const datosFaltantePorMes = new Array<number>(12).fill(0);
         this.dineroFaltanteMes.forEach(item => {
-            const idx = item.mes - 1; // item.mes viene de 1..12
+            const idx = item.mes - 1;
             if (idx >= 0 && idx < 12) {
                 datosFaltantePorMes[idx] = item.totalFaltante;
             }
@@ -335,36 +661,87 @@ export class EstadisticasComponent implements OnInit {
         });
     }
 
-    /** 5) Gráfico “Categorías más vendidas” */
-    private generarGraficoCategoriasVendidas(): void {
-        if (this.chartCategoriasVendidas) {
-            this.chartCategoriasVendidas.destroy();
+    private generarGraficoCategoriasFaltantes(): void {
+        if (this.chartCategoriasFaltantes) {
+            this.chartCategoriasFaltantes.destroy();
         }
-        const labels = this.categoriasVendidas.map(item => item.nombreCategoria);
-        const valores = this.categoriasVendidas.map(item => item.cantidadVendida);
+        const filteredData = this.filterAndLimitData(this.categoriasFaltantes);
+        const labels = filteredData.map(item => item.nombreCategoria);
+        const valores = filteredData.map(item => item.cantidadFaltante);
 
-        const canvas = document.getElementById('graficoCategoriasVendidas') as HTMLCanvasElement;
+        const canvas = document.getElementById('graficoCategoriasFaltantes') as HTMLCanvasElement;
         if (!canvas) return;
         const ctx = canvas.getContext('2d');
         if (!ctx) return;
 
-        this.chartCategoriasVendidas = new Chart(ctx, {
+        this.chartCategoriasFaltantes = new Chart(ctx, {
             type: 'bar',
             data: {
                 labels: labels,
-                datasets: [
-                    {
-                        label: 'Unidades vendidas (categoría)',
-                        data: valores,
-                        backgroundColor: 'rgba(75, 192, 192, 0.6)'
-                    }
-                ]
+                datasets: [{
+                    label: 'Unidades faltantes (categoría)',
+                    data: valores,
+                    backgroundColor: 'rgba(255, 99, 132, 0.6)'
+                }]
             },
             options: {
                 responsive: true,
                 maintainAspectRatio: false,
                 scales: {
-                    y: { beginAtZero: true }
+                    y: { beginAtZero: true },
+                    x: {
+                        ticks: {
+                            autoSkip: false,
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: true }
+                }
+            }
+        });
+    }
+
+    private generarGraficoCategoriasSobrantes(): void {
+        if (this.chartCategoriasSobrantes) {
+            this.chartCategoriasSobrantes.destroy();
+        }
+        const filteredData = this.filterAndLimitData(this.categoriasSobrantes);
+        const labels = filteredData.map(item => item.nombreCategoria);
+        const valores = filteredData.map(item => item.cantidadSobrante);
+
+        const canvas = document.getElementById('graficoCategoriasSobrantes') as HTMLCanvasElement;
+        if (!canvas) return;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) return;
+
+        this.chartCategoriasSobrantes = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: 'Unidades sobrantes (categoría)',
+                    data: valores,
+                    backgroundColor: 'rgba(75, 192, 75, 0.6)'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                scales: {
+                    y: { beginAtZero: true },
+                    x: {
+                        ticks: {
+                            autoSkip: false,
+                            maxRotation: 45,
+                            minRotation: 45
+                        }
+                    }
+                },
+                plugins: {
+                    legend: { display: true }
                 }
             }
         });
