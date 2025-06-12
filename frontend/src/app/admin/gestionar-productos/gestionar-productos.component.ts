@@ -12,6 +12,7 @@ import Swal from 'sweetalert2';
 import { Observable, of } from 'rxjs';
 import { forkJoin } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
+import * as XLSX from 'xlsx';
 
 declare var bootstrap: any;
 
@@ -49,6 +50,72 @@ export class GestionarProductosComponent implements OnInit {
     this.productoSeleccionado = this.resetProducto();
     this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
     this.cargarDatosIniciales();
+  }
+
+  onArchivoSeleccionado(event: any): void {
+    const archivo = event.target.files[0];
+    if (!archivo) return;
+
+    const lector = new FileReader();
+    lector.onload = (e: any) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const hoja = workbook.Sheets[workbook.SheetNames[0]];
+      const productosExcelRaw = XLSX.utils.sheet_to_json(hoja);
+
+      // Normalizar claves
+          const productosExcel = productosExcelRaw.map((prod: any) => {
+            const productoNormalizado: any = {};
+
+            for (const clave in prod) {
+              const valor = prod[clave];
+              const claveLower = clave.toLowerCase().trim();
+
+            /* "Código de barras", "codigo", "barcode" → codigoBarra
+            "Precio unitario", "coste" → precio
+            "Stock", "Cantidad", "Existencia" → cantidadStock */
+
+              if (["codigo", "código", "código de barras", "codigo de barras", "barcode"].includes(claveLower)) {
+                productoNormalizado.codigoBarra = valor;
+              } else if (["precio", "precio unitario", "coste"].includes(claveLower)) {
+                productoNormalizado.precio = valor;
+              } else if (["stock", "cantidad", "cantidad stock", "existencia"].includes(claveLower)) {
+                productoNormalizado.cantidadStock = valor;
+              } else {
+                productoNormalizado[clave] = valor; // conservar el resto
+              }
+            }
+
+            return productoNormalizado;
+          });
+
+      // Validar y enviar al backend
+      this.actualizarProductosDesdeExcel(productosExcel);
+    };
+    lector.readAsArrayBuffer(archivo);
+  }
+
+  actualizarProductosDesdeExcel(productos: any[]): void {
+    const productosValidos = productos.filter(p =>
+      p.codigoBarra && (typeof p.precio === 'number' || typeof p.cantidadStock === 'number'
+    ));
+
+    if (productosValidos.length === 0) {
+      Swal.fire('Archivo inválido', 'No se encontraron productos válidos para actualizar.', 'warning');
+      return;
+    }
+
+    this.productoService.actualizarMasivoProductos(productosValidos).subscribe({
+      next: () => {
+        Swal.fire('Actualización exitosa', 'Se actualizaron los productos correctamente.', 'success');
+        this.cargarDatosIniciales();
+      },
+      error: (err) => {
+        console.error('Error del backend:', err);
+        Swal.fire('Error', 'Ocurrió un error al actualizar productos.', 'error');
+      }
+    });
+
   }
 
   cargarDatosIniciales(): void {

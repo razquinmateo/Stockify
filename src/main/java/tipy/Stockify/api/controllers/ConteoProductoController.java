@@ -4,19 +4,25 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
+import tipy.Stockify.business.entities.Conteo;
+import tipy.Stockify.business.repositories.ConteoRepository;
 import tipy.Stockify.dtos.ConteoProductoDto;
 import tipy.Stockify.services.ConteoProductoService;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(value = "api/v1/conteoproducto")
 public class ConteoProductoController {
 
     private final ConteoProductoService conteoProductoService;
+    private final ConteoRepository conteoRepository;
 
-    public ConteoProductoController(ConteoProductoService conteoProductoService) {
+    public ConteoProductoController(ConteoProductoService conteoProductoService, ConteoRepository conteoRepository) {
         this.conteoProductoService = conteoProductoService;
+        this.conteoRepository = conteoRepository;
     }
 
     @GetMapping
@@ -30,6 +36,24 @@ public class ConteoProductoController {
     public ResponseEntity<List<ConteoProductoDto>> getAllConteoProductosIncludingInactive() {
         return new ResponseEntity<>(conteoProductoService.getAllIncludingInactive(), HttpStatus.OK);
     }
+
+    @GetMapping("/conteo/{conteoId}")
+    @Operation(description = "Obtiene la lista de conteos de producto por ID de conteo, solo si el conteo está inactivo.")
+    public ResponseEntity<List<ConteoProductoDto>> getConteoProductosByConteoId(@PathVariable Long conteoId) {
+        Conteo conteo = conteoRepository.findById(conteoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conteo no encontrado con id: " + conteoId));
+
+        if (conteo.isActivo()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El reporte solo está disponible para conteos inactivos.");
+        }
+
+        List<ConteoProductoDto> conteoProductos = conteoProductoService.getAllIncludingInactive()
+                .stream()
+                .filter(cp -> cp.getConteoId().equals(conteoId))
+                .collect(Collectors.toList());
+        return new ResponseEntity<>(conteoProductos, HttpStatus.OK);
+    }
+
 
     @GetMapping("/{id}")
     @Operation(description = "Obtiene un conteo de producto activo por su ID.")

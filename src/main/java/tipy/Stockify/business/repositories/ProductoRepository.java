@@ -25,4 +25,6 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
      */
     Optional<Producto> findByIdAndActivoTrue(Long id);
     List<Producto> findBySucursalIdAndActivoTrue(Long sucursalId);
+
+    Optional<Producto> findByCodigoBarra(String codigoBarra);
 }

@@ -52,6 +52,7 @@ public class WebSecurityConfig {
                         .requestMatchers(antMatcher("/api/v1/proveedores/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/reportes/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/conteo-usuarios/**")).permitAll()
+                                .requestMatchers(antMatcher("/api/v1/estadisticas/**")).permitAll()
 
 //                        .requestMatchers(antMatcher("/api/v1/empresas/**")).hasAuthority("SUPERADMINISTRADOR")
 //                        .requestMatchers(antMatcher("/api/v1/sucursales/**")).hasAnyAuthority("SUPERADMINISTRADOR", "ADMINISTRADOR", "EMPLEADO")

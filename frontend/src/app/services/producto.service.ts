@@ -74,6 +74,10 @@ export class ProductoService {
     return this.http.put<Producto>(`${this.apiUrl}/${producto.id}`, producto);
   }
 
+  actualizarMasivoProductos(productos: { codigoBarra: string; precio: number; cantidadStock: number }[]): Observable<any> {
+    return this.http.post(`${this.apiUrl}/actualizar-masivo`, productos);
+  }
+
   private sanitizeImagen(imagen: string | null): string | null {
     if (!imagen || !imagen.startsWith('data:image/') || !imagen.includes('base64,')) {
       return null;
