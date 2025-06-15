@@ -1,5 +1,7 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './auth.guard';
+
+//================ [SUPERADMIN] ================//
 import { DashboardComponent } from './superadmin/dashboard/dashboard.component';
 import { CrearEmpresaComponent } from './superadmin/crear-empresa/crear-empresa.component';
 import { VerEmpresasComponent } from './superadmin/ver-empresas/ver-empresas.component';
@@ -11,6 +13,7 @@ import { CrearUsuarioComponent } from './superadmin/crear-usuario/crear-usuario.
 import { VerUsuariosComponent } from './superadmin/ver-usuarios/ver-usuarios.component';
 import { EditarUsuarioComponent } from './superadmin/editar-usuario/editar-usuario.component';
 
+//================ [ADMIN] ================//
 import { AdminComponent } from './admin/dashboard/dashboard.component';
 import { GestionarEmpleadosComponent } from './admin/gestionar-empleados/gestionar-empleados.component';
 import { GestionarCategoriasComponent } from './admin/gestionar-categorias/gestionar-categorias.component';
@@ -18,11 +21,13 @@ import { GestionarProductosComponent } from './admin/gestionar-productos/gestion
 import { GestionarLotesComponent } from './admin/gestionar-lotes/gestionar-lotes.component';
 import { GestionarProveedoresComponent } from './admin/gestionar-proveedores/gestionar-proveedores.component';
 import { GestionarConteosComponent } from './admin/gestionar-conteos/gestionar-conteos.component';
-import { UnirseConteoComponent } from './admin/unirse-conteo/unirse-conteo.component';
+import { UnirseConteoLibreComponent } from './admin/unirse-conteo-libre/unirse-conteo-libre.component';
 import { ReporteConteoComponent } from './admin/reporte-conteo/reporte-conteo.component';
 import { EstadisticasComponent } from './admin/estadisticas/estadisticas.component';
 
+//================ [EMPLEADO] ================//
 import { EmpleadoComponent } from './empleado/dashboard/dashboard.component';
+import { ConteoLibreComponent } from './empleado/conteo-libre/conteo-libre.component';
 
 import { LoginComponent } from './login/login.component';
 
@@ -87,7 +92,6 @@ export const routes: Routes = [
     canActivate: [authGuard],
     data: { role: 'SUPERADMINISTRADOR' }
   },
-
   {
     path: 'admin/dashboard',
     component: AdminComponent,
@@ -124,7 +128,6 @@ export const routes: Routes = [
     canActivate: [authGuard],
     data: { role: 'ADMINISTRADOR' }
   },
-
   {
     path: 'admin/gestionar-conteos',
     component: GestionarConteosComponent,
@@ -132,33 +135,35 @@ export const routes: Routes = [
     data: { role: 'ADMINISTRADOR' }
   },
   {
-    path: 'admin/gestionar-conteos/conteo/:id',
-    component: UnirseConteoComponent,
+    path: 'admin/gestionar-conteos/unirse-conteo-libre',
+    component: UnirseConteoLibreComponent,
     canActivate: [authGuard],
     data: { role: 'ADMINISTRADOR' }
   },
-
   {
     path: 'admin/reporte-conteo/:id',
     component: ReporteConteoComponent,
     canActivate: [authGuard],
     data: { role: 'ADMINISTRADOR' }
   },
-
   {
     path: 'admin/estadisticas',
     component: EstadisticasComponent,
     canActivate: [authGuard],
     data: { role: 'ADMINISTRADOR' }
   },
-
   {
     path: 'empleado/dashboard',
     component: EmpleadoComponent,
     canActivate: [authGuard],
     data: { role: 'EMPLEADO' }
   },
-
+  {
+    path: 'empleado/conteo-libre',
+    component: ConteoLibreComponent,
+    canActivate: [authGuard],
+    data: { role: 'EMPLEADO' }
+  },
   {
     path: 'login',
     component: LoginComponent

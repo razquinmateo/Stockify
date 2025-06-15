@@ -51,14 +51,16 @@ export class GestionarConteosComponent implements OnInit {
     this.usuarioService.getUsuarios().subscribe({
       next: (data) => {
         this.usuarios = data;
+        console.log('Usuarios cargados:', this.usuarios); // Depuración
 
         const sucursalId = this.authService.getSucursalId();
         // Filtra solo administradores de la misma sucursal
         this.usuariosMismaSucursal = this.usuarios.filter(
           (u) => u.sucursalId === sucursalId && u.rol === 'ADMINISTRADOR'
         );
+        console.log('Usuarios misma sucursal:', this.usuariosMismaSucursal); // Depuración
 
-        // Solo despues de tener los usuarios se cargan los conteos
+        // Solo después de tener los usuarios se cargan los conteos
         this.cargarConteos();
       },
       error: (err) => console.error("Error al cargar usuarios", err),
@@ -70,7 +72,7 @@ export class GestionarConteosComponent implements OnInit {
 
     this.conteoService.obtenerTodosLosConteos().subscribe({
       next: (data) => {
-          console.log("Conteos cargados:", data);
+        console.log("Conteos cargados:", data); // Depuración
         const usuariosMismaSucursal = this.usuarios.filter(
           (u) => u.sucursalId === sucursalId
         );
@@ -80,6 +82,7 @@ export class GestionarConteosComponent implements OnInit {
           idsUsuarios.includes(c.usuarioId)
         );
         this.conteos = conteosFiltrados;
+        console.log('Conteos filtrados:', this.conteos); // Depuración
 
         // Cargar usuarios participantes para cada conteo
         this.usuariosPorConteo = {}; // Reiniciar por si acaso
@@ -114,11 +117,12 @@ export class GestionarConteosComponent implements OnInit {
 
   hayConteoActivoEnSucursal(): boolean {
     const sucursalId = this.authService.getSucursalId();
-
-    return this.conteos.some((c) => {
+    const conteoActivo = this.conteos.some((c) => {
       const usuario = this.usuarios.find((u) => u.id === c.usuarioId);
       return usuario?.sucursalId === sucursalId && !c.conteoFinalizado;
     });
+    console.log('¿Hay conteo activo en sucursal?', conteoActivo); // Depuración
+    return conteoActivo;
   }
 
   getNombreUsuarioPorId(id: number): string {
@@ -319,7 +323,7 @@ export class GestionarConteosComponent implements OnInit {
       return;
     }
 
-    // Convierte la fecha/hora a nuestra region
+    // Convierte la fecha/hora a nuestra región
     const fechaHoraLocal = new Date()
         .toLocaleString('sv-SE', { timeZone: 'America/Montevideo' })
         .replace(' ', 'T');
@@ -355,23 +359,42 @@ export class GestionarConteosComponent implements OnInit {
 
   unirseConteo(): void {
     const sucursalId = this.authService.getSucursalId();
-    this.conteoService.getActiveConteos().subscribe({
-      next: conteos => {
-        const conteoActivo = conteos.find(c => {
-          const usuario = this.usuarios.find(u => u.id === c.usuarioId);
-          return usuario?.sucursalId === sucursalId && !c.conteoFinalizado;
-        });
-        if (conteoActivo) {
-          this.router.navigate([`/admin/gestionar-conteos/conteo/${conteoActivo.id}`]);
-        } else {
-          Swal.fire({
-            icon: 'warning',
-            title: 'No hay conteo activo',
-            text: 'No se encontró un conteo activo en tu sucursal.',
-          });
-        }
-      },
-      error: () => Swal.fire('Error', 'No se pudo verificar conteos activos', 'error')
+    console.log('Sucursal ID:', sucursalId); // Depuración
+    console.log('Usuarios disponibles:', this.usuarios); // Depuración
+    console.log('Conteos disponibles:', this.conteos); // Depuración
+
+    // Reutilizar la lista de conteos en memoria para evitar discrepancias
+    const conteoActivo = this.conteos.find(c => {
+      const usuario = this.usuarios.find(u => u.id === c.usuarioId);
+      console.log(`Evaluando conteo ID ${c.id}:`, { usuario, sucursalId, finalizado: c.conteoFinalizado }); // Depuración
+      return usuario?.sucursalId === sucursalId && !c.conteoFinalizado;
     });
+
+    if (conteoActivo) {
+      console.log('Conteo activo encontrado:', conteoActivo); // Depuración
+      this.router.navigate(['/admin/gestionar-conteos/unirse-conteo-libre']);
+    } else {
+      // Si no se encuentra en memoria, consultar el servicio como respaldo
+      this.conteoService.getActiveConteos().subscribe({
+        next: conteos => {
+          console.log('Conteos activos desde el servicio:', conteos); // Depuración
+          const conteoActivoServicio = conteos.find(c => {
+            const usuario = this.usuarios.find(u => u.id === c.usuarioId);
+            return usuario?.sucursalId === sucursalId && !c.conteoFinalizado;
+          });
+          if (conteoActivoServicio) {
+            console.log('Conteo activo encontrado en servicio:', conteoActivoServicio); // Depuración
+            this.router.navigate(['/admin/gestionar-conteos/unirse-conteo-libre']);
+          } else {
+            Swal.fire({
+              icon: 'warning',
+              title: 'No hay conteo activo',
+              text: 'No se encontró un conteo activo en tu sucursal.',
+            });
+          }
+        },
+        error: () => Swal.fire('Error', 'No se pudo verificar conteos activos', 'error')
+      });
+    }
   }
 }

@@ -3,7 +3,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule, ActivatedRoute } from '@angular/router';
+import { Router, RouterModule } from '@angular/router';
 import Swal from 'sweetalert2';
 import { lastValueFrom, Subscription } from 'rxjs';
 import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
@@ -14,6 +14,7 @@ import { ConteoProductoService, ConteoProducto } from '../../services/conteo-pro
 import { ProductoService, Producto } from '../../services/producto.service';
 import { WsService, ConteoMensaje, ConteoProductoMensaje } from '../../services/webSocket/ws.service';
 
+// Registro de conteo por usuario
 interface RegistroConteo {
   productoId: number;
   nombre: string;
@@ -25,13 +26,13 @@ interface RegistroConteo {
 }
 
 @Component({
-  selector: 'app-admin-conteo',
+  selector: 'app-conteo-libre',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule],
-  templateUrl: './unirse-conteo.component.html',
-  styleUrls: ['./unirse-conteo.component.css']
+  templateUrl: './conteo-libre.component.html',
+  styleUrls: ['./conteo-libre.component.css']
 })
-export class UnirseConteoComponent implements OnInit, OnDestroy {
+export class ConteoLibreComponent implements OnInit, OnDestroy {
   @ViewChild('videoElement') videoRef!: ElementRef<HTMLVideoElement>;
 
   nombreUsuarioLogueado = '';
@@ -43,8 +44,7 @@ export class UnirseConteoComponent implements OnInit, OnDestroy {
   filtro = '';
   codigoIngresado = '';
   showCameraSelector = false;
-  showRegistros = true;
-  activeTab = 'no-contados';
+  showRegistros = false;
 
   private codeReader!: BrowserMultiFormatReader;
   private scannerControls?: IScannerControls;
@@ -66,8 +66,7 @@ export class UnirseConteoComponent implements OnInit, OnDestroy {
     private conteoProdService: ConteoProductoService,
     private productoService: ProductoService,
     private wsService: WsService,
-    private router: Router,
-    private route: ActivatedRoute
+    private router: Router
   ) { }
 
   ngOnInit(): void {
@@ -100,34 +99,17 @@ export class UnirseConteoComponent implements OnInit, OnDestroy {
       this.registros = JSON.parse(saved);
     }
 
-    const sucursalId = this.authService.getSucursalId();
-    if (sucursalId == null) {
-      Swal.fire('Error', 'No se pudo obtener el ID de la sucursal', 'error');
-      return;
-    }
-    this.productoService.obtenerProductosActivosPorSucursal(sucursalId).subscribe({
-      next: prods => {
-        this.allProductos = prods.sort((a, b) => a.id - b.id); // Ordenar por id ascendente
-      },
-      error: () => Swal.fire('Error', 'No se pudo cargar el catálogo de productos activos de la sucursal', 'error')
+    this.productoService.obtenerTodosLosProductos().subscribe({
+      next: prods => this.allProductos = prods,
+      error: () => Swal.fire('Error', 'No se pudo cargar catálogo de productos', 'error')
     });
 
-    // Obtener ID del conteo desde la ruta
-    const conteoId = +this.route.snapshot.paramMap.get('id')!;
-    if (conteoId) {
-      this.conteoService.getById(conteoId).subscribe({
-        next: conteo => {
-          const msg = { id: conteo.id, fechaHora: conteo.fechaHora.toString() };
-          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(msg));
-          this.arrancarConteo(conteo); // Cambiado: Pasa el conteo completo
-        },
-        error: () => {
-          Swal.fire('Error', 'No se pudo cargar el conteo', 'error');
-          this.router.navigate(['/admin/gestionar-conteos']);
-        }
-      });
+    const yaRecibido = localStorage.getItem(this.STORAGE_KEY);
+    if (yaRecibido) {
+      const msg = JSON.parse(yaRecibido) as { id: number; fechaHora: string };
+      this.arrancarConteo(msg);
     } else {
-      this.router.navigate(['/admin/gestionar-conteos']);
+      this.router.navigate(['/empleado/dashboard']);
     }
 
     this.wsSubs.push(
@@ -136,7 +118,7 @@ export class UnirseConteoComponent implements OnInit, OnDestroy {
         localStorage.removeItem(`registros_${this.nombreUsuarioLogueado}`);
         this.registros = [];
         this.conteoActual = undefined!;
-        this.router.navigate(['/admin/gestionar-conteos']);
+        this.router.navigate(['/empleado/dashboard']);
       })
     );
 
@@ -182,25 +164,23 @@ export class UnirseConteoComponent implements OnInit, OnDestroy {
   }
 
   ngOnDestroy(): void {
-    this.wsService.disconnect();
     this.wsSubs.forEach(sub => sub.unsubscribe());
     this.cerrarCamara();
     window.removeEventListener('keydown', this.handleScannerKey);
   }
 
-  private arrancarConteo(conteo: Conteo): void { // Cambiado: Recibe Conteo completo
-    Swal.close();
+  private arrancarConteo(msg: { id: number; fechaHora: string }) {
     this.conteoActual = {
-      id: conteo.id,
-      fechaHora: conteo.fechaHora,
-      conteoFinalizado: conteo.conteoFinalizado,
-      usuarioId: conteo.usuarioId, // Usa el usuarioId real del conteo
-      activo: conteo.activo
+      id: msg.id,
+      fechaHora: msg.fechaHora,
+      conteoFinalizado: false,
+      usuarioId: 0,
+      activo: true
     };
     this.conteoProdService.getActiveConteoProductos().subscribe({
       next: items => {
         this.productosConteo = items.filter(p => p.conteoId === this.conteoActual.id);
-        this.registros = items.filter(p => p.conteoId === this.conteoActual.id).map(item => {
+        this.registros = this.productosConteo.map(item => {
           const prod = this.allProductos.find(p => p.id === item.productoId);
           return {
             productoId: item.productoId,
@@ -219,19 +199,9 @@ export class UnirseConteoComponent implements OnInit, OnDestroy {
   }
 
   logout(): void {
+    localStorage.clear();
     this.authService.logout();
     this.router.navigate(['/login']);
-  }
-
-  cerrarCamara(): void {
-    this.mostrarCamara = false;
-    if (this.currentStream) {
-      this.currentStream.getTracks().forEach(t => t.stop());
-    }
-    if (this.scannerControls) {
-      this.scannerControls.stop();
-      this.scannerControls = undefined;
-    }
   }
 
   async abrirCamara(): Promise<void> {
@@ -291,6 +261,17 @@ export class UnirseConteoComponent implements OnInit, OnDestroy {
           Swal.fire('Error', 'No se pudo acceder a la cámara: ' + err.message, 'error');
         });
     }, 0);
+  }
+
+  cerrarCamara(): void {
+    this.mostrarCamara = false;
+    if (this.currentStream) {
+      this.currentStream.getTracks().forEach(t => t.stop());
+    }
+    if (this.scannerControls) {
+      this.scannerControls.stop();
+      this.scannerControls = undefined;
+    }
   }
 
   async scanCodigo(): Promise<void> {
@@ -372,10 +353,9 @@ export class UnirseConteoComponent implements OnInit, OnDestroy {
           existente ? Object.assign(existente, reg) : this.registros.push(reg);
           localStorage.setItem(`registros_${this.nombreUsuarioLogueado}`, JSON.stringify(this.registros));
 
-          const claveActual = `registros_${this.nombreUsuarioLogueado}`;
           for (let i = 0; i < localStorage.length; i++) {
             const key = localStorage.key(i);
-            if (key && key.startsWith('registros_') && key !== claveActual) {
+            if (key && key.startsWith('registros_') && key !== `registros_${this.nombreUsuarioLogueado}`) {
               const arr: RegistroConteo[] = JSON.parse(localStorage.getItem(key) || '[]');
               const sinEste = arr.filter(r => r.productoId !== item!.productoId);
               localStorage.setItem(key, JSON.stringify(sinEste));
@@ -403,24 +383,6 @@ export class UnirseConteoComponent implements OnInit, OnDestroy {
       : this.registros;
   }
 
-  get productosNoContados(): Producto[] {
-    const contadosIds = this.productosConteo.map(p => p.productoId);
-    return this.allProductos.filter(p => !contadosIds.includes(p.id));
-  }
-
-  get estadisticas() {
-    const totalProductos = this.allProductos.length;
-    const contados = this.productosConteo.length;
-    const noContados = totalProductos - contados;
-    const porcentajeContados = totalProductos > 0 ? (contados / totalProductos * 100).toFixed(2) : '0.00';
-    return {
-      totalProductos,
-      contados,
-      noContados,
-      porcentajeContados
-    };
-  }
-
   private handleScannerKey = (evt: KeyboardEvent) => {
     if (evt.key === 'Enter') {
       const code = this.scanBuffer.trim();
@@ -437,121 +399,4 @@ export class UnirseConteoComponent implements OnInit, OnDestroy {
       this.bufferResetTimeout = setTimeout(() => this.scanBuffer = '', 100);
     }
   };
-
-  finalizarConteo(): void { // Cambiado: Mejora manejo de errores y console.log
-    const productosNoContados = this.productosNoContados;
-    if (productosNoContados.length === 0) {
-      Swal.fire({
-        title: '¿Finalizar conteo?',
-        text: 'El conteo será finalizado. Todos los productos han sido contados.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Sí, finalizar',
-        cancelButtonText: 'Cancelar'
-      }).then((result) => {
-        if (result.isConfirmed) {
-          console.log('Contenido de this.conteoActual:', this.conteoActual);
-          this.conteoActual.conteoFinalizado = true;
-          this.conteoService.actualizarConteo(this.conteoActual).subscribe({
-            next: () => {
-              Swal.fire({
-                icon: 'success',
-                title: 'Conteo finalizado',
-                text: 'El conteo ha sido marcado como finalizado correctamente.',
-                timer: 2000,
-                showConfirmButton: false
-              });
-              this.router.navigate(['/admin/gestionar-conteos']);
-            },
-            error: (err) => {
-              if (err.status === 403) {
-                Swal.fire({
-                  icon: 'error',
-                  title: 'Permiso denegado',
-                  text: 'No tienes permisos para finalizar este conteo. Contacta al administrador.'
-                });
-              } else {
-                Swal.fire('Error', 'No se pudo finalizar el conteo', 'error');
-              }
-            }
-          });
-        }
-      });
-    } else {
-      const tablaProductos = productosNoContados
-        .map(p => `
-          <tr>
-            <td>${p.id}</td>
-            <td>${p.nombre}</td>
-            <td>${p.codigoBarra || 'N/A'}</td>
-          </tr>
-        `)
-        .join('');
-      Swal.fire({
-        title: '¿Finalizar conteo con productos sin contar?',
-        html: `
-          <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar:</p>
-          <div class="non-counted-products">
-            <table class="table table-striped table-bordered">
-              <thead class="table-dark">
-                <tr>
-                  <th>ID</th>
-                  <th>Nombre</th>
-                  <th>Código de Barras</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${tablaProductos}
-              </tbody>
-            </table>
-          </div>
-          <p>¿Estás seguro de finalizar el conteo?</p>
-        `,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Sí, finalizar',
-        cancelButtonText: 'Cancelar'
-      }).then((result) => {
-        if (result.isConfirmed) {
-          console.log('Contenido de this.conteoActual:', this.conteoActual);
-          this.conteoActual.conteoFinalizado = true;
-          this.conteoService.actualizarConteo(this.conteoActual).subscribe({
-            next: () => {
-              Swal.fire({
-                icon: 'success',
-                title: 'Conteo finalizado',
-                text: 'El conteo ha sido marcado como finalizado correctamente, aunque algunos productos no fueron contados.',
-                timer: 2000,
-                showConfirmButton: false
-              });
-              this.router.navigate(['/admin/gestionar-conteos']);
-            },
-            error: (err) => {
-              if (err.status === 403) {
-                Swal.fire({
-                  icon: 'error',
-                  title: 'Permiso denegado',
-                  text: 'No tienes permisos para finalizar este conteo. Contacta al administrador.'
-                });
-              } else {
-                Swal.fire('Error', 'No se pudo finalizar el conteo', 'error');
-              }
-            }
-          });
-        }
-      });
-    }
-  }
-
-  volverGestionarConteos(): void {
-    this.router.navigate(['/admin/gestionar-conteos']);
-  }
-
-  setActiveTab(tab: string): void {
-    this.activeTab = tab;
-  }
 }
