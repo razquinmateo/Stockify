@@ -903,8 +903,21 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
                 width: '80%'
             }).then(async (result) => {
                 if (result.isConfirmed) {
+                    // Mostrar modal de carga
+                    Swal.fire({
+                        title: 'Actualizando productos...',
+                        html: 'Por favor, espera mientras se actualizan los productos no contados.',
+                        allowOutsideClick: false,
+                        allowEscapeKey: false,
+                        didOpen: () => {
+                            Swal.showLoading();
+                        }
+                    });
+
                     try {
                         await this.updateUncountedProductsToZero();
+                        Swal.close(); // Cerrar el modal de carga
+
                         this.conteoService.update(this.conteoActual!.id, { conteoFinalizado: true }).subscribe({
                             next: () => {
                                 Swal.fire({
@@ -919,6 +932,7 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
                                 this.router.navigate(['/admin/gestionar-conteos']);
                             },
                             error: (err) => {
+                                Swal.close(); // Cerrar el modal de carga en caso de error
                                 if (err.status === 403) {
                                     Swal.fire({
                                         icon: 'error',
@@ -931,6 +945,7 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
                             }
                         });
                     } catch (err) {
+                        Swal.close(); // Cerrar el modal de carga en caso de error
                         Swal.fire('Error', 'No se pudo actualizar los productos no contados', 'error');
                     }
                 }

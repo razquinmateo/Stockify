@@ -352,148 +352,72 @@ export class GestionarConteosComponent implements OnInit {
 
   private async finalizarConteoLibre(conteo: Conteo): Promise<void> {
     this.conteoActual = conteo;
-    await this.loadConteoProductos(conteo.id);
-    const productosNoContados = this.productosNoContados;
-    if (productosNoContados.length === 0) {
-      Swal.fire({
-        title: '¿Finalizar conteo?',
-        text: 'El conteo será finalizado. Todos los productos han sido contados.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Sí, finalizar',
-        cancelButtonText: 'Cancelar'
-      }).then((result) => {
-        if (result.isConfirmed) {
-          this.conteoService.update(this.conteoActual!.id, { conteoFinalizado: true }).subscribe({
-            next: () => {
-              Swal.fire({
-                icon: 'success',
-                title: 'Conteo finalizado',
-                text: 'El conteo ha sido marcado como finalizado correctamente.',
-                timer: 2000,
-                showConfirmButton: false
-              });
-              this.clearStorage();
-              this.cargarConteos();
-            },
-            error: (err) => {
-              if (err.status === 403) {
-                Swal.fire({
-                  icon: 'error',
-                  title: 'Permiso denegado',
-                  text: 'No tienes permisos para finalizar este conteo. Contacta al administrador.'
-                });
-              } else {
-                Swal.fire('Error', 'No se pudo finalizar el conteo', 'error');
-              }
-            }
-          });
-        }
-      });
-    } else {
-      const tablaProductos = productosNoContados
-        .map(p => `
-          <tr>
-            <td>${p.id}</td>
-            <td>${p.nombre}</td>
-            <td>${p.codigoBarra || 'N/A'}</td>
-          </tr>
-        `)
-        .join('');
-      Swal.fire({
-        title: '¿Finalizar conteo con productos sin contar?',
-        html: `
-          <style>
-            .table-container {
-              max-height: 420px;
-              overflow-y: auto;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              min-width: 600px;
-              table-layout: fixed;
-            }
-            th, td {
-              padding: 8px;
-              border: 1px solid #dee2e6;
-              text-align: left;
-              white-space: normal;
-              word-wrap: break-word;
-            }
-            th:nth-child(1), td:nth-child(1) { width: 15%; }
-            th:nth-child(2), td:nth-child(2) { width: 50%; min-width: 200px; }
-            th:nth-child(3), td:nth-child(3) { width: 35%; min-width: 150px; }
-            thead th {
-              position: sticky;
-              top: 0;
-              background-color: #343a40;
-              color: white;
-              z-index: 2;
-            }
-          </style>
-          <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar. Se crearán registros con cantidad contada 0 para estos productos.</p>
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Nombre</th>
-                  <th>Código de Barras</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${tablaProductos}
-              </tbody>
-            </table>
-          </div>
-          <p>¿Estás seguro de finalizar el conteo?</p>
-        `,
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonColor: '#3085d6',
-        cancelButtonColor: '#d33',
-        confirmButtonText: 'Sí, finalizar',
-        cancelButtonText: 'Cancelar',
-        width: '80%'
-      }).then(async (result) => {
-        if (result.isConfirmed) {
-          try {
-            for (const prod of productosNoContados) {
-              const nuevo: Partial<ConteoProducto> = {
-                conteoId: this.conteoActual!.id,
-                productoId: prod.id,
-                cantidadEsperada: this.productCache.get(prod.id)?.cantidadStock ?? 0,
-                cantidadContada: 0,
-                precioActual: this.productCache.get(prod.id)?.precio ?? 0,
-                activo: true
-              };
-              const item = await lastValueFrom(this.conteoProductoService.create(nuevo));
-              this.productosConteo.push(item!);
-              const reg: RegistroConteo = {
-                productoId: prod.id,
-                nombre: prod.nombre,
-                cantidadEsperada: nuevo.cantidadEsperada!,
-                cantidadContada: 0,
-                usuario: this.nombreUsuarioLogueado,
-                usuarioId: this.usuarioId!,
-                codigoBarra: prod.codigoBarra
-              };
-              this.registros.push(reg);
-            }
-            localStorage.setItem(this.REGISTROS_KEY, JSON.stringify(this.registros));
-            this.clearStorage();
+    const sucursalId = this.authService.getSucursalId();
+    if (sucursalId == null) {
+      Swal.fire('Error', 'No se pudo obtener el ID de la sucursal', 'error');
+      return;
+    }
+
+    try {
+      // Cargar productos del conteo
+      await this.loadConteoProductos(conteo.id);
+
+      // Obtener todos los productos activos de la sucursal
+      const productosSucursal = await lastValueFrom(
+        this.productoService.obtenerProductosActivosPorSucursal(sucursalId)
+      );
+
+      // Identificar productos no contados comparando con los productos del conteo
+      const productosConteoIds = new Set(this.productosConteo.map(p => p.productoId));
+      const productosNoContados = productosSucursal
+        .filter(prod => !productosConteoIds.has(prod.id))
+        .map(prod => {
+          const categoria = this.categoryCache.get(prod.categoriaId);
+          return {
+            id: prod.id,
+            nombre: prod.nombre,
+            codigoBarra: prod.codigoBarra,
+            categoriaNombre: categoria?.nombre || 'Sin Categoría'
+          };
+        })
+        .sort((a, b) => a.categoriaNombre.localeCompare(b.categoriaNombre) || a.nombre.localeCompare(b.nombre));
+
+      // Añadir productos no contados a la lista de productosConteo con cantidadContada = null
+      for (const prod of productosNoContados) {
+        const nuevo: Partial<ConteoProducto> = {
+          conteoId: conteo.id,
+          productoId: prod.id,
+          cantidadEsperada: this.productCache.get(prod.id)?.cantidadStock ?? 0,
+          cantidadContada: null,
+          precioActual: this.productCache.get(prod.id)?.precio ?? 0,
+          activo: true
+        };
+        this.productosConteo.push(nuevo as ConteoProducto);
+      }
+
+      // Verificar si hay productos sin contar
+      if (productosNoContados.length === 0) {
+        Swal.fire({
+          title: '¿Finalizar conteo?',
+          text: 'El conteo será finalizado. Todos los productos han sido contados.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: '#d33',
+          confirmButtonText: 'Sí, finalizar',
+          cancelButtonText: 'Cancelar'
+        }).then((result) => {
+          if (result.isConfirmed) {
             this.conteoService.update(this.conteoActual!.id, { conteoFinalizado: true }).subscribe({
               next: () => {
                 Swal.fire({
                   icon: 'success',
                   title: 'Conteo finalizado',
-                  text: `El conteo ha sido finalizado correctamente. Se crearon ${productosNoContados.length} registros con cantidad contada 0.`,
-                  timer: 3000,
+                  text: 'El conteo ha sido marcado como finalizado correctamente.',
+                  timer: 2000,
                   showConfirmButton: false
                 });
+                this.clearStorage();
                 this.cargarConteos();
               },
               error: (err) => {
@@ -508,12 +432,140 @@ export class GestionarConteosComponent implements OnInit {
                 }
               }
             });
-          } catch (err) {
-            console.error('Error creating ConteoProducto records:', err);
-            Swal.fire('Error', 'No se pudieron crear los registros para los productos no contados', 'error');
           }
-        }
-      });
+        });
+      } else {
+        const tablaProductos = productosNoContados
+          .map(p => `
+            <tr>
+              <td>${p.id}</td>
+              <td>${p.nombre}</td>
+              <td>${p.codigoBarra || 'N/A'}</td>
+            </tr>
+          `)
+          .join('');
+
+        Swal.fire({
+          title: '¿Finalizar conteo con productos sin contar?',
+          html: `
+            <style>
+              .table-container {
+                max-height: 400px;
+                overflow-y: auto;
+                margin-bottom: 1rem;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                min-width: 600px;
+                table-layout: fixed;
+              }
+              th, td {
+                padding: 8px;
+                border: 1px solid #dee2e6;
+                text-align: left;
+                white-space: normal;
+                word-wrap: break-word;
+              }
+              th:nth-child(1), td:nth-child(1) { width: 10%; }
+              th:nth-child(2), td:nth-child(2) { width: 10%; }
+              th:nth-child(3), td:nth-child(3) { width: 10%; }
+              thead th {
+                position: sticky;
+                top: 0;
+                background-color: #343a40;
+                color: white;
+                z-index: 2;
+              }
+            </style>
+            <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar. Al finalizar, se registrarán con cantidad contada 0:</p>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                    <th>Código de Barras</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${tablaProductos}
+                </tbody>
+              </table>
+            </div>
+            <p>¿Estás seguro de finalizar el conteo?</p>
+          `,
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonColor: '#3085d6',
+          cancelButtonColor: '#d33',
+          confirmButtonText: 'Sí, finalizar',
+          cancelButtonText: 'Cancelar',
+          width: '80%'
+        }).then(async (result) => {
+          if (result.isConfirmed) {
+            try {
+              // Crear registros para los productos no contados con cantidad 0
+              for (const prod of productosNoContados) {
+                const nuevo: Partial<ConteoProducto> = {
+                  conteoId: this.conteoActual!.id,
+                  productoId: prod.id,
+                  cantidadEsperada: this.productCache.get(prod.id)?.cantidadStock ?? 0,
+                  cantidadContada: 0,
+                  precioActual: this.productCache.get(prod.id)?.precio ?? 0,
+                  activo: true
+                };
+                const item = await lastValueFrom(this.conteoProductoService.create(nuevo));
+                this.productosConteo.push(item!);
+                const reg: RegistroConteo = {
+                  productoId: prod.id,
+                  nombre: prod.nombre,
+                  cantidadEsperada: nuevo.cantidadEsperada!,
+                  cantidadContada: 0,
+                  usuario: this.nombreUsuarioLogueado,
+                  usuarioId: this.usuarioId!,
+                  codigoBarra: prod.codigoBarra,
+                  categoriaNombre: prod.categoriaNombre
+                };
+                this.registros.push(reg);
+              }
+              localStorage.setItem(this.REGISTROS_KEY, JSON.stringify(this.registros));
+
+              // Finalizar el conteo
+              this.conteoService.update(this.conteoActual!.id, { conteoFinalizado: true }).subscribe({
+                next: () => {
+                  Swal.fire({
+                    icon: 'success',
+                    title: 'Conteo finalizado',
+                    text: `El conteo ha sido finalizado correctamente. Se crearon ${productosNoContados.length} registros con cantidad contada 0.`,
+                    timer: 3000,
+                    showConfirmButton: false
+                  });
+                  this.clearStorage();
+                  this.cargarConteos();
+                },
+                error: (err) => {
+                  if (err.status === 403) {
+                    Swal.fire({
+                      icon: 'error',
+                      title: 'Permiso denegado',
+                      text: 'No tienes permisos para finalizar este conteo. Contacta al administrador.'
+                    });
+                  } else {
+                    Swal.fire('Error', 'No se pudo finalizar el conteo', 'error');
+                  }
+                }
+              });
+            } catch (err) {
+              console.error('Error creating ConteoProducto records:', err);
+              Swal.fire('Error', 'No se pudieron crear los registros para los productos no contados', 'error');
+            }
+          }
+        });
+      }
+    } catch (err) {
+      console.error('Error al verificar productos de la sucursal:', err);
+      Swal.fire('Error', 'No se pudo verificar los productos de la sucursal', 'error');
     }
   }
 
@@ -631,8 +683,21 @@ export class GestionarConteosComponent implements OnInit {
         width: '80%'
       }).then(async (result) => {
         if (result.isConfirmed) {
+          // Mostrar modal de carga
+          Swal.fire({
+            title: 'Actualizando productos...',
+            html: 'Por favor, espera mientras se actualizan los productos no contados.',
+            allowOutsideClick: false,
+            allowEscapeKey: false,
+            didOpen: () => {
+              Swal.showLoading();
+            }
+          });
+
           try {
             await this.updateUncountedProductsToZero();
+            Swal.close(); // Cerrar el modal de carga
+
             this.conteoService.update(this.conteoActual!.id, { conteoFinalizado: true }).subscribe({
               next: () => {
                 Swal.fire({
@@ -646,6 +711,7 @@ export class GestionarConteosComponent implements OnInit {
                 this.cargarConteos();
               },
               error: (err) => {
+                Swal.close(); // Cerrar el modal de carga en caso de error
                 if (err.status === 403) {
                   Swal.fire({
                     icon: 'error',
@@ -658,6 +724,7 @@ export class GestionarConteosComponent implements OnInit {
               }
             });
           } catch (err) {
+            Swal.close(); // Cerrar el modal de carga en caso de error
             Swal.fire('Error', 'No se pudo actualizar los productos no contados', 'error');
           }
         }
