@@ -207,16 +207,27 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
       })
     );
 
+    // Subscripción a conteoFinalizado
     this.wsSubs.push(
-      this.wsService.onConteoFinalizado().subscribe(msg => {
-        console.log('WebSocket ConteoFinalizado received:', msg); // Debug
-        if (msg.id === this.conteoId) {
-          localStorage.removeItem(this.STORAGE_KEY);
-          localStorage.removeItem(this.REGISTROS_KEY);
-          this.registros = [];
-          this.productosConteo = [];
-          this.conteoActual = null;
-          this.router.navigate(['/empleado/dashboard']);
+      this.wsService.onConteoFinalizado().subscribe({
+        next: (msg: ConteoMensaje) => {
+          if (msg.id === this.conteoId) {
+            console.log(`Conteo ${msg.id} finalizado`);
+            Swal.fire({
+              icon: 'info',
+              title: 'Conteo Finalizado',
+              text: 'El conteo ha sido finalizado. Serás redirigido al dashboard.',
+              timer: 3000,
+              showConfirmButton: false
+            }).then(() => {
+              localStorage.removeItem(this.STORAGE_KEY);
+              localStorage.removeItem(this.REGISTROS_KEY);
+              this.router.navigate(['/empleado/dashboard']);
+            });
+          }
+        },
+        error: (err) => {
+          console.error('WebSocket error on conteoFinalizado:', err);
         }
       })
     );
@@ -361,7 +372,7 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
         .then(stream => {
           this.currentStream = stream;
           video.srcObject = stream;
-          video.play().catch(() => {});
+          video.play().catch(() => { });
           this.codeReader = new BrowserMultiFormatReader();
           this.codeReader.decodeFromVideoDevice(
             this.selectedDeviceId!,
@@ -506,9 +517,9 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
     const term = this.filtro.trim().toLowerCase();
     return term
       ? this.registros.filter(r =>
-          r.productoId.toString().includes(term) ||
-          r.nombre.toLowerCase().includes(term)
-        )
+        r.productoId.toString().includes(term) ||
+        r.nombre.toLowerCase().includes(term)
+      )
       : this.registros;
   }
 

@@ -28,6 +28,7 @@ import { EstadisticasComponent } from './admin/estadisticas/estadisticas.compone
 //================ [EMPLEADO] ================//
 import { EmpleadoComponent } from './empleado/dashboard/dashboard.component';
 import { ConteoLibreComponent } from './empleado/conteo-libre/conteo-libre.component';
+import { ConteoCategoriasComponent } from './empleado/conteo-categorias/conteo-categorias.component';
 
 import { LoginComponent } from './login/login.component';
 
@@ -161,6 +162,12 @@ export const routes: Routes = [
   {
     path: 'empleado/conteo-libre/:id',
     component: ConteoLibreComponent,
+    canActivate: [authGuard],
+    data: { role: 'EMPLEADO' }
+  },
+  {
+    path: 'empleado/conteo-categorias/:id',
+    component: ConteoCategoriasComponent,
     canActivate: [authGuard],
     data: { role: 'EMPLEADO' }
   },

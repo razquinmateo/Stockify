@@ -15,7 +15,7 @@ interface ReporteItem {
   producto: string;
   concepto: string;
   stock: number;
-  cantidadContada: number;
+  cantidadContada: number | null;
   diferencia: number;
 }
 
@@ -85,7 +85,7 @@ export class ReporteConteoComponent implements OnInit {
 
             this.reporteItems = conteoProductos.map(cp => {
               const producto = productoMap.get(cp.productoId);
-              const diferencia = cp.cantidadContada - cp.cantidadEsperada;
+              const diferencia = cp.cantidadContada! - cp.cantidadEsperada!;
               const concepto = diferencia > 0 ? 'Ingreso' : diferencia < 0 ? 'Egreso' : 'Sin diferencia';
 
               if (diferencia > 0) {
@@ -161,7 +161,7 @@ export class ReporteConteoComponent implements OnInit {
         item.producto,
         item.concepto,
         item.stock.toString(),
-        item.cantidadContada.toString(),
+        item.cantidadContada?.toString() ?? '0',
         item.diferencia.toString()
       ]),
       theme: 'grid',

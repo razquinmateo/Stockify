@@ -19,7 +19,7 @@ interface RegistroConteo {
   productoId: number;
   nombre: string;
   cantidadEsperada: number;
-  cantidadContada: number;
+  cantidadContada: number | null;
   usuario: string;
   usuarioId: number;
   codigoBarra?: string;
@@ -524,29 +524,60 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
       Swal.fire({
         title: '¿Finalizar conteo con productos sin contar?',
         html: `
-          <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar:</p>
-          <div class="non-counted-products">
-            <table class="table table-striped table-bordered">
-              <thead class="table-dark">
-                <tr>
-                  <th>ID</th>
-                  <th>Nombre</th>
-                  <th>Código de Barras</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${tablaProductos}
-              </tbody>
-            </table>
-          </div>
-          <p>¿Estás seguro de finalizar el conteo?</p>
-        `,
+  <style>
+    .table-container {
+      max-height: 420px; /* 10 filas aprox. */
+      overflow-y: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 600px;
+      table-layout: fixed;
+    }
+    th, td {
+      padding: 8px;
+      border: 1px solid #dee2e6;
+      text-align: left;
+      white-space: normal;
+      word-wrap: break-word;
+    }
+    th:nth-child(1), td:nth-child(1) { width: 15%; }
+    th:nth-child(2), td:nth-child(2) { width: 50%; min-width: 200px; }
+    th:nth-child(3), td:nth-child(3) { width: 35%; min-width: 150px; }
+    thead th {
+      position: sticky;
+      top: 0;
+      background-color: #343a40;
+      color: white;
+      z-index: 2;
+    }
+  </style>
+  <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar:</p>
+  <div class="table-container">
+    <table>
+      <thead>
+        <tr>
+          <th>ID</th>
+          <th>Nombre</th>
+          <th>Código de Barras</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${tablaProductos}
+      </tbody>
+    </table>
+  </div>
+  <p>¿Estás seguro de finalizar el conteo?</p>
+`
+,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
         cancelButtonColor: '#d33',
         confirmButtonText: 'Sí, finalizar',
-        cancelButtonText: 'Cancelar'
+        cancelButtonText: 'Cancelar',
+        width: '80%'
       }).then((result) => {
         if (result.isConfirmed) {
           this.conteoService.update(this.conteoActual!.id, { conteoFinalizado: true }).subscribe({

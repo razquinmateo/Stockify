@@ -38,7 +38,7 @@ export class ProductoService {
   private categoriaUrl = `${environment.apiUrl}/categorias`;
   private proveedorUrl = `${environment.apiUrl}/proveedores`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   obtenerTodosLosProductos(): Observable<Producto[]> {
     return this.http.get<Producto[]>(`${this.apiUrl}/all`).pipe(
@@ -57,6 +57,16 @@ export class ProductoService {
       })))
     );
   }
+
+  obtenerProductoPorId(id: number): Observable<Producto> {
+    return this.http.get<Producto>(`${this.apiUrl}/${id}`).pipe(
+      map(prod => ({
+        ...prod,
+        imagen: this.sanitizeImagen(prod.imagen)
+      }))
+    );
+  }
+
 
   obtenerCategoriaPorId(categoriaId: number): Observable<any> {
     return this.http.get<any>(`${this.categoriaUrl}/${categoriaId}`);

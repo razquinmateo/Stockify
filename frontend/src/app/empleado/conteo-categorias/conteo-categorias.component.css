@@ -1,0 +1,107 @@
+.container {
+    max-width: 1200px;
+}
+
+h2, h3 {
+    font-weight: 600;
+    color: #333;
+}
+
+.category-card {
+    cursor: pointer;
+    transition: transform 0.2s, box-shadow 0.2s;
+    border: none;
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.category-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.2);
+}
+
+.category-card .card-body {
+    padding: 20px;
+}
+
+.category-card .card-title {
+    font-size: 1.25rem;
+    font-weight: 500;
+}
+
+.category-card .card-text {
+    margin: 0;
+    font-size: 1rem;
+    color: #555;
+}
+
+.product-card {
+    max-width: 600px;
+    border-radius: 12px;
+    border: 1px solid #e0e0e0;
+    transition: box-shadow 0.2s;
+}
+
+.product-card:hover {
+    box-shadow: 0 10px 20px rgba(0, 0, 0, 0.15);
+}
+
+.product-card .card-header {
+    font-size: 1.1rem;
+    font-weight: 500;
+    padding: 15px;
+}
+
+.product-card .card-body {
+    padding: 30px;
+}
+
+.product-card .card-title {
+    font-size: 1.5rem;
+    color: #333;
+}
+
+.product-card p {
+    font-size: 1.1rem;
+    color: #666;
+}
+
+.product-card .btn-success {
+    padding: 12px 24px;
+    font-size: 1.1rem;
+    border-radius: 8px;
+    transition: background-color 0.2s;
+}
+
+.product-card .btn-success:hover {
+    background-color: #28a745;
+}
+
+.btn-outline-secondary {
+    border-radius: 8px;
+    padding: 10px 20px;
+    font-size: 1rem;
+}
+
+@media (max-width: 576px) {
+    .category-card .card-title {
+        font-size: 1.1rem;
+    }
+
+    .category-card .card-text {
+        font-size: 0.9rem;
+    }
+
+    .product-card .card-title {
+        font-size: 1.3rem;
+    }
+
+    .product-card p {
+        font-size: 1rem;
+    }
+
+    .product-card .btn-success {
+        padding: 10px 20px;
+        font-size: 1rem;
+    }
+}

@@ -93,7 +93,7 @@ public class ConteoService {
                     conteoProducto.setProducto(producto);
                     conteoProducto.setPrecioActual(producto.getPrecio());
                     conteoProducto.setCantidadEsperada(producto.getCantidadStock().intValue());
-                    conteoProducto.setCantidadContada(0); // Initial count is 0
+                    conteoProducto.setCantidadContada(null);
                     conteoProducto.setActivo(true);
                     conteoProductoRepository.save(conteoProducto);
                 }

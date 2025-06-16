@@ -8,7 +8,7 @@ export interface ConteoProducto {
   id: number;
   precioActual: number;
   cantidadEsperada: number;
-  cantidadContada: number;
+  cantidadContada: number | null;
   conteoId: number;
   productoId: number;
   activo: boolean;

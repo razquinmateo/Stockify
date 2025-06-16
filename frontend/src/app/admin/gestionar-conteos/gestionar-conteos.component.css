@@ -4,3 +4,22 @@
   background-color: #6c757d !important; /* gris oscuro */
   border-color: #6c757d !important;
 }
+
+button.btn-outline-primary:hover {
+  background-color: #0d6efd;
+  color: white;
+  transition: all 0.2s ease-in-out;
+}
+
+.modal-content {
+  border-radius: 1rem;
+}
+
+.list-group-item {
+  border: none;
+  border-bottom: 1px solid #eee;
+}
+
+.list-group-item:last-child {
+  border-bottom: none;
+}
