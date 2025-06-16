@@ -40,7 +40,7 @@
     </button>
   </div>
 
-  <!-- Totales -->
+  <!-- Totales Generales -->
   <div class="mb-4 d-flex justify-content-center gap-4">
     <div class="card text-center" style="width: 200px;">
       <div class="card-body">
@@ -56,44 +56,96 @@
     </div>
   </div>
 
-  <!-- Tabla -->
-  <div class="table-responsive">
-    <table
-      class="table table-bordered text-center align-middle"
-      *ngIf="reporteItems.length > 0; else sinDatos"
-    >
-      <thead class="table-dark">
-        <tr>
-          <th>ID</th>
-          <th>Producto</th>
-          <th>Concepto</th>
-          <th>Stock</th>
-          <th>Cant. Contada</th>
-          <th>Diferencia</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr *ngFor="let item of reporteItems">
-          <td>{{ item.id }}</td>
-          <td>{{ item.producto }}</td>
-          <td>
-            <span
-              class="badge"
-              [ngClass]="{
-                'bg-success': item.concepto === 'Ingreso',
-                'bg-danger': item.concepto === 'Egreso',
-                'bg-secondary': item.concepto === 'Sin diferencia'
-              }"
-            >
-              {{ item.concepto }}
-            </span>
-          </td>
-          <td>{{ item.stock }}</td>
-          <td>{{ item.cantidadContada }}</td>
-          <td>{{ item.diferencia }}</td>
-        </tr>
-      </tbody>
-    </table>
+  <!-- Reporte -->
+  <div *ngIf="tipoConteo === 'LIBRE'">
+    <!-- Tabla Única para LIBRE -->
+    <div class="table-responsive" *ngIf="reporteItems.length > 0; else sinDatos">
+      <table class="table table-bordered text-center align-middle">
+        <thead class="table-dark">
+          <tr>
+            <th>ID</th>
+            <th>Producto</th>
+            <th>Concepto</th>
+            <th>Stock</th>
+            <th>Cant. Contada</th>
+            <th>Diferencia</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let item of reporteItems">
+            <td>{{ item.id }}</td>
+            <td>{{ item.producto }}</td>
+            <td>
+              <span
+                class="badge"
+                [ngClass]="{
+                  'bg-success': item.concepto === 'Ingreso',
+                  'bg-danger': item.concepto === 'Egreso',
+                  'bg-secondary': item.concepto === 'Sin diferencia'
+                }"
+              >
+                {{ item.concepto }}
+              </span>
+            </td>
+            <td>{{ item.stock }}</td>
+            <td>{{ item.cantidadContada }}</td>
+            <td>{{ item.diferencia }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div *ngIf="tipoConteo === 'CATEGORIAS'">
+    <!-- Tablas por Categoría para CATEGORIAS -->
+    <div *ngFor="let categoria of categoriasReporte">
+      <h4 class="mt-4 mb-3">{{ categoria.nombre }}</h4>
+      <div class="table-responsive" *ngIf="categoria.items.length > 0">
+        <table class="table table-bordered text-center align-middle">
+          <thead class="table-dark">
+            <tr>
+              <th>ID</th>
+              <th>Producto</th>
+              <th>Concepto</th>
+              <th>Stock</th>
+              <th>Cant. Contada</th>
+              <th>Diferencia</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of categoria.items">
+              <td>{{ item.id }}</td>
+              <td>{{ item.producto }}</td>
+              <td>
+                <span
+                  class="badge"
+                  [ngClass]="{
+                    'bg-success': item.concepto === 'Ingreso',
+                    'bg-danger': item.concepto === 'Egreso',
+                    'bg-secondary': item.concepto === 'Sin diferencia'
+                  }"
+                >
+                  {{ item.concepto }}
+                </span>
+              </td>
+              <td>{{ item.stock }}</td>
+              <td>{{ item.cantidadContada }}</td>
+              <td>{{ item.diferencia }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <!-- Totales por Categoría -->
+        <div class="d-flex justify-content-end mb-3">
+          <div class="text-end">
+            <p><strong>Ingresos: </strong>{{ categoria.ingresos }} unidades</p>
+            <p><strong>Egresos: </strong>{{ categoria.egresos }} unidades</p>
+          </div>
+        </div>
+      </div>
+      <p *ngIf="categoria.items.length === 0" class="text-muted">
+        No hay productos en esta categoría.
+      </p>
+    </div>
   </div>
 
   <!-- Sin datos -->

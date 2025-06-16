@@ -4,6 +4,7 @@ import { CommonModule } from '@angular/common';
 import { ConteoProductoService, ConteoProducto } from '../../services/conteo-producto.service';
 import { ProductoService, Producto } from '../../services/producto.service';
 import { ConteoService, Conteo } from '../../services/conteo.service';
+import { CategoriaService, Categoria } from '../../services/categoria.service';
 import { AuthService } from '../../auth.service';
 import Swal from 'sweetalert2';
 import { jsPDF } from 'jspdf';
@@ -17,6 +18,15 @@ interface ReporteItem {
   stock: number;
   cantidadContada: number | null;
   diferencia: number;
+  categoriaId?: number;
+}
+
+interface CategoriaReporte {
+  id: number;
+  nombre: string;
+  items: ReporteItem[];
+  ingresos: number;
+  egresos: number;
 }
 
 @Component({
@@ -28,7 +38,9 @@ interface ReporteItem {
 })
 export class ReporteConteoComponent implements OnInit {
   conteoId: number = 0;
+  tipoConteo: 'LIBRE' | 'CATEGORIAS' | null = null;
   reporteItems: ReporteItem[] = [];
+  categoriasReporte: CategoriaReporte[] = [];
   ingresosTotales: number = 0;
   egresosTotales: number = 0;
   nombreUsuarioLogueado: string = '';
@@ -40,8 +52,9 @@ export class ReporteConteoComponent implements OnInit {
     private conteoProductoService: ConteoProductoService,
     private productoService: ProductoService,
     private conteoService: ConteoService,
+    private categoriaService: CategoriaService,
     private authService: AuthService
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
@@ -54,12 +67,13 @@ export class ReporteConteoComponent implements OnInit {
     this.conteoService.getById(this.conteoId).subscribe({
       next: (conteo: Conteo) => {
         this.conteoFecha = formatDate(conteo.fechaHora, 'dd/MM/yyyy', 'en-US');
+        this.tipoConteo = conteo.tipoConteo as 'LIBRE' | 'CATEGORIAS';
       },
       error: () => {
         Swal.fire({
           icon: 'error',
           title: 'Error',
-          text: 'No se pudo cargar la fecha del conteo.',
+          text: 'No se pudo cargar la información del conteo.',
         });
       }
     });
@@ -83,25 +97,74 @@ export class ReporteConteoComponent implements OnInit {
             const productoMap = new Map<number, Producto>();
             productos.forEach(p => productoMap.set(p.id, p));
 
-            this.reporteItems = conteoProductos.map(cp => {
-              const producto = productoMap.get(cp.productoId);
-              const diferencia = cp.cantidadContada! - cp.cantidadEsperada!;
-              const concepto = diferencia > 0 ? 'Ingreso' : diferencia < 0 ? 'Egreso' : 'Sin diferencia';
+            const sucursalId = this.authService.getSucursalId();
+            if (sucursalId == null) {
+              Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudo obtener el ID de la sucursal.',
+              });
+              return;
+            }
 
-              if (diferencia > 0) {
-                this.ingresosTotales += diferencia;
-              } else if (diferencia < 0) {
-                this.egresosTotales += Math.abs(diferencia);
+            this.categoriaService.obtenerCategoriasPorSucursal(sucursalId).subscribe({
+              next: (categorias) => {
+                const categoriaMap = new Map<number, Categoria>();
+                categorias.forEach(c => categoriaMap.set(c.id, c));
+
+                this.reporteItems = conteoProductos.map(cp => {
+                  const producto = productoMap.get(cp.productoId);
+                  const diferencia = cp.cantidadContada! - cp.cantidadEsperada;
+                  const concepto = diferencia > 0 ? 'Ingreso' : diferencia < 0 ? 'Egreso' : 'Sin diferencia';
+
+                  if (diferencia > 0) {
+                    this.ingresosTotales += diferencia;
+                  } else if (diferencia < 0) {
+                    this.egresosTotales += Math.abs(diferencia);
+                  }
+
+                  return {
+                    id: cp.productoId,
+                    producto: producto ? producto.nombre : 'Desconocido',
+                    concepto,
+                    stock: cp.cantidadEsperada,
+                    cantidadContada: cp.cantidadContada,
+                    diferencia,
+                    categoriaId: producto?.categoriaId
+                  };
+                });
+
+                if (this.tipoConteo === 'CATEGORIAS') {
+                  this.categoriasReporte = categorias
+                    .map(c => ({
+                      id: c.id,
+                      nombre: c.nombre,
+                      items: this.reporteItems.filter(item => item.categoriaId === c.id),
+                      ingresos: 0,
+                      egresos: 0
+                    }))
+                    .filter(c => c.items.length > 0);
+
+                  this.categoriasReporte.forEach(categoria => {
+                    categoria.items.forEach(item => {
+                      if (item.diferencia > 0) {
+                        categoria.ingresos += item.diferencia;
+                      } else if (item.diferencia < 0) {
+                        categoria.egresos += Math.abs(item.diferencia);
+                      }
+                    });
+                  });
+
+                  this.categoriasReporte.sort((a, b) => a.nombre.localeCompare(b.nombre));
+                }
+              },
+              error: () => {
+                Swal.fire({
+                  icon: 'error',
+                  title: 'Error',
+                  text: 'No se pudieron cargar las categorías.',
+                });
               }
-
-              return {
-                id: cp.productoId,
-                producto: producto ? producto.nombre : 'Desconocido',
-                concepto,
-                stock: cp.cantidadEsperada,
-                cantidadContada: cp.cantidadContada,
-                diferencia
-              };
             });
           },
           error: () => {
@@ -137,7 +200,7 @@ export class ReporteConteoComponent implements OnInit {
     doc.setFontSize(10);
     doc.setTextColor(100);
     doc.text('Stockify', 14, 15);
-    
+
     doc.setFontSize(16);
     doc.setTextColor(0);
     doc.setFont('helvetica', 'bold');
@@ -146,74 +209,137 @@ export class ReporteConteoComponent implements OnInit {
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     doc.text(`Fecha: ${this.conteoFecha || 'No disponible'}`, 14, 33);
+    doc.text(`Tipo: ${this.tipoConteo === 'CATEGORIAS' ? 'Por rubro' : 'Libre'}`, 14, 41);
 
     // Línea divisoria
     doc.setDrawColor(200);
     doc.setLineWidth(0.5);
-    doc.line(14, 38, 196, 38);
+    doc.line(14, 46, 196, 46);
 
-    // Tabla
-    autoTable(doc, {
-      startY: 45,
-      head: [['ID', 'Producto', 'Concepto', 'Stock', 'Cant. Contada', 'Diferencia']],
-      body: this.reporteItems.map(item => [
-        item.id.toString(),
-        item.producto,
-        item.concepto,
-        item.stock.toString(),
-        item.cantidadContada?.toString() ?? '0',
-        item.diferencia.toString()
-      ]),
-      theme: 'grid',
-      headStyles: {
-        fillColor: [60, 60, 60],
-        textColor: [255, 255, 255],
-        fontSize: 10,
-        fontStyle: 'bold',
-        halign: 'center'
-      },
-      bodyStyles: {
-        fontSize: 10,
-        textColor: [50, 50, 50]
-      },
-      alternateRowStyles: {
-        fillColor: [240, 240, 240]
-      },
-      columnStyles: {
-        0: { cellWidth: 20, halign: 'center' },
-        1: { cellWidth: 60 },
-        2: { cellWidth: 30, halign: 'center' },
-        3: { cellWidth: 25, halign: 'center' },
-        4: { cellWidth: 25, halign: 'center' },
-        5: { cellWidth: 25, halign: 'center' }
-      },
-      margin: { top: 45, left: 14, right: 14 },
-      styles: {
-        lineColor: [200, 200, 200],
-        lineWidth: 0.1
-      },
-      didDrawPage: (data) => {
-        // Pie de página
-        const pageCount = doc.getNumberOfPages();
-        const pageHeight = doc.internal.pageSize.height;
-        doc.setFontSize(8);
-        doc.setTextColor(100);
-        doc.text(`Página ${data.pageNumber} de ${pageCount}`, 196, pageHeight - 10, { align: 'right' });
-        
-        // Línea en el pie
-        doc.setDrawColor(200);
-        doc.setLineWidth(0.5);
-        doc.line(14, pageHeight - 15, 196, pageHeight - 15);
-      }
-    });
+    let finalY = 56;
 
-    // Totales
-    const finalY = (doc as any).lastAutoTable.finalY || 45;
+    if (this.tipoConteo === 'LIBRE') {
+      // Tabla única para LIBRE
+      autoTable(doc, {
+        startY: finalY,
+        head: [['ID', 'Producto', 'Concepto', 'Stock', 'Cant. Contada', 'Diferencia']],
+        body: this.reporteItems.map(item => [
+          item.id.toString(),
+          item.producto,
+          item.concepto,
+          item.stock.toString(),
+          item.cantidadContada?.toString() ?? '0',
+          item.diferencia.toString()
+        ]),
+        theme: 'grid',
+        headStyles: {
+          fillColor: [60, 60, 60],
+          textColor: [255, 255, 255],
+          fontSize: 10,
+          fontStyle: 'bold',
+          halign: 'center'
+        },
+        bodyStyles: {
+          fontSize: 10,
+          textColor: [50, 50, 50]
+        },
+        alternateRowStyles: {
+          fillColor: [240, 240, 240]
+        },
+        columnStyles: {
+          0: { cellWidth: 20, halign: 'center' },
+          1: { cellWidth: 60 },
+          2: { cellWidth: 30, halign: 'center' },
+          3: { cellWidth: 25, halign: 'center' },
+          4: { cellWidth: 25, halign: 'center' },
+          5: { cellWidth: 25, halign: 'center' }
+        },
+        margin: { top: 50, left: 14, right: 14 },
+        styles: {
+          lineColor: [200, 200, 200],
+          lineWidth: 0.1
+        }
+      });
+      finalY = (doc as any).lastAutoTable.finalY || finalY;
+    } else if (this.tipoConteo === 'CATEGORIAS') {
+      // Tablas por categoría para CATEGORIAS
+      this.categoriasReporte.forEach((categoria, index) => {
+        if (categoria.items.length > 0) {
+          // Título de la categoría
+          doc.setFontSize(14);
+          doc.setFont('helvetica', 'bold');
+          doc.text(categoria.nombre, 14, finalY);
+          finalY += 8;
+
+          // Tabla de la categoría
+          autoTable(doc, {
+            startY: finalY,
+            head: [['ID', 'Producto', 'Concepto', 'Stock', 'Cant. Contada', 'Diferencia']],
+            body: categoria.items.map(item => [
+              item.id.toString(),
+              item.producto,
+              item.concepto,
+              item.stock.toString(),
+              item.cantidadContada?.toString() ?? '0',
+              item.diferencia.toString()
+            ]),
+            theme: 'grid',
+            headStyles: {
+              fillColor: [60, 60, 60],
+              textColor: [255, 255, 255],
+              fontSize: 10,
+              fontStyle: 'bold',
+              halign: 'center'
+            },
+            bodyStyles: {
+              fontSize: 10,
+              textColor: [50, 50, 50]
+            },
+            alternateRowStyles: {
+              fillColor: [240, 240, 240]
+            },
+            columnStyles: {
+              0: { cellWidth: 20, halign: 'center' },
+              1: { cellWidth: 60 },
+              2: { cellWidth: 30, halign: 'center' },
+              3: { cellWidth: 25, halign: 'center' },
+              4: { cellWidth: 25, halign: 'center' },
+              5: { cellWidth: 25, halign: 'center' }
+            },
+            margin: { left: 14, right: 14 },
+            styles: {
+              lineColor: [200, 200, 200],
+              lineWidth: 0.1
+            }
+          });
+
+          finalY = (doc as any).lastAutoTable.finalY || finalY;
+          finalY += 5;
+
+          // Totales por categoría
+          doc.setFontSize(10);
+          doc.setFont('helvetica', 'bold');
+
+          doc.text(`Ingresos: ${categoria.ingresos} unidades`, 14, finalY);
+          finalY += 6; // espacio entre líneas
+
+          doc.text(`Egresos: ${categoria.egresos} unidades`, 14, finalY);
+          finalY += 10; // espacio después del bloque
+
+          // Espacio entre categorías
+          if (index < this.categoriasReporte.length - 1) {
+            finalY += 5;
+          }
+        }
+      });
+    }
+
+    // Totales Generales
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0);
-    doc.text('Totales:', 14, finalY + 10);
-    
+    doc.text('Totales Generales:', 14, finalY + 10);
+
     doc.setFont('helvetica', 'normal');
     doc.text(`Ingresos Totales: ${this.ingresosTotales} unidades`, 14, finalY + 18);
     doc.text(`Egresos Totales: ${this.egresosTotales} unidades`, 14, finalY + 26);
@@ -223,8 +349,26 @@ export class ReporteConteoComponent implements OnInit {
     doc.setLineWidth(0.5);
     doc.line(14, finalY + 32, 196, finalY + 32);
 
+    // Agregar pie de página a todas las páginas
+    const pageCount = doc.getNumberOfPages();
+    for (let i = 1; i <= pageCount; i++) {
+      doc.setPage(i);
+      this.addFooter(doc, i, pageCount);
+    }
+
     // Guardar PDF
     doc.save(`reporte-conteo-${this.conteoId}.pdf`);
+  }
+
+  private addFooter(doc: jsPDF, pageNumber: number, totalPages: number): void {
+    const pageHeight = doc.internal.pageSize.height;
+    doc.setFontSize(8);
+    doc.setTextColor(100);
+    doc.text(`Página ${pageNumber} de ${totalPages}`, 196, pageHeight - 10, { align: 'right' });
+
+    doc.setDrawColor(200);
+    doc.setLineWidth(0.5);
+    doc.line(14, pageHeight - 15, 196, pageHeight - 15);
   }
 
   logout(): void {
@@ -233,6 +377,6 @@ export class ReporteConteoComponent implements OnInit {
   }
 
   volver(): void {
-    this.router.navigate(['/admin/gestionar-conteos']);
+    this.router.navigate(['A', '/admin-gestionar-conteos']);
   }
 }

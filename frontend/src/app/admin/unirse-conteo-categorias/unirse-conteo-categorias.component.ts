@@ -37,13 +37,13 @@ interface CategoryStatus {
 }
 
 @Component({
-    selector: 'app-conteo-categorias',
+    selector: 'app-unirse-conteo-categorias',
     standalone: true,
     imports: [CommonModule, FormsModule, RouterModule],
-    templateUrl: './conteo-categorias.component.html',
-    styleUrls: ['./conteo-categorias.component.css']
+    templateUrl: './unirse-conteo-categorias.component.html',
+    styleUrls: ['./unirse-conteo-categorias.component.css']
 })
-export class ConteoCategoriasComponent implements OnInit, OnDestroy {
+export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
     nombreUsuarioLogueado = '';
     usuarioId: number | null = null;
     conteoId: number | null = null;
@@ -80,7 +80,36 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
         const id = this.route.snapshot.paramMap.get('id');
         this.conteoId = id ? +id : null;
         this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
-        this.REGISTROS_KEY = `conteoCategorias_${this.nombreUsuarioLogueado}`;
+        this.REGISTROS_KEY = `unirseConteoCategorias_${this.nombreUsuarioLogueado}`;
+    }
+
+    get estadisticas() {
+        const totalProductos = this.allProductos.length;
+        const contados = this.productosConteo.filter(p => p.cantidadContada != null).length;
+        const noContados = totalProductos - contados;
+        const porcentajeContados = totalProductos > 0 ? (contados / totalProductos * 100).toFixed(2) : '0.00';
+        return {
+            totalProductos,
+            contados,
+            noContados,
+            porcentajeContados
+        };
+    }
+
+    get productosNoContados(): { id: number; nombre: string; codigoBarra: string | undefined; categoriaNombre: string }[] {
+        return this.productosConteo
+            .filter(p => p.cantidadContada === null)
+            .map(p => {
+                const producto = this.productCache.get(p.productoId);
+                const categoria = producto ? this.categoryCache.get(producto.categoriaId) : null;
+                return {
+                    id: p.productoId,
+                    nombre: producto?.nombre || 'Desconocido',
+                    codigoBarra: producto?.codigoBarra,
+                    categoriaNombre: categoria?.nombre || 'Sin Categoría'
+                };
+            })
+            .sort((a, b) => a.categoriaNombre.localeCompare(b.categoriaNombre) || a.nombre.localeCompare(b.nombre));
     }
 
     get cantidadEsperada(): number {
@@ -107,16 +136,16 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
                         if (existing) {
                             existing.cantidadContada = msg.cantidadContada;
                             existing.cantidadEsperada = msg.cantidadEsperada;
-                            existing.activo = msg.activo;
+                            existing.activo = false;
                         } else {
                             this.productosConteo.push({
-                                id: msg.id,
+                                id: msg.id!,
                                 conteoId: msg.conteoId,
                                 productoId: msg.productoId,
                                 cantidadEsperada: msg.cantidadEsperada,
                                 cantidadContada: msg.cantidadContada,
                                 precioActual: msg.precioActual,
-                                activo: msg.activo
+                                activo: false
                             });
                         }
                         if (msg.cantidadContada != null) {
@@ -151,7 +180,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
                         }).then(() => {
                             localStorage.removeItem(this.STORAGE_KEY);
                             localStorage.removeItem(this.REGISTROS_KEY);
-                            this.router.navigate(['/empleado/dashboard']);
+                            this.router.navigate(['/admin/gestionar-conteos']);
                         });
                     }
                 },
@@ -169,12 +198,12 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
                     this.inicializarConteo();
                 } else {
                     Swal.fire('Error', 'No se pudo identificar al usuario logueado', 'error');
-                    this.router.navigate(['/empleado/dashboard']);
+                    this.router.navigate(['/admin/dashboard']);
                 }
             },
             error: () => {
                 Swal.fire('Error', 'No se pudo cargar la información del usuario', 'error');
-                this.router.navigate(['/empleado/dashboard']);
+                this.router.navigate(['/admin/dashboard']);
             }
         });
 
@@ -207,7 +236,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
                 title: 'No hay conteo activo',
                 text: 'No se encontró un conteo activo para unirse.',
             }).then(() => {
-                this.router.navigate(['/empleado/dashboard']);
+                this.router.navigate(['/admin/dashboard']);
             });
         }
     }
@@ -217,7 +246,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
             next: (conteo) => {
                 if (conteo.tipoConteo !== 'CATEGORIAS') {
                     Swal.fire('Error', 'Este conteo no es de tipo Categorías', 'error');
-                    this.router.navigate(['/empleado/dashboard']);
+                    this.router.navigate(['/admin/dashboard']);
                     return;
                 }
                 this.conteoActual = conteo;
@@ -232,7 +261,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
             error: (err) => {
                 console.error('Error loading conteo:', err);
                 Swal.fire('Error', 'No se pudo cargar el conteo', 'error');
-                this.router.navigate(['/empleado/dashboard']);
+                this.router.navigate(['/admin/dashboard']);
             }
         });
     }
@@ -256,7 +285,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
         const sucursalId = this.authService.getSucursalId();
         if (sucursalId == null) {
             Swal.fire('Error', 'No se pudo obtener el ID de la sucursal', 'error');
-            this.router.navigate(['/empleado/dashboard']);
+            this.router.navigate(['/admin/dashboard']);
             return;
         }
 
@@ -269,7 +298,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
             error: (err) => {
                 console.error('Error loading categorias:', err);
                 Swal.fire('Error', 'No se pudo cargar las categorías', 'error');
-                this.router.navigate(['/empleado/dashboard']);
+                this.router.navigate(['/admin/dashboard']);
             }
         });
     }
@@ -347,7 +376,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
             error: (err) => {
                 console.error('Error loading conteoProductos:', err);
                 Swal.fire('Error', 'No se pudieron cargar los productos del conteo', 'error');
-                this.router.navigate(['/empleado/dashboard']);
+                this.router.navigate(['/admin/dashboard']);
             }
         });
     }
@@ -735,6 +764,180 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
         }
     }
 
+    private async updateUncountedProductsToZero(): Promise<void> {
+        const uncounted = this.productosConteo.filter(p => p.cantidadContada === null);
+        for (const item of uncounted) {
+            try {
+                const updated = await lastValueFrom(
+                    this.conteoProdService.update(item.id, { cantidadContada: 0 }).pipe(retry(2), delay(500))
+                );
+                console.log(`Updated uncounted productoId: ${item.productoId} to cantidadContada: 0`);
+                item.cantidadContada = 0;
+                this.countedProducts.add(item.productoId);
+                const reg = this.registros.find(r => r.productoId === item.productoId);
+                if (reg) {
+                    reg.cantidadContada = 0;
+                }
+            } catch (err) {
+                console.error(`Error updating productoId: ${item.productoId} to 0`, err);
+                throw err;
+            }
+        }
+        this.updateRegistros();
+        this.updateCategories();
+        this.saveState();
+        this.cdr.detectChanges();
+    }
+
+    finalizarConteo(): void {
+        const productosNoContados = this.productosNoContados;
+        if (productosNoContados.length === 0) {
+            Swal.fire({
+                title: '¿Finalizar conteo?',
+                text: 'El conteo será finalizado. Todos los productos han sido contados.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, finalizar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    this.conteoService.update(this.conteoActual!.id, { conteoFinalizado: true }).subscribe({
+                        next: () => {
+                            Swal.fire({
+                                icon: 'success',
+                                title: 'Conteo finalizado',
+                                text: 'El conteo ha sido marcado como finalizado correctamente.',
+                                timer: 2000,
+                                showConfirmButton: false
+                            });
+                            localStorage.removeItem(this.STORAGE_KEY);
+                            localStorage.removeItem(this.REGISTROS_KEY);
+                            this.router.navigate(['/admin/gestionar-conteos']);
+                        },
+                        error: (err) => {
+                            if (err.status === 403) {
+                                Swal.fire({
+                                    icon: 'error',
+                                    title: 'Permiso denegado',
+                                    text: 'No tienes permisos para finalizar este conteo. Contacta al administrador.'
+                                });
+                            } else {
+                                Swal.fire('Error', 'No se pudo finalizar el conteo', 'error');
+                            }
+                        }
+                    });
+                }
+            });
+        } else {
+            const tablaProductos = productosNoContados
+                .map(p => `
+                    <tr>
+                        <td>${p.categoriaNombre}</td>
+                        <td>${p.id}</td>
+                        <td>${p.nombre}</td>
+                        <td>${p.codigoBarra || 'N/A'}</td>
+                    </tr>
+                `)
+                .join('');
+
+            Swal.fire({
+                title: '¿Finalizar conteo con productos sin contar?',
+                html: `
+                    <style>
+                        .table-container {
+                            max-height: 400px;
+                            overflow-y: auto;
+                            margin-bottom: 1rem;
+                        }
+                        table {
+                            width: 100%;
+                            border-collapse: collapse;
+                            min-width: 600px;
+                            table-layout: fixed;
+                        }
+                        th, td {
+                            padding: 8px;
+                            border: 1px solid #dee2e6;
+                            text-align: left;
+                            white-space: normal;
+                            word-wrap: break-word;
+                        }
+                        th:nth-child(1), td:nth-child(1) { width: 25%; min-width: 150px; }
+                        th:nth-child(2), td:nth-child(2) { width: 10%; }
+                        th:nth-child(3), td:nth-child(3) { width: 40%; min-width: 200px; }
+                        th:nth-child(4), td:nth-child(4) { width: 25%; min-width: 150px; }
+                        thead th {
+                            position: sticky;
+                            top: 0;
+                            background-color: #343a40;
+                            color: white;
+                            z-index: 2;
+                        }
+                    </style>
+                    <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar. Al finalizar, se registrarán con cantidad contada 0:</p>
+                    <div class="table-container">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Categoría</th>
+                                    <th>ID</th>
+                                    <th>Nombre</th>
+                                    <th>Código de Barras</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${tablaProductos}
+                            </tbody>
+                        </table>
+                    </div>
+                    <p>¿Estás seguro de finalizar el conteo?</p>
+                `,
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonColor: '#3085d6',
+                cancelButtonColor: '#d33',
+                confirmButtonText: 'Sí, finalizar',
+                cancelButtonText: 'Cancelar',
+                width: '80%'
+            }).then(async (result) => {
+                if (result.isConfirmed) {
+                    try {
+                        await this.updateUncountedProductsToZero();
+                        this.conteoService.update(this.conteoActual!.id, { conteoFinalizado: true }).subscribe({
+                            next: () => {
+                                Swal.fire({
+                                    icon: 'success',
+                                    title: 'Conteo finalizado',
+                                    text: 'El conteo ha sido marcado como finalizado correctamente. Los productos no contados se registraron con cantidad 0.',
+                                    timer: 2000,
+                                    showConfirmButton: false
+                                });
+                                localStorage.removeItem(this.STORAGE_KEY);
+                                localStorage.removeItem(this.REGISTROS_KEY);
+                                this.router.navigate(['/admin/gestionar-conteos']);
+                            },
+                            error: (err) => {
+                                if (err.status === 403) {
+                                    Swal.fire({
+                                        icon: 'error',
+                                        title: 'Permiso denegado',
+                                        text: 'No tienes permisos para finalizar este conteo. Contacta al administrador.'
+                                    });
+                                } else {
+                                    Swal.fire('Error', 'No se pudo finalizar el conteo', 'error');
+                                }
+                            }
+                        });
+                    } catch (err) {
+                        Swal.fire('Error', 'No se pudo actualizar los productos no contados', 'error');
+                    }
+                }
+            });
+        }
+    }
+
     public saveState(): void {
         localStorage.setItem(this.REGISTROS_KEY, JSON.stringify({
             registros: this.registros,
@@ -750,12 +953,6 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
         localStorage.removeItem(this.REGISTROS_KEY);
         this.authService.logout();
         this.router.navigate(['/login']);
-    }
-
-    volverDashboard(): void {
-        localStorage.removeItem(this.STORAGE_KEY);
-        localStorage.removeItem(this.REGISTROS_KEY);
-        this.router.navigate(['/empleado/dashboard']);
     }
 
     get currentProduct(): Producto | null {

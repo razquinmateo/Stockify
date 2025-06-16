@@ -1,0 +1,12 @@
+.category-card {
+    cursor: pointer;
+    transition: transform 0.2s;
+}
+
+.category-card:hover {
+    transform: scale(1.05);
+}
+
+.product-card {
+    max-width: 500px;
+}

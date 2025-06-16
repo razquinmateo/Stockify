@@ -472,7 +472,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
     }
   };
 
-  finalizarConteo(): void {
+  async finalizarConteo(): Promise<void> {
     const productosNoContados = this.productosNoContados;
     if (productosNoContados.length === 0) {
       Swal.fire({
@@ -553,7 +553,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
       z-index: 2;
     }
   </style>
-  <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar:</p>
+  <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar. Se crearán registros con cantidad contada 0 para estos productos.</p>
   <div class="table-container">
     <table>
       <thead>
@@ -567,10 +567,9 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
         ${tablaProductos}
       </tbody>
     </table>
-  </div>
+    </div>
   <p>¿Estás seguro de finalizar el conteo?</p>
-`
-,
+`,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
@@ -578,31 +577,66 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
         confirmButtonText: 'Sí, finalizar',
         cancelButtonText: 'Cancelar',
         width: '80%'
-      }).then((result) => {
+      }).then(async (result) => {
         if (result.isConfirmed) {
-          this.conteoService.update(this.conteoActual!.id, { conteoFinalizado: true }).subscribe({
-            next: () => {
-              Swal.fire({
-                icon: 'success',
-                title: 'Conteo finalizado',
-                text: 'El conteo ha sido marcado como finalizado correctamente, aunque algunos productos no fueron contados.',
-                timer: 2000,
-                showConfirmButton: false
-              });
-              this.router.navigate(['/admin/gestionar-conteos']);
-            },
-            error: (err) => {
-              if (err.status === 403) {
-                Swal.fire({
-                  icon: 'error',
-                  title: 'Permiso denegado',
-                  text: 'No tienes permisos para finalizar este conteo. Contacta al administrador.'
-                });
-              } else {
-                Swal.fire('Error', 'No se pudo finalizar el conteo', 'error');
-              }
+          try {
+            // Create ConteoProducto records for uncounted products with cantidadContada: 0
+            for (const prod of productosNoContados) {
+              const nuevo: Partial<ConteoProducto> = {
+                conteoId: this.conteoActual!.id,
+                productoId: prod.id,
+                cantidadEsperada: prod.cantidadStock,
+                cantidadContada: 0,
+                precioActual: prod.precio,
+                activo: true
+              };
+              const item = await lastValueFrom(this.conteoProdService.create(nuevo));
+              this.productosConteo.push(item!);
+
+              // Update registros
+              const reg: RegistroConteo = {
+                productoId: prod.id,
+                nombre: prod.nombre,
+                cantidadEsperada: prod.cantidadStock,
+                cantidadContada: 0,
+                usuario: this.nombreUsuarioLogueado,
+                usuarioId: this.usuarioId!,
+                codigoBarra: prod.codigoBarra
+              };
+              this.registros.push(reg);
             }
-          });
+            // Save updated registros to localStorage
+            localStorage.setItem(`registros_${this.nombreUsuarioLogueado}`, JSON.stringify(this.registros));
+            this.cdr.detectChanges();
+
+            // Finalize the count
+            this.conteoService.update(this.conteoActual!.id, { conteoFinalizado: true }).subscribe({
+              next: () => {
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Conteo finalizado',
+                  text: `El conteo ha sido finalizado correctamente. Se crearon ${productosNoContados.length} registros con cantidad contada 0.`,
+                  timer: 3000,
+                  showConfirmButton: false
+                });
+                this.router.navigate(['/admin/gestionar-conteos']);
+              },
+              error: (err) => {
+                if (err.status === 403) {
+                  Swal.fire({
+                    icon: 'error',
+                    title: 'Permiso denegado',
+                    text: 'No tienes permisos para finalizar este conteo. Contacta al administrador.'
+                  });
+                } else {
+                  Swal.fire('Error', 'No se pudo finalizar el conteo', 'error');
+                }
+              }
+            });
+          } catch (err) {
+            console.error('Error creating ConteoProducto records:', err);
+            Swal.fire('Error', 'No se pudieron crear los registros para los productos no contados', 'error');
+          }
         }
       });
     }

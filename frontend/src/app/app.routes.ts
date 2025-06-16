@@ -22,6 +22,7 @@ import { GestionarLotesComponent } from './admin/gestionar-lotes/gestionar-lotes
 import { GestionarProveedoresComponent } from './admin/gestionar-proveedores/gestionar-proveedores.component';
 import { GestionarConteosComponent } from './admin/gestionar-conteos/gestionar-conteos.component';
 import { UnirseConteoLibreComponent } from './admin/unirse-conteo-libre/unirse-conteo-libre.component';
+import { UnirseConteoCategoriasComponent } from './admin/unirse-conteo-categorias/unirse-conteo-categorias.component';
 import { ReporteConteoComponent } from './admin/reporte-conteo/reporte-conteo.component';
 import { EstadisticasComponent } from './admin/estadisticas/estadisticas.component';
 
@@ -138,6 +139,12 @@ export const routes: Routes = [
   {
     path: 'admin/gestionar-conteos/unirse-conteo-libre/:id',
     component: UnirseConteoLibreComponent,
+    canActivate: [authGuard],
+    data: { role: 'ADMINISTRADOR' }
+  },
+    {
+    path: 'admin/gestionar-conteos/unirse-conteo-categorias/:id',
+    component: UnirseConteoCategoriasComponent,
     canActivate: [authGuard],
     data: { role: 'ADMINISTRADOR' }
   },
