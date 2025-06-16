@@ -8,6 +8,7 @@ import tipy.Stockify.dtos.CategoriaDto;
 import tipy.Stockify.services.CategoriaService;
 
 import java.util.List;
+import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping(value = "api/v1/categorias")
@@ -60,5 +61,16 @@ public class CategoriaController {
     public ResponseEntity<Void> deactivateCategoria(@PathVariable Long id) {
         categoriaService.deactivate(id);
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
+    }
+
+    @GetMapping("/sucursal/{sucursalId}")
+    @Operation(description = "Obtiene la lista de categorías activas por sucursal.")
+    public ResponseEntity<List<CategoriaDto>> getCategoriasBySucursal(@PathVariable Long sucursalId) {
+        return new ResponseEntity<>(
+                categoriaService.getAllActive().stream()
+                        .filter(c -> c.getSucursalId().equals(sucursalId))
+                        .collect(Collectors.toList()),
+                HttpStatus.OK
+        );
     }
 }

@@ -1,8 +1,8 @@
 import { Router } from "@angular/router";
-import { RouterModule } from "@angular/router";
 import { Component, OnInit } from "@angular/core";
 import { CommonModule } from "@angular/common";
 import { FormsModule } from "@angular/forms";
+import { RouterModule } from "@angular/router";
 import { ConteoService, Conteo } from "../../services/conteo.service";
 import { UsuarioService, Usuario } from "../../services/usuario.service";
 import { AuthService } from "../../auth.service";
@@ -24,13 +24,11 @@ export class GestionarConteosComponent implements OnInit {
   usuarios: Usuario[] = [];
   usuariosMismaSucursal: Usuario[] = [];
   usuariosPorConteo: { [conteoId: number]: UsuarioDto[] } = {};
-
   participantesSeleccionados: UsuarioDto[] = [];
   mostrarModalParticipantes: boolean = false;
-
+  mostrarModalTipoConteo: boolean = false; 
   conteoSeleccionado!: Conteo;
   esEditar: boolean = false;
-
   filtro: string = "";
   paginaActual: number = 1;
   conteosPorPagina: number = 5;
@@ -47,20 +45,13 @@ export class GestionarConteosComponent implements OnInit {
     this.conteoSeleccionado = this.resetConteo();
     this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
 
-    // Primero se cargan los usuarios
     this.usuarioService.getUsuarios().subscribe({
       next: (data) => {
         this.usuarios = data;
-        console.log('Usuarios cargados:', this.usuarios); // Depuración
-
         const sucursalId = this.authService.getSucursalId();
-        // Filtra solo administradores de la misma sucursal
         this.usuariosMismaSucursal = this.usuarios.filter(
           (u) => u.sucursalId === sucursalId && u.rol === 'ADMINISTRADOR'
         );
-        console.log('Usuarios misma sucursal:', this.usuariosMismaSucursal); // Depuración
-
-        // Solo después de tener los usuarios se cargan los conteos
         this.cargarConteos();
       },
       error: (err) => console.error("Error al cargar usuarios", err),
@@ -72,24 +63,15 @@ export class GestionarConteosComponent implements OnInit {
 
     this.conteoService.obtenerTodosLosConteos().subscribe({
       next: (data) => {
-        console.log("Conteos cargados:", data); // Depuración
         const usuariosMismaSucursal = this.usuarios.filter(
           (u) => u.sucursalId === sucursalId
         );
         const idsUsuarios = usuariosMismaSucursal.map((u) => u.id);
+        this.conteos = data.filter((c) => idsUsuarios.includes(c.usuarioId));
 
-        const conteosFiltrados = data.filter((c) =>
-          idsUsuarios.includes(c.usuarioId)
-        );
-        this.conteos = conteosFiltrados;
-        console.log('Conteos filtrados:', this.conteos); // Depuración
-
-        // Cargar usuarios participantes para cada conteo
-        this.usuariosPorConteo = {}; // Reiniciar por si acaso
-        for (const conteo of conteosFiltrados) {
+        for (const conteo of this.conteos) {
           this.conteoService.obtenerUsuariosPorConteo(conteo.id).subscribe({
             next: (usuarios) => {
-              console.log(`Usuarios para conteo ${conteo.id}:`, usuarios);
               this.usuariosPorConteo[conteo.id] = usuarios;
             },
             error: (err) => {
@@ -117,17 +99,19 @@ export class GestionarConteosComponent implements OnInit {
 
   hayConteoActivoEnSucursal(): boolean {
     const sucursalId = this.authService.getSucursalId();
-    const conteoActivo = this.conteos.some((c) => {
+    return this.conteos.some((c) => {
       const usuario = this.usuarios.find((u) => u.id === c.usuarioId);
       return usuario?.sucursalId === sucursalId && !c.conteoFinalizado;
     });
-    console.log('¿Hay conteo activo en sucursal?', conteoActivo); // Depuración
-    return conteoActivo;
   }
 
   getNombreUsuarioPorId(id: number): string {
     const usuario = this.usuarios.find((u) => u.id === id);
     return usuario ? `${usuario.nombre} ${usuario.apellido}` : "";
+  }
+
+  getTipoConteoDisplay(tipoConteo: string): string {
+    return tipoConteo === 'CATEGORIAS' ? 'Por rubro' : 'Libre';
   }
 
   resetConteo(): Conteo {
@@ -137,6 +121,7 @@ export class GestionarConteosComponent implements OnInit {
       conteoFinalizado: false,
       usuarioId: 0,
       activo: true,
+      tipoConteo: 'LIBRE',
     };
   }
 
@@ -148,6 +133,14 @@ export class GestionarConteosComponent implements OnInit {
   mostrarModal(): void {
     const modal = new bootstrap.Modal(document.getElementById("conteoModal"));
     modal.show();
+  }
+
+  abrirModalTipoConteo(): void {
+    this.mostrarModalTipoConteo = true;
+  }
+
+  cerrarModalTipoConteo(): void {
+    this.mostrarModalTipoConteo = false;
   }
 
   abrirModalParticipantes(conteoId: number): void {
@@ -167,12 +160,10 @@ export class GestionarConteosComponent implements OnInit {
   }
 
   guardarConteo(): void {
-    const modal = bootstrap.Modal.getInstance(
-      document.getElementById("conteoModal")
-    );
+    const modal = bootstrap.Modal.getInstance(document.getElementById("conteoModal"));
 
     if (this.esEditar) {
-      this.conteoService.actualizarConteo(this.conteoSeleccionado).subscribe({
+      this.conteoService.update(this.conteoSeleccionado.id, this.conteoSeleccionado).subscribe({
         next: () => {
           modal.hide();
           Swal.fire("Actualizado", "El conteo ha sido actualizado", "success");
@@ -183,7 +174,7 @@ export class GestionarConteosComponent implements OnInit {
         },
       });
     } else {
-      this.conteoService.agregarConteo(this.conteoSeleccionado).subscribe({
+      this.conteoService.createConteoLibre(this.conteoSeleccionado).subscribe({
         next: () => {
           modal.hide();
           Swal.fire("Agregado", "El conteo ha sido agregado", "success");
@@ -199,34 +190,18 @@ export class GestionarConteosComponent implements OnInit {
   alternarEstadoConteo(conteo: Conteo): void {
     const esFinalizado = conteo.conteoFinalizado;
 
-    // Si se quiere reactivar, verificar primero que no haya otro activo en la misma sucursal
-    if (esFinalizado) {
-      const sucursalId = this.authService.getSucursalId();
-
-      const otroConteoActivo = this.conteos.some((c) => {
-        const usuario = this.usuarios.find((u) => u.id === c.usuarioId);
-        return (
-          c.id !== conteo.id &&
-          usuario?.sucursalId === sucursalId &&
-          !c.conteoFinalizado
-        );
+    if (esFinalizado && this.hayConteoActivoEnSucursal()) {
+      Swal.fire({
+        icon: 'warning',
+        title: 'Ya hay un conteo activo',
+        text: 'No se puede reactivar este conteo porque ya hay otro activo en la sucursal.',
       });
-
-      if (otroConteoActivo) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Ya hay un conteo activo',
-          text: 'No se puede reactivar este conteo porque ya hay otro activo en la sucursal.',
-        });
-        return;
-      }
+      return;
     }
 
     Swal.fire({
       title: esFinalizado ? '¿Reactivar conteo?' : '¿Finalizar conteo?',
-      text: esFinalizado
-        ? 'El conteo volverá a estar activo.'
-        : 'El conteo será finalizado.',
+      text: esFinalizado ? 'El conteo volverá a estar activo.' : 'El conteo será finalizado.',
       icon: esFinalizado ? 'question' : 'warning',
       showCancelButton: true,
       confirmButtonColor: '#3085d6',
@@ -236,21 +211,15 @@ export class GestionarConteosComponent implements OnInit {
     }).then((result) => {
       if (result.isConfirmed) {
         conteo.conteoFinalizado = !conteo.conteoFinalizado;
-
-        this.conteoService.actualizarConteo(conteo).subscribe({
+        this.conteoService.update(conteo.id, conteo).subscribe({
           next: () => {
             Swal.fire({
               icon: 'success',
-              title: esFinalizado
-                ? 'Conteo reactivado'
-                : 'Conteo finalizado',
-              text: esFinalizado
-                ? 'El conteo ha sido reactivado correctamente.'
-                : 'El conteo ha sido marcado como finalizado correctamente.',
+              title: esFinalizado ? 'Conteo reactivado' : 'Conteo finalizado',
+              text: esFinalizado ? 'El conteo ha sido reactivado correctamente.' : 'El conteo ha sido marcado como finalizado correctamente.',
               timer: 2000,
               showConfirmButton: false,
             });
-
             this.cargarConteos();
           },
           error: () => {
@@ -285,14 +254,13 @@ export class GestionarConteosComponent implements OnInit {
         const fechaFormateada = cont.fechaHora
           ? formatDate(cont.fechaHora, 'dd/MM/yyyy', 'en-US')
           : '';
-
-        const nombreUsuario = this.getNombreUsuarioPorId(
-          cont.usuarioId
-        ).toLowerCase();
+        const nombreUsuario = this.getNombreUsuarioPorId(cont.usuarioId).toLowerCase();
+        const tipoConteo = this.getTipoConteoDisplay(cont.tipoConteo).toLowerCase();
 
         return (
           nombreUsuario.includes(filtroLower) ||
-          fechaFormateada.toLowerCase().includes(filtroLower)
+          fechaFormateada.toLowerCase().includes(filtroLower) ||
+          tipoConteo.includes(filtroLower)
         );
       })
       .sort((a, b) =>
@@ -310,6 +278,10 @@ export class GestionarConteosComponent implements OnInit {
   }
 
   empezarConteo(): void {
+    this.mostrarModalTipoConteo = true;
+  }
+
+  crearConteo(tipo: 'LIBRE' | 'CATEGORIAS'): void {
     const usuarioLogueado = this.usuarios.find(
       u => u.nombreUsuario === this.nombreUsuarioLogueado
     );
@@ -323,28 +295,30 @@ export class GestionarConteosComponent implements OnInit {
       return;
     }
 
-    // Convierte la fecha/hora a nuestra región
     const fechaHoraLocal = new Date()
-        .toLocaleString('sv-SE', { timeZone: 'America/Montevideo' })
-        .replace(' ', 'T');
+      .toLocaleString('sv-SE', { timeZone: 'America/Montevideo' })
+      .replace(' ', 'T');
 
-    const nuevoConteo: Conteo = {
-      id: 0,
+    const nuevoConteo: Partial<Conteo> = {
       fechaHora: fechaHoraLocal,
       conteoFinalizado: false,
       usuarioId: usuarioLogueado.id,
       activo: true,
+      tipoConteo: tipo,
     };
 
-    this.conteoService.agregarConteo(nuevoConteo).subscribe({
+    const createMethod = tipo === 'CATEGORIAS' ? this.conteoService.createConteoCategorias : this.conteoService.createConteoLibre;
+
+    createMethod.call(this.conteoService, nuevoConteo).subscribe({
       next: () => {
         Swal.fire({
           icon: 'success',
           title: 'Conteo iniciado',
-          text: 'Se ha iniciado un nuevo conteo correctamente.',
+          text: `Se ha iniciado un nuevo conteo de tipo ${this.getTipoConteoDisplay(tipo)} correctamente.`,
           timer: 2000,
           showConfirmButton: false,
         });
+        this.cerrarModalTipoConteo();
         this.cargarConteos();
       },
       error: () => {
@@ -359,32 +333,28 @@ export class GestionarConteosComponent implements OnInit {
 
   unirseConteo(): void {
     const sucursalId = this.authService.getSucursalId();
-    console.log('Sucursal ID:', sucursalId); // Depuración
-    console.log('Usuarios disponibles:', this.usuarios); // Depuración
-    console.log('Conteos disponibles:', this.conteos); // Depuración
-
-    // Reutilizar la lista de conteos en memoria para evitar discrepancias
     const conteoActivo = this.conteos.find(c => {
       const usuario = this.usuarios.find(u => u.id === c.usuarioId);
-      console.log(`Evaluando conteo ID ${c.id}:`, { usuario, sucursalId, finalizado: c.conteoFinalizado }); // Depuración
       return usuario?.sucursalId === sucursalId && !c.conteoFinalizado;
     });
 
     if (conteoActivo) {
-      console.log('Conteo activo encontrado:', conteoActivo); // Depuración
-      this.router.navigate(['/admin/gestionar-conteos/unirse-conteo-libre']);
+      const route = conteoActivo.tipoConteo === 'CATEGORIAS'
+        ? '/admin/gestionar-conteos/unirse-conteo-categorias'
+        : '/admin/gestionar-conteos/unirse-conteo-libre';
+      this.router.navigate([route, conteoActivo.id]);
     } else {
-      // Si no se encuentra en memoria, consultar el servicio como respaldo
       this.conteoService.getActiveConteos().subscribe({
         next: conteos => {
-          console.log('Conteos activos desde el servicio:', conteos); // Depuración
           const conteoActivoServicio = conteos.find(c => {
             const usuario = this.usuarios.find(u => u.id === c.usuarioId);
             return usuario?.sucursalId === sucursalId && !c.conteoFinalizado;
           });
           if (conteoActivoServicio) {
-            console.log('Conteo activo encontrado en servicio:', conteoActivoServicio); // Depuración
-            this.router.navigate(['/admin/gestionar-conteos/unirse-conteo-libre']);
+            const route = conteoActivoServicio.tipoConteo === 'CATEGORIAS'
+              ? '/admin/gestionar-conteos/unirse-conteo-categorias'
+              : '/admin/gestionar-conteos/unirse-conteo-libre';
+            this.router.navigate([route, conteoActivoServicio.id]);
           } else {
             Swal.fire({
               icon: 'warning',

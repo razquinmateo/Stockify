@@ -135,7 +135,7 @@ export const routes: Routes = [
     data: { role: 'ADMINISTRADOR' }
   },
   {
-    path: 'admin/gestionar-conteos/unirse-conteo-libre',
+    path: 'admin/gestionar-conteos/unirse-conteo-libre/:id',
     component: UnirseConteoLibreComponent,
     canActivate: [authGuard],
     data: { role: 'ADMINISTRADOR' }
@@ -159,7 +159,7 @@ export const routes: Routes = [
     data: { role: 'EMPLEADO' }
   },
   {
-    path: 'empleado/conteo-libre',
+    path: 'empleado/conteo-libre/:id',
     component: ConteoLibreComponent,
     canActivate: [authGuard],
     data: { role: 'EMPLEADO' }

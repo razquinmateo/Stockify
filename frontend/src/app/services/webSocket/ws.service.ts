@@ -4,8 +4,9 @@ import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import { Observable, Subject } from 'rxjs';
 
 export interface ConteoMensaje {
-    id: number;
-    fechaHora: string;
+  id: number;
+  fechaHora: string;
+  tipoConteo: 'LIBRE' | 'CATEGORIAS';
 }
 
 export interface ConteoProductoMensaje {

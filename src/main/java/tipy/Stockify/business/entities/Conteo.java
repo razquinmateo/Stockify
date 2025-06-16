@@ -3,16 +3,18 @@ package tipy.Stockify.business.entities;
 import jakarta.persistence.*;
 import lombok.Data;
 
-import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.util.Date;
 import java.util.List;
-import java.time.LocalDate;
 
 @Entity
 @Data
 @Table(name = "CONTEO")
 public class Conteo {
+
+    public enum TipoConteo {
+        LIBRE,
+        CATEGORIAS
+    }
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -45,4 +47,8 @@ public class Conteo {
 
     @Column(name = "ACTIVO", nullable = false)
     private boolean activo = true;
+
+    @Column(name = "TIPO_CONTEO", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private TipoConteo tipoConteo = TipoConteo.LIBRE;
 }

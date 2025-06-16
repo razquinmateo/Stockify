@@ -24,4 +24,6 @@ public interface ConteoProductoRepository extends JpaRepository<ConteoProducto, 
      * @return Optional con el conteo de producto activo, o vacío si no existe o está inactivo.
      */
     Optional<ConteoProducto> findByIdAndActivoTrue(Integer id);
+
+    List<ConteoProducto> findByConteoId(Long conteoId);
 }

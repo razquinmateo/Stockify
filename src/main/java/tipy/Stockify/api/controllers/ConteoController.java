@@ -4,6 +4,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.server.ResponseStatusException;
 import tipy.Stockify.dtos.ConteoDto;
 import tipy.Stockify.dtos.ConteoMensajeDto;
 import tipy.Stockify.services.ConteoService;
@@ -19,8 +20,7 @@ public class ConteoController {
     private final ConteoService conteoService;
     private final SimpMessagingTemplate messagingTemplate;
 
-    public ConteoController(ConteoService conteoService,
-                            SimpMessagingTemplate messagingTemplate) {
+    public ConteoController(ConteoService conteoService, SimpMessagingTemplate messagingTemplate) {
         this.conteoService = conteoService;
         this.messagingTemplate = messagingTemplate;
     }
@@ -47,21 +47,32 @@ public class ConteoController {
     }
 
     @PostMapping
-    @Operation(description = "Crea un nuevo conteo.")
+    @Operation(description = "Crea un nuevo conteo de tipo LIBRE.")
     public ResponseEntity<ConteoDto> createConteo(@RequestBody ConteoDto conteoDto) {
-        // 1) Guardamos el conteo en la base de datos
+        if (conteoDto.getTipoConteo() == null || !conteoDto.getTipoConteo().equals("LIBRE")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Este endpoint solo acepta conteos de tipo LIBRE");
+        }
         ConteoDto saved = conteoService.create(conteoDto);
-
-        // 2) Preparamos el mensaje para WS
         ConteoMensajeDto mensaje = new ConteoMensajeDto(
                 saved.getId(),
                 saved.getFechaHora().toString()
         );
-
-        // 3) Enviamos a todos los suscriptores de /topic/conteo-activo
         messagingTemplate.convertAndSend("/topic/conteo-activo", mensaje);
+        return new ResponseEntity<>(saved, HttpStatus.CREATED);
+    }
 
-        // 4) Devolvemos el DTO creado al cliente HTTP
+    @PostMapping("/categorias")
+    @Operation(description = "Crea un nuevo conteo de tipo CATEGORIAS.")
+    public ResponseEntity<ConteoDto> createConteoCategorias(@RequestBody ConteoDto conteoDto) {
+        if (conteoDto.getTipoConteo() == null || !conteoDto.getTipoConteo().equals("CATEGORIAS")) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Este endpoint solo acepta conteos de tipo CATEGORIAS");
+        }
+        ConteoDto saved = conteoService.create(conteoDto);
+        ConteoMensajeDto mensaje = new ConteoMensajeDto(
+                saved.getId(),
+                saved.getFechaHora().toString()
+        );
+        messagingTemplate.convertAndSend("/topic/conteo-activo", mensaje);
         return new ResponseEntity<>(saved, HttpStatus.CREATED);
     }
 
@@ -76,11 +87,9 @@ public class ConteoController {
                     updated.getId(),
                     updated.getFechaHora().toString()
             );
-            // usa el getter que exista en tu DTO:
             if (Boolean.TRUE.equals(updated.getConteoFinalizado())) {
                 messagingTemplate.convertAndSend("/topic/conteo-finalizado", msg);
             } else {
-                // reactivación o creación
                 messagingTemplate.convertAndSend("/topic/conteo-activo", msg);
             }
             return ResponseEntity.ok(updated);
@@ -92,13 +101,11 @@ public class ConteoController {
     @Operation(description = "Desactiva un conteo por su ID.")
     public ResponseEntity<Void> deactivateConteo(@PathVariable Long id) {
         conteoService.deactivate(id);
-        // Sólo mandamos el id y timestamp actual si quieres
         ConteoMensajeDto msg = new ConteoMensajeDto(
                 id,
                 LocalDateTime.now().toString()
         );
         messagingTemplate.convertAndSend("/topic/conteo-finalizado", msg);
-
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 }

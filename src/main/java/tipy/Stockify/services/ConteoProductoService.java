@@ -133,4 +133,12 @@ public class ConteoProductoService {
         conteoProductoDto.setActivo(conteoProducto.isActivo());
         return conteoProductoDto;
     }
+
+    public List<ConteoProductoDto> getByConteoId(Long conteoId) {
+        List<ConteoProducto> entidades = conteoProductoRepository.findByConteoId(conteoId);
+        return entidades.stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
 }

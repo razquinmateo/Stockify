@@ -22,4 +22,7 @@ public class ConteoDto {
 
     @JsonProperty("activo")
     private Boolean activo;
+
+    @JsonProperty("tipoConteo")
+    private String tipoConteo;
 }

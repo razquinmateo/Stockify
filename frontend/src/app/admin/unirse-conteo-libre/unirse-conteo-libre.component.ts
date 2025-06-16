@@ -3,7 +3,7 @@ import {
 } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
-import { Router, RouterModule } from '@angular/router';
+import { Router, RouterModule, ActivatedRoute } from '@angular/router';
 import Swal from 'sweetalert2';
 import { lastValueFrom, Subscription } from 'rxjs';
 import { BrowserMultiFormatReader, IScannerControls } from '@zxing/browser';
@@ -22,7 +22,7 @@ interface RegistroConteo {
   cantidadContada: number;
   usuario: string;
   usuarioId: number;
-  codigoBarra?: string
+  codigoBarra?: string;
 }
 
 @Component({
@@ -36,8 +36,9 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
   @ViewChild('videoElement') videoRef!: ElementRef<HTMLVideoElement>;
 
   nombreUsuarioLogueado = '';
-  usuarioId!: number;
-  conteoActual!: Conteo;
+  usuarioId: number | null = null;
+  conteoId: number;
+  conteoActual: Conteo | null = null;
   productosConteo: ConteoProducto[] = [];
   allProductos: Producto[] = [];
   usuarios: Usuario[] = [];
@@ -60,7 +61,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
   private wsSubs: Subscription[] = [];
 
   private scanBuffer = '';
-  private bufferResetTimeout!: any;
+  private bufferResetTimeout: any;
 
   constructor(
     private authService: AuthService,
@@ -70,19 +71,34 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
     private usuarioService: UsuarioService,
     private wsService: WsService,
     private router: Router,
-    private cdr: ChangeDetectorRef // Inyectar ChangeDetectorRef
-  ) { }
+    private route: ActivatedRoute,
+    private cdr: ChangeDetectorRef
+  ) {
+    this.conteoId = +this.route.snapshot.paramMap.get('id')!;
+  }
 
   ngOnInit(): void {
     this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
-    this.authService.getUsuarioIdDesdeToken().subscribe({
-      next: id => {
-        this.usuarioId = id;
-        console.log('Usuario ID cargado:', this.usuarioId);
+
+    // Load usuarioId
+    this.usuarioService.getUsuarios().subscribe({
+      next: (usuarios) => {
+        const usuario = usuarios.find(u => u.nombreUsuario === this.nombreUsuarioLogueado);
+        if (usuario) {
+          this.usuarioId = usuario.id;
+          this.cargarConteo();
+        } else {
+          Swal.fire('Error', 'No se pudo identificar al usuario logueado', 'error');
+          this.router.navigate(['/admin/gestionar-conteos']);
+        }
       },
-      error: () => Swal.fire('Error', 'No se pudo determinar tu ID de usuario', 'error')
+      error: () => {
+        Swal.fire('Error', 'No se pudo cargar la información del usuario', 'error');
+        this.router.navigate(['/admin/gestionar-conteos']);
+      }
     });
 
+    // Initialize barcode scanner
     window.addEventListener('keydown', this.handleScannerKey);
 
     navigator.mediaDevices.getUserMedia({ video: true })
@@ -95,89 +111,51 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
         if (this.devices.length) {
           this.selectedDeviceId = this.devices[0].deviceId;
         }
-        console.log('Cámaras detectadas:', this.devices);
       })
       .catch(err => {
         console.warn('No se pudo acceder a las cámaras', err);
         Swal.fire('Error', 'No se pudo acceder a las cámaras', 'error');
       });
 
-    const saved = localStorage.getItem('registros_' + this.nombreUsuarioLogueado);
+    // Load registros from localStorage
+    const saved = localStorage.getItem(`registros_${this.nombreUsuarioLogueado}`);
     if (saved) {
       this.registros = JSON.parse(saved);
-      console.log('Registros cargados desde localStorage:', this.registros);
+      // Initialize productosConteo from registros
+      this.productosConteo = this.registros.map(r => ({
+        id: 0, // ID will be updated via WebSocket
+        conteoId: this.conteoId,
+        productoId: r.productoId,
+        cantidadEsperada: r.cantidadEsperada,
+        cantidadContada: r.cantidadContada,
+        precioActual: 0, // Will be updated via WebSocket
+        activo: true
+      }));
+      this.cdr.detectChanges();
     }
 
+    // Load productos
     const sucursalId = this.authService.getSucursalId();
     if (sucursalId == null) {
       Swal.fire('Error', 'No se pudo obtener el ID de la sucursal', 'error');
       this.router.navigate(['/admin/gestionar-conteos']);
       return;
     }
-    console.log('Sucursal ID:', sucursalId);
-
     this.productoService.obtenerProductosActivosPorSucursal(sucursalId).subscribe({
       next: prods => {
         this.allProductos = prods.sort((a, b) => a.id - b.id);
-        console.log('Productos cargados:', this.allProductos);
+        this.cdr.detectChanges();
       },
       error: () => Swal.fire('Error', 'No se pudo cargar el catálogo de productos activos de la sucursal', 'error')
     });
 
-    // Cargar usuarios antes de buscar conteos activos
-    this.usuarioService.getUsuarios().subscribe({
-      next: usuarios => {
-        this.usuarios = usuarios;
-        console.log('Usuarios cargados:', this.usuarios);
-
-        // Obtener conteo activo desde el servicio
-        this.conteoService.getActiveConteos().subscribe({
-          next: conteos => {
-            console.log('Conteos activos:', conteos);
-            const conteoActivo = conteos.find(c => {
-              const usuario = this.usuarios.find(u => u.id === c.usuarioId);
-              console.log(`Evaluando conteo ID ${c.id}:`, { usuario, sucursalId, finalizado: c.conteoFinalizado });
-              return usuario?.sucursalId === sucursalId && !c.conteoFinalizado;
-            });
-            if (conteoActivo) {
-              console.log('Conteo activo encontrado:', conteoActivo);
-              localStorage.setItem(this.STORAGE_KEY, JSON.stringify({
-                id: conteoActivo.id,
-                fechaHora: conteoActivo.fechaHora.toString()
-              }));
-              this.arrancarConteo(conteoActivo);
-            } else {
-              console.log('No se encontró conteo activo');
-              Swal.fire({
-                icon: 'warning',
-                title: 'No hay conteo activo',
-                text: 'No se encontró un conteo activo en tu sucursal.',
-              }).then(() => {
-                this.router.navigate(['/admin/gestionar-conteos']);
-              });
-            }
-          },
-          error: () => {
-            Swal.fire('Error', 'No se pudo verificar conteos activos', 'error');
-            this.router.navigate(['/admin/gestionar-conteos']);
-          }
-        });
-      },
-      error: () => {
-        Swal.fire('Error', 'No se pudieron cargar los usuarios', 'error');
-        this.router.navigate(['/admin/gestionar-conteos']);
-      }
-    });
-
-    // Subscripción al topic conteo-producto-actualizado
+    // WebSocket subscriptions
     this.wsSubs.push(
       this.wsService.onConteoProductoActualizado().subscribe(msg => {
-        console.log('Mensaje recibido en /topic/conteo-producto-actualizado:', msg);
-        if (msg.conteoId === this.conteoActual?.id) {
-          console.log('Procesando mensaje para conteo actual ID:', this.conteoActual.id);
+        console.log('WebSocket ConteoProductoMensaje received:', msg); // Debug log
+        if (msg.conteoId === this.conteoId) {
           const prod = this.allProductos.find(p => p.id === msg.productoId);
           if (prod) {
-            console.log('Producto encontrado:', prod);
             const existente = this.registros.find(r => r.productoId === msg.productoId);
             const reg: RegistroConteo = {
               productoId: msg.productoId,
@@ -185,25 +163,23 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
               cantidadEsperada: msg.cantidadEsperada,
               cantidadContada: msg.cantidadContada ?? 0,
               usuario: this.nombreUsuarioLogueado,
-              usuarioId: this.usuarioId,
+              usuarioId: this.usuarioId!,
               codigoBarra: prod.codigoBarra
             };
             if (existente) {
-              console.log('Actualizando registro existente:', reg);
               Object.assign(existente, reg);
             } else {
-              console.log('Agregando nuevo registro:', reg);
               this.registros.push(reg);
             }
             localStorage.setItem(`registros_${this.nombreUsuarioLogueado}`, JSON.stringify(this.registros));
-            console.log('Registros actualizados:', this.registros);
 
             const item = this.productosConteo.find(p => p.productoId === msg.productoId);
             if (item) {
-              console.log('Actualizando producto contado existente:', item);
+              item.id = msg.id;
               item.cantidadContada = msg.cantidadContada ?? 0;
+              item.precioActual = msg.precioActual;
+              item.activo = msg.activo;
             } else {
-              console.log('Agregando nuevo producto contado:', msg);
               this.productosConteo.push({
                 id: msg.id,
                 conteoId: msg.conteoId,
@@ -214,39 +190,26 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
                 activo: msg.activo
               });
             }
-            console.log('Productos contados actualizados:', this.productosConteo);
-
-            // Forzar detección de cambios para actualizar tablas
+            console.log('Updated productosConteo:', this.productosConteo); // Debug log
+            console.log('Updated registros:', this.registros); // Debug log
             this.cdr.detectChanges();
-            console.log('Detección de cambios ejecutada para actualizar UI');
-
-            // Notificación opcional (descomentar si se desea)
-            /*
-            Swal.fire({
-              icon: 'info',
-              title: 'Producto actualizado',
-              text: `El producto ${prod.nombre} (ID: ${msg.productoId}) ha sido actualizado. Cantidad contada: ${msg.cantidadContada ?? 0}`,
-              timer: 2000,
-              showConfirmButton: false
-            });
-            */
           } else {
-            console.warn('Producto no encontrado para ID:', msg.productoId);
+            console.warn(`Producto ${msg.productoId} not found in allProductos`);
           }
         } else {
-          console.log('Mensaje ignorado, no pertenece al conteo actual');
+          console.warn(`WebSocket message for conteoId ${msg.conteoId}, expected ${this.conteoId}`);
         }
       })
     );
 
-    // Subscripción al topic conteo-finalizado
     this.wsSubs.push(
       this.wsService.onConteoFinalizado().subscribe(msg => {
-        console.log('Mensaje recibido en /topic/conteo-finalizado:', msg);
+        console.log('WebSocket ConteoFinalizado received:', msg); // Debug log
         localStorage.removeItem(this.STORAGE_KEY);
         localStorage.removeItem(`registros_${this.nombreUsuarioLogueado}`);
         this.registros = [];
-        this.conteoActual = undefined!;
+        this.productosConteo = [];
+        this.conteoActual = null;
         this.router.navigate(['/admin/gestionar-conteos']);
       })
     );
@@ -259,38 +222,35 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
     window.removeEventListener('keydown', this.handleScannerKey);
   }
 
-  private arrancarConteo(conteo: Conteo): void {
-    Swal.close();
-    this.conteoActual = {
-      id: conteo.id,
-      fechaHora: conteo.fechaHora,
-      conteoFinalizado: conteo.conteoFinalizado,
-      usuarioId: conteo.usuarioId,
-      activo: conteo.activo
-    };
-    console.log('Conteo actual iniciado:', this.conteoActual);
-    this.conteoProdService.getActiveConteoProductos().subscribe({
-      next: items => {
-        this.productosConteo = items.filter(p => p.conteoId === this.conteoActual.id);
-        this.registros = items.filter(p => p.conteoId === this.conteoActual.id).map(item => {
-          const prod = this.allProductos.find(p => p.id === item.productoId);
-          return {
-            productoId: item.productoId,
-            nombre: prod ? prod.nombre : 'Desconocido',
-            cantidadEsperada: item.cantidadEsperada,
-            cantidadContada: item.cantidadContada ?? 0,
-            usuario: this.nombreUsuarioLogueado,
-            usuarioId: this.usuarioId,
-            codigoBarra: prod?.codigoBarra
-          };
-        });
-        localStorage.setItem(`registros_${this.nombreUsuarioLogueado}`, JSON.stringify(this.registros));
-        console.log('Productos contados cargados:', this.productosConteo);
-        console.log('Registros iniciales:', this.registros);
-        this.cdr.detectChanges(); // Forzar actualización de la UI al iniciar el conteo
+  private cargarConteo(): void {
+    this.conteoService.getById(this.conteoId).subscribe({
+      next: (conteo) => {
+        if (conteo.tipoConteo !== 'LIBRE') {
+          Swal.fire('Error', 'Este conteo no es de tipo Libre', 'error');
+          this.router.navigate(['/admin/gestionar-conteos']);
+          return;
+        }
+        this.conteoActual = conteo;
+        localStorage.setItem(this.STORAGE_KEY, JSON.stringify({
+          id: conteo.id,
+          fechaHora: conteo.fechaHora.toString()
+        }));
+        this.registrarParticipante();
       },
-      error: () => Swal.fire('Error', 'No se pudieron cargar los productos del conteo', 'error')
+      error: () => {
+        Swal.fire('Error', 'No se pudo cargar el conteo', 'error');
+        this.router.navigate(['/admin/gestionar-conteos']);
+      }
     });
+  }
+
+  private registrarParticipante(): void {
+    if (this.usuarioId) {
+      this.conteoService.registrarParticipante(this.conteoId, this.usuarioId).subscribe({
+        next: () => console.log('Usuario registrado como participante'),
+        error: () => console.warn('El usuario ya está registrado o hubo un error al registrar')
+      });
+    }
   }
 
   logout(): void {
@@ -389,7 +349,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
     let item = this.productosConteo.find(p => p.productoId === prod.id);
     if (!item) {
       const nuevo: Partial<ConteoProducto> = {
-        conteoId: this.conteoActual.id,
+        conteoId: this.conteoActual!.id,
         productoId: prod.id,
         cantidadEsperada: prod.cantidadStock,
         precioActual: prod.precio,
@@ -398,7 +358,8 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
       try {
         item = await lastValueFrom(this.conteoProdService.create(nuevo));
         this.productosConteo.push(item!);
-        this.cdr.detectChanges(); // Actualizar UI al crear nuevo item
+        console.log('Created new ConteoProducto:', item); // Debug log
+        this.cdr.detectChanges();
       } catch {
         await Swal.fire('Error', 'No se pudo crear registro de conteo', 'error');
         this.codigoIngresado = '';
@@ -442,7 +403,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
             cantidadEsperada: item!.cantidadEsperada,
             cantidadContada: updated.cantidadContada,
             usuario: this.nombreUsuarioLogueado,
-            usuarioId: this.usuarioId,
+            usuarioId: this.usuarioId!,
             codigoBarra: prod.codigoBarra
           };
           existente ? Object.assign(existente, reg) : this.registros.push(reg);
@@ -457,14 +418,10 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
               localStorage.setItem(key, JSON.stringify(sinEste));
             }
           }
+          console.log('Updated registros after scan:', this.registros); // Debug log
           this.codigoIngresado = '';
-          this.cdr.detectChanges(); // Actualizar UI después de actualizar conteo
-          this.conteoService
-            .registrarParticipante(this.conteoActual.id, this.usuarioId)
-            .subscribe({
-              next: dto => console.log('Registrado:', dto),
-              error: err => console.error('Error registro pivote:', err)
-            });
+          this.cdr.detectChanges();
+          this.registrarParticipante();
         },
         error: () => Swal.fire('Error', 'No se pudo actualizar la cantidad', 'error')
       });
@@ -529,9 +486,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
         cancelButtonText: 'Cancelar'
       }).then((result) => {
         if (result.isConfirmed) {
-          console.log('Contenido de this.conteoActual:', this.conteoActual);
-          this.conteoActual.conteoFinalizado = true;
-          this.conteoService.actualizarConteo(this.conteoActual).subscribe({
+          this.conteoService.update(this.conteoActual!.id, { conteoFinalizado: true }).subscribe({
             next: () => {
               Swal.fire({
                 icon: 'success',
@@ -594,9 +549,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
         cancelButtonText: 'Cancelar'
       }).then((result) => {
         if (result.isConfirmed) {
-          console.log('Contenido de this.conteoActual:', this.conteoActual);
-          this.conteoActual.conteoFinalizado = true;
-          this.conteoService.actualizarConteo(this.conteoActual).subscribe({
+          this.conteoService.update(this.conteoActual!.id, { conteoFinalizado: true }).subscribe({
             next: () => {
               Swal.fire({
                 icon: 'success',
@@ -630,6 +583,6 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
 
   setActiveTab(tab: string): void {
     this.activeTab = tab;
-    this.cdr.detectChanges(); // Actualizar UI al cambiar pestaña
+    this.cdr.detectChanges();
   }
 }

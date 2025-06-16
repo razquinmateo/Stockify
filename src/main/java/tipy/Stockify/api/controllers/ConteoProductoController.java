@@ -54,6 +54,19 @@ public class ConteoProductoController {
         return new ResponseEntity<>(conteoProductos, HttpStatus.OK);
     }
 
+    @GetMapping("/conteo-productos/{conteoId}")
+    @Operation(description = "Obtiene la lista de productos por ID de conteo")
+    public ResponseEntity<List<ConteoProductoDto>> getProductosPorConteoId(@PathVariable Long conteoId) {
+        // Verificamos que el conteo exista
+        Conteo conteo = conteoRepository.findById(conteoId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Conteo no encontrado con id: " + conteoId));
+
+        // Buscamos los conteo_productos con ese conteoId
+        List<ConteoProductoDto> productos = conteoProductoService.getByConteoId(conteoId);
+
+        return ResponseEntity.ok(productos);
+    }
+
 
     @GetMapping("/{id}")
     @Operation(description = "Obtiene un conteo de producto activo por su ID.")

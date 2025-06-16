@@ -51,4 +51,8 @@ export class ConteoProductoService {
     return this.http.get<ConteoProducto[]>(`${this.apiUrl}/conteo/${conteoId}`);
   }
 
+  getConteoProductosByConteoId1(conteoId: number): Observable<ConteoProducto[]> {
+    return this.http.get<ConteoProducto[]>(`${this.apiUrl}/conteo-productos/${conteoId}`);
+  }
+
 }

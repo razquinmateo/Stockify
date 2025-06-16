@@ -24,4 +24,6 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
      * @return Optional con la categoría activa, o vacío si no existe o está inactiva.
      */
     Optional<Categoria> findByIdAndActivoTrue(Long id);
+
+    List<Categoria> findBySucursalIdAndActivoTrue(Long sucursalId);
 }

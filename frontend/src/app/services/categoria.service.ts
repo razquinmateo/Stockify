@@ -23,6 +23,10 @@ export class CategoriaService {
     return this.http.get<Categoria[]>(`${this.apiUrl}/all`);
   }
 
+  obtenerCategoriasPorSucursal(sucursalId: number): Observable<Categoria[]> {
+    return this.http.get<Categoria[]>(`${this.apiUrl}/sucursal/${sucursalId}`);
+  }
+
   agregarCategoria(categoria: Categoria): Observable<Categoria> {
     return this.http.post<Categoria>(`${this.apiUrl}`, categoria);
   }

@@ -30,25 +30,22 @@
 
   <!-- Buscador y Botones -->
   <div class="d-flex justify-content-between align-items-start mb-4 flex-wrap gap-3">
-
     <!-- Izquierda: Buscador -->
     <div class="flex-grow-1">
-      <input type="text" class="form-control" placeholder="Buscar por fecha o administrador..." [(ngModel)]="filtro" />
+      <input type="text" class="form-control" placeholder="Buscar por fecha, administrador o tipo..." [(ngModel)]="filtro" />
     </div>
 
     <!-- Botones -->
     <div class="d-flex justify-content-center gap-3">
       <button class="btn btn-primary" [disabled]="hayConteoActivoEnSucursal()"
-        [title]="hayConteoActivoEnSucursal() ? 'Ya hay un conteo activo en la sucursal' : ''" (click)="empezarConteo()">
+        [title]="hayConteoActivoEnSucursal() ? 'Ya hay un conteo activo en la sucursal' : ''" (click)="abrirModalTipoConteo()">
         Empezar conteo
       </button>
-
       <button class="btn btn-outline-primary" [disabled]="!hayConteoActivoEnSucursal()"
         [title]="!hayConteoActivoEnSucursal() ? 'No hay un conteo activo para unirse' : ''" (click)="unirseConteo()">
         <i class="bi bi-person-plus me-1"></i> Unirse al Conteo
       </button>
     </div>
-
   </div>
 
   <!-- Tabla -->
@@ -56,6 +53,7 @@
     <table class="table table-bordered text-center align-middle" *ngIf="filtrarConteos().length > 0; else sinConteos">
       <thead class="table-dark">
         <tr>
+          <th>Tipo</th>
           <th>Fecha/Hora</th>
           <th>Participantes</th>
           <th>Finalizado</th>
@@ -64,6 +62,7 @@
       </thead>
       <tbody>
         <tr *ngFor="let conteo of obtenerConteosPaginados(); let i = index">
+          <td>{{ getTipoConteoDisplay(conteo.tipoConteo) }}</td>
           <td>{{ conteo.fechaHora | date: 'dd/MM/yyyy HH:mm' }}</td>
           <td>
             <button class="btn btn-primary btn-sm" (click)="abrirModalParticipantes(conteo.id)"
@@ -130,10 +129,8 @@
         </h5>
         <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
-
       <div class="modal-body">
         <form (ngSubmit)="guardarConteo()">
-
           <div class="mb-3">
             <label class="form-label">Asignar a:</label>
             <select class="form-select" [(ngModel)]="conteoSeleccionado.usuarioId" name="usuarioId" required>
@@ -142,10 +139,8 @@
               </option>
             </select>
           </div>
-
         </form>
       </div>
-
       <div class="modal-footer bg-light">
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
           Cancelar
@@ -153,6 +148,29 @@
         <button type="button" class="btn btn-success" (click)="guardarConteo()">
           {{ esEditar ? 'Guardar Cambios' : 'Agregar Conteo' }}
         </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal para Seleccionar Tipo de Conteo -->
+<div class="modal fade show" tabindex="-1" style="display: block; background-color: rgba(0,0,0,0.5);"
+  *ngIf="mostrarModalTipoConteo">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-primary text-white">
+        <h5 class="modal-title">Seleccionar Tipo de Conteo</h5>
+        <button type="button" class="btn-close btn-close-white" (click)="cerrarModalTipoConteo()"></button>
+      </div>
+      <div class="modal-body">
+        <p>Selecciona el tipo de conteo que deseas iniciar:</p>
+        <div class="d-flex justify-content-around">
+          <button class="btn btn-primary" (click)="crearConteo('LIBRE')">Libre</button>
+          <button class="btn btn-primary" (click)="crearConteo('CATEGORIAS')">Por rubro</button>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" (click)="cerrarModalTipoConteo()">Cancelar</button>
       </div>
     </div>
   </div>

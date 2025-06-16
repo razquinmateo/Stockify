@@ -1,10 +1,10 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { Component, OnInit, OnDestroy, NgZone } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Router, RouterModule } from '@angular/router';
 import Swal from 'sweetalert2';
 import { Subscription } from 'rxjs';
 import { AuthService } from '../../auth.service';
-import { ConteoService } from '../../services/conteo.service';
+import { ConteoService, Conteo } from '../../services/conteo.service';
 import { WsService, ConteoMensaje } from '../../services/webSocket/ws.service';
 
 @Component({
@@ -16,61 +16,115 @@ import { WsService, ConteoMensaje } from '../../services/webSocket/ws.service';
 })
 export class EmpleadoComponent implements OnInit, OnDestroy {
   private readonly STORAGE_KEY = 'conteoActivoRecibido';
-  private wsSubs: Subscription[] = [];
-  private isModalOpen = false; // Bandera para rastrear si el modal está abierto
+  private wsSub?: Subscription;
+  private isModalOpen = false;
 
   constructor(
     private authService: AuthService,
     private conteoService: ConteoService,
     private wsService: WsService,
-    private router: Router
-  ) { }
+    private router: Router,
+    private ngZone: NgZone
+  ) {}
 
   ngOnInit(): void {
+    const sucursalId = this.authService.getSucursalId();
+
+    if (!sucursalId) {
+      Swal.fire('Error', 'No se pudo obtener el ID de la sucursal', 'error');
+      this.router.navigate(['/login']);
+      return;
+    }
+
     this.conteoService.getActiveConteos().subscribe({
       next: conteos => {
-        if (conteos.length > 0) {
-          const msg = { id: conteos[0].id, fechaHora: conteos[0].fechaHora.toString() };
-          localStorage.setItem(this.STORAGE_KEY, JSON.stringify(msg));
-          this.router.navigate(['/empleado/conteo-libre']);
+        const conteoActivo = conteos.find(c =>
+          !c.conteoFinalizado && c.activo && c.usuarioId !== undefined
+        );
+
+        if (conteoActivo && conteoActivo.tipoConteo) {
+          this.navigateToConteo(conteoActivo);
         } else {
-          this.mostrarModalEsperandoConteo();
+          this.waitForConteo(sucursalId);
         }
       },
       error: () => {
         Swal.fire('Error', 'No se pudo verificar conteos activos', 'error');
-        this.mostrarModalEsperandoConteo();
+        this.waitForConteo(sucursalId);
       }
     });
-
-    this.wsSubs.push(
-      this.wsService.onConteoActivo().subscribe(msg => {
-        localStorage.setItem(this.STORAGE_KEY, JSON.stringify(msg));
-        if (this.isModalOpen) {
-          Swal.close(); // Cierra el modal si está abierto
-          this.isModalOpen = false; // Actualiza la bandera
-        }
-        this.router.navigate(['/empleado/conteo-libre']);
-      })
-    );
   }
 
   ngOnDestroy(): void {
-    this.wsSubs.forEach(sub => sub.unsubscribe());
+    this.wsSub?.unsubscribe();
     if (this.isModalOpen) {
-      Swal.close(); // Cierra el modal si está abierto al destruir el componente
+      Swal.close();
       this.isModalOpen = false;
     }
   }
 
+  private waitForConteo(sucursalId: number): void {
+    this.mostrarModalEsperandoConteo();
+
+    this.wsSub = this.wsService.onConteoActivo().subscribe((msg: ConteoMensaje) => {
+      console.log('Conteo activo recibido por WebSocket:', msg);
+
+      this.conteoService.getById(msg.id).subscribe({
+        next: conteo => {
+          if (conteo && conteo.usuarioId !== undefined) {
+            this.authService.getAllUsuarios().subscribe({
+              next: usuarios => {
+                const creador = usuarios.find(u => u.id === conteo.usuarioId);
+                if (creador?.sucursalId === sucursalId) {
+                  // Guardar en localStorage solo lo que se necesita
+                  localStorage.setItem(this.STORAGE_KEY, JSON.stringify({
+                    id: conteo.id,
+                    tipoConteo: conteo.tipoConteo,
+                    fechaHora: conteo.fechaHora
+                  }));
+                  this.navigateToConteo(conteo);
+                } else {
+                  console.warn(`Conteo ${conteo.id} no pertenece a esta sucursal`);
+                }
+              },
+              error: () => {
+                console.error('No se pudieron cargar los usuarios para validar sucursal');
+              }
+            });
+          }
+        },
+        error: () => {
+          console.error(`No se pudo obtener el conteo con ID ${msg.id}`);
+        }
+      });
+    });
+  }
+
+  private navigateToConteo(conteo: Conteo): void {
+    if (this.isModalOpen) {
+      Swal.close();
+      this.isModalOpen = false;
+    }
+
+    const ruta = conteo.tipoConteo === 'LIBRE'
+      ? `/empleado/conteo-libre/${conteo.id}`
+      : `/empleado/conteo-categorias/${conteo.id}`;
+
+    console.log(`Redirigiendo a: ${ruta}`);
+
+    this.ngZone.run(() => {
+      this.router.navigate([ruta]);
+    });
+  }
+
   logout(): void {
-    localStorage.clear();
+    localStorage.removeItem(this.STORAGE_KEY);
     this.authService.logout();
     this.router.navigate(['/login']);
   }
 
-  private mostrarModalEsperandoConteo() {
-    this.isModalOpen = true; // Marca que el modal está abierto
+  private mostrarModalEsperandoConteo(): void {
+    this.isModalOpen = true;
     Swal.fire({
       title: 'Conteo pendiente',
       text: 'Esperando a que inicie el conteo...',
