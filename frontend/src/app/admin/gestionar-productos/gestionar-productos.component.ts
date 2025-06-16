@@ -3,7 +3,11 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
 import { NgSelectModule } from '@ng-select/ng-select';
-import { ProductoService, Producto, Proveedor } from '../../services/producto.service';
+import {
+  ProductoService,
+  Producto,
+  Proveedor,
+} from '../../services/producto.service';
 import { CategoriaService, Categoria } from '../../services/categoria.service';
 import { LoteService, Lote } from '../../services/lote.service';
 import { AuthService } from '../../auth.service';
@@ -21,7 +25,7 @@ declare var bootstrap: any;
   standalone: true,
   imports: [CommonModule, FormsModule, RouterModule, NgSelectModule],
   templateUrl: './gestionar-productos.component.html',
-  styleUrls: ['./gestionar-productos.component.css']
+  styleUrls: ['./gestionar-productos.component.css'],
 })
 export class GestionarProductosComponent implements OnInit {
   productos: Producto[] = [];
@@ -44,7 +48,7 @@ export class GestionarProductosComponent implements OnInit {
     private loteService: LoteService,
     private authService: AuthService,
     private router: Router
-  ) { }
+  ) {}
 
   ngOnInit(): void {
     this.productoSeleccionado = this.resetProducto();
@@ -63,59 +67,148 @@ export class GestionarProductosComponent implements OnInit {
       const hoja = workbook.Sheets[workbook.SheetNames[0]];
       const productosExcelRaw = XLSX.utils.sheet_to_json(hoja);
 
-      // Normalizar claves
-          const productosExcel = productosExcelRaw.map((prod: any) => {
-            const productoNormalizado: any = {};
+      let detectoErrorFecha = false;
 
-            for (const clave in prod) {
-              const valor = prod[clave];
-              const claveLower = clave.toLowerCase().trim();
+      // Normalizar claves y parsear precios
+      const productosExcel = productosExcelRaw.map((prod: any) => {
+        const productoNormalizado: any = {};
 
-            /* "Código de barras", "codigo", "barcode" → codigoBarra
-            "Precio unitario", "coste" → precio
-            "Stock", "Cantidad", "Existencia" → cantidadStock */
+        for (const clave in prod) {
+          const valor = prod[clave];
+          const claveLower = clave.toLowerCase().trim();
 
-              if (["codigo", "código", "código de barras", "codigo de barras", "barcode"].includes(claveLower)) {
-                productoNormalizado.codigoBarra = valor;
-              } else if (["precio", "precio unitario", "coste"].includes(claveLower)) {
-                productoNormalizado.precio = valor;
-              } else if (["stock", "cantidad", "cantidad stock", "existencia"].includes(claveLower)) {
-                productoNormalizado.cantidadStock = valor;
-              } else {
-                productoNormalizado[clave] = valor; // conservar el resto
-              }
+          if (
+            [
+              'codigo',
+              'código',
+              'código de barras',
+              'codigo de barras',
+              'barcode',
+            ].includes(claveLower)
+          ) {
+            productoNormalizado.codigoBarra = valor;
+          } else if (
+            ['precio', 'precio unitario', 'coste'].includes(claveLower)
+          ) {
+            if (typeof valor === 'number' && valor > 40000) {
+              detectoErrorFecha = true;
+              productoNormalizado.precio = null; // ignorar precio con formato fecha
+            } else {
+              productoNormalizado.precio = this.parsearPrecio(valor);
             }
+          } else if (
+            ['stock', 'cantidad', 'cantidad stock', 'existencia'].includes(
+              claveLower
+            )
+          ) {
+            productoNormalizado.cantidadStock =
+              typeof valor === 'number' ? valor : parseInt(valor, 10);
+          } else {
+            productoNormalizado[clave] = valor;
+          }
+        }
 
-            return productoNormalizado;
-          });
+        return productoNormalizado;
+      });
 
-      // Validar y enviar al backend
-      this.actualizarProductosDesdeExcel(productosExcel);
+      // Filtrar productos con código y precio o cantidad válida
+      const productosValidos = productosExcel.filter(
+        (p) =>
+          p.codigoBarra &&
+          (typeof p.precio === 'number' || typeof p.cantidadStock === 'number')
+      );
+
+      if (detectoErrorFecha) {
+        // Mostrar advertencia pero seguir con la actualización si hay productos válidos
+        Swal.fire({
+          icon: 'warning',
+          title: 'Posible error en el archivo Excel',
+          html: `
+              <p>El archivo contiene valores que parecen <b>fechas</b> en la columna de <b>precios</b>  .</p>
+              <p><u>Estos precios serán ignorados.</u></p>
+              <hr />
+              <p><b>Solución:</b> Abre el archivo Excel, selecciona la columna de precios y cámbiala al formato <b>Texto</b>.</p>
+            `,
+          confirmButtonText: 'Entendido',
+        }).then(() => {
+          if (productosValidos.length > 0) {
+            this.actualizarProductosDesdeExcel(productosValidos);
+          } else {
+            // No hay productos válidos para actualizar después de ignorar precios con formato fecha
+            Swal.fire(
+              'Archivo inválido',
+              'No se encontraron productos válidos para actualizar.',
+              'warning'
+            );
+          }
+        });
+      } else {
+        // No hay errores, actualizar normalmente si hay productos válidos
+        if (productosValidos.length > 0) {
+          this.actualizarProductosDesdeExcel(productosValidos);
+        } else {
+          Swal.fire(
+            'Archivo inválido',
+            'No se encontraron productos válidos para actualizar.',
+            'warning'
+          );
+        }
+      }
     };
+
     lector.readAsArrayBuffer(archivo);
   }
 
+  parsearPrecio(valor: any): number | null {
+    if (typeof valor === 'string') {
+      const valorParseado = parseFloat(valor.replace(',', '.'));
+      return isNaN(valorParseado) ? null : valorParseado;
+    }
+
+    if (typeof valor === 'number') {
+      if (valor > 40000) {
+        return null;
+      }
+      return valor;
+    }
+
+    return null;
+  }
+
   actualizarProductosDesdeExcel(productos: any[]): void {
-    const productosValidos = productos.filter(p =>
-      p.codigoBarra && (typeof p.precio === 'number' || typeof p.cantidadStock === 'number'
-    ));
+    const productosValidos = productos.filter(
+      (p) =>
+        p.codigoBarra &&
+        (typeof p.precio === 'number' || typeof p.cantidadStock === 'number')
+    );
 
     if (productosValidos.length === 0) {
-      Swal.fire('Archivo inválido', 'No se encontraron productos válidos para actualizar.', 'warning');
+      Swal.fire(
+        'Archivo inválido',
+        'No se encontraron productos válidos para actualizar.',
+        'warning'
+      );
       return;
     }
 
     this.productoService.actualizarMasivoProductos(productosValidos).subscribe({
       next: () => {
-        Swal.fire('Actualización exitosa', 'Se actualizaron los productos correctamente.', 'success');
+        Swal.fire(
+          'Actualización exitosa',
+          'Se actualizaron los productos correctamente.',
+          'success'
+        );
         this.cargarDatosIniciales();
       },
       error: (err) => {
         console.error('Error del backend:', err);
-        Swal.fire('Error', 'Ocurrió un error al actualizar productos.', 'error');
-      }
+        Swal.fire(
+          'Error',
+          'Ocurrió un error al actualizar productos.',
+          'error'
+        );
+      },
     });
-
   }
 
   cargarDatosIniciales(): void {
@@ -124,12 +217,15 @@ export class GestionarProductosComponent implements OnInit {
       forkJoin({
         productos: this.productoService.obtenerTodosLosProductos(),
         categorias: this.categoriaService.obtenerTodasLasCategorias(),
-        proveedores: this.productoService.obtenerProveedoresActivosPorSucursal(sucursalId)
+        proveedores:
+          this.productoService.obtenerProveedoresActivosPorSucursal(sucursalId),
       }).subscribe({
         next: ({ productos, categorias, proveedores }) => {
-          this.categorias = categorias.filter(cat => cat.sucursalId === sucursalId);
+          this.categorias = categorias.filter(
+            (cat) => cat.sucursalId === sucursalId
+          );
           this.proveedores = proveedores;
-          const categoriaRequests: Observable<any>[] = productos.map(prod =>
+          const categoriaRequests: Observable<any>[] = productos.map((prod) =>
             prod.categoriaId
               ? this.productoService.obtenerCategoriaPorId(prod.categoriaId)
               : of({ nombre: 'Sin Categoría' })
@@ -139,27 +235,41 @@ export class GestionarProductosComponent implements OnInit {
               productos.forEach((prod, index) => {
                 prod.categoriaNombre = categoriaResponses[index].nombre;
                 prod.proveedorNombres = prod.proveedorIds
-                  ? prod.proveedorIds.map(id => {
-                      const proveedor = this.proveedores.find(p => p.id === id);
+                  ? prod.proveedorIds.map((id) => {
+                      const proveedor = this.proveedores.find(
+                        (p) => p.id === id
+                      );
                       return proveedor ? proveedor.nombre : 'Desconocido';
                     })
                   : [];
                 // Sanitize imagen to prevent invalid base64
                 if (prod.imagen && !this.isValidBase64Image(prod.imagen)) {
-                  console.warn(`Invalid imagen for product ${prod.id}: ${prod.imagen}`);
+                  console.warn(
+                    `Invalid imagen for product ${prod.id}: ${prod.imagen}`
+                  );
                   prod.imagen = null;
                 }
               });
-              this.productos = productos.filter(prod => prod.sucursalId === sucursalId);
+              this.productos = productos.filter(
+                (prod) => prod.sucursalId === sucursalId
+              );
             },
             error: () => {
-              Swal.fire('Error', 'No se pudieron cargar las categorías', 'error');
-            }
+              Swal.fire(
+                'Error',
+                'No se pudieron cargar las categorías',
+                'error'
+              );
+            },
           });
         },
         error: () => {
-          Swal.fire('Error', 'No se pudieron cargar los datos iniciales', 'error');
-        }
+          Swal.fire(
+            'Error',
+            'No se pudieron cargar los datos iniciales',
+            'error'
+          );
+        },
       });
     } else {
       this.productos = [];
@@ -170,7 +280,11 @@ export class GestionarProductosComponent implements OnInit {
   }
 
   isValidBase64Image(imagen: string): boolean {
-    if (!imagen || !imagen.startsWith('data:image/') || !imagen.includes('base64,')) {
+    if (
+      !imagen ||
+      !imagen.startsWith('data:image/') ||
+      !imagen.includes('base64,')
+    ) {
       return false;
     }
     try {
@@ -192,7 +306,10 @@ export class GestionarProductosComponent implements OnInit {
 
   editarProducto(prod: Producto): void {
     this.esEditar = true;
-    this.productoSeleccionado = { ...prod, proveedorIds: prod.proveedorIds || [] };
+    this.productoSeleccionado = {
+      ...prod,
+      proveedorIds: prod.proveedorIds || [],
+    };
     this.mostrarCamara = false;
     this.mostrarModal('productoModal');
   }
@@ -204,8 +321,13 @@ export class GestionarProductosComponent implements OnInit {
   }
 
   guardarLote(): void {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('loteModal'));
-    if (!this.loteSeleccionado.numeroLote || !this.loteSeleccionado.fechaIngreso) {
+    const modal = bootstrap.Modal.getInstance(
+      document.getElementById('loteModal')
+    );
+    if (
+      !this.loteSeleccionado.numeroLote ||
+      !this.loteSeleccionado.fechaIngreso
+    ) {
       Swal.fire({
         icon: 'warning',
         title: 'Campos requeridos',
@@ -213,7 +335,10 @@ export class GestionarProductosComponent implements OnInit {
       });
       return;
     }
-    if (this.loteSeleccionado.cantidadStock == null || this.loteSeleccionado.cantidadStock < 0) {
+    if (
+      this.loteSeleccionado.cantidadStock == null ||
+      this.loteSeleccionado.cantidadStock < 0
+    ) {
       Swal.fire({
         icon: 'warning',
         title: 'Cantidad inválida',
@@ -232,7 +357,7 @@ export class GestionarProductosComponent implements OnInit {
 
     const loteData: Lote = {
       ...this.loteSeleccionado,
-      activo: true
+      activo: true,
     };
 
     this.loteService.agregarLote(loteData).subscribe({
@@ -243,14 +368,15 @@ export class GestionarProductosComponent implements OnInit {
           title: 'Lote agregado',
           text: 'El lote ha sido agregado correctamente',
           timer: 1500,
-          showConfirmButton: false
+          showConfirmButton: false,
         });
         this.cargarDatosIniciales();
       },
       error: (error: HttpErrorResponse) => {
         let errorMessage = 'Error al agregar el lote';
         if (error.status === 403) {
-          errorMessage = 'Acceso denegado. Por favor, inicia sesión nuevamente.';
+          errorMessage =
+            'Acceso denegado. Por favor, inicia sesión nuevamente.';
           Swal.fire({
             icon: 'error',
             title: 'Error',
@@ -273,7 +399,7 @@ export class GestionarProductosComponent implements OnInit {
             text: `${errorMessage}: ${error.message}`,
           });
         }
-      }
+      },
     });
   }
 
@@ -286,8 +412,8 @@ export class GestionarProductosComponent implements OnInit {
       icon: 'warning',
       showCancelButton: true,
       confirmButtonText: `Sí, ${accion}`,
-      cancelButtonText: 'Cancelar'
-    }).then(result => {
+      cancelButtonText: 'Cancelar',
+    }).then((result) => {
       if (result.isConfirmed) {
         const productoActualizado = { ...prod, activo: nuevoEstado };
         this.productoService.actualizarProducto(productoActualizado).subscribe({
@@ -296,26 +422,42 @@ export class GestionarProductosComponent implements OnInit {
             this.cargarDatosIniciales();
           },
           error: (err: HttpErrorResponse) => {
-            Swal.fire('Error', err.error.message || `No se pudo ${accion} el producto`, 'error');
-          }
+            Swal.fire(
+              'Error',
+              err.error.message || `No se pudo ${accion} el producto`,
+              'error'
+            );
+          },
         });
       }
     });
   }
 
   guardarProducto(): void {
-    const modal = bootstrap.Modal.getInstance(document.getElementById('productoModal'));
-    if (!this.productoSeleccionado.nombre ||
-        !this.productoSeleccionado.codigoBarra ||
-        this.productoSeleccionado.categoriaId === 0 ||
-        this.productoSeleccionado.precio < 0 ||
-        this.productoSeleccionado.cantidadStock < 0) {
-      Swal.fire('Error', 'Por favor completa todos los campos requeridos correctamente', 'error');
+    const modal = bootstrap.Modal.getInstance(
+      document.getElementById('productoModal')
+    );
+    if (
+      !this.productoSeleccionado.nombre ||
+      !this.productoSeleccionado.codigoBarra ||
+      this.productoSeleccionado.categoriaId === 0 ||
+      this.productoSeleccionado.precio < 0 ||
+      this.productoSeleccionado.cantidadStock < 0
+    ) {
+      Swal.fire(
+        'Error',
+        'Por favor completa todos los campos requeridos correctamente',
+        'error'
+      );
       return;
     }
     if (this.productoSeleccionado.imagen) {
       if (!this.isValidBase64Image(this.productoSeleccionado.imagen)) {
-        Swal.fire('Error', 'El formato de la imagen no es válido o los datos base64 son incorrectos', 'error');
+        Swal.fire(
+          'Error',
+          'El formato de la imagen no es válido o los datos base64 son incorrectos',
+          'error'
+        );
         return;
       }
       try {
@@ -326,7 +468,11 @@ export class GestionarProductosComponent implements OnInit {
           return;
         }
       } catch (e) {
-        Swal.fire('Error', 'No se pudo procesar la imagen: formato base64 inválido', 'error');
+        Swal.fire(
+          'Error',
+          'No se pudo procesar la imagen: formato base64 inválido',
+          'error'
+        );
         return;
       }
     }
@@ -335,7 +481,11 @@ export class GestionarProductosComponent implements OnInit {
       this.productoService.actualizarProducto(productoToSave).subscribe({
         next: () => {
           modal.hide();
-          Swal.fire('Actualizado', 'El producto ha sido actualizado', 'success');
+          Swal.fire(
+            'Actualizado',
+            'El producto ha sido actualizado',
+            'success'
+          );
           this.cargarDatosIniciales();
           this.cerrarCamara();
         },
@@ -344,7 +494,8 @@ export class GestionarProductosComponent implements OnInit {
           if (err.status === 400) {
             errorMessage = err.error || 'Error en los datos proporcionados';
           } else if (err.status === 403) {
-            errorMessage = 'Acceso denegado. Por favor, inicia sesión nuevamente.';
+            errorMessage =
+              'Acceso denegado. Por favor, inicia sesión nuevamente.';
             Swal.fire({
               icon: 'error',
               title: 'Error',
@@ -356,7 +507,7 @@ export class GestionarProductosComponent implements OnInit {
             return;
           }
           Swal.fire('Error', errorMessage, 'error');
-        }
+        },
       });
     } else {
       this.productoService.agregarProducto(productoToSave).subscribe({
@@ -371,7 +522,8 @@ export class GestionarProductosComponent implements OnInit {
           if (err.status === 400) {
             errorMessage = err.error || 'Error en los datos proporcionados';
           } else if (err.status === 403) {
-            errorMessage = 'Acceso denegado. Por favor, inicia sesión nuevamente.';
+            errorMessage =
+              'Acceso denegado. Por favor, inicia sesión nuevamente.';
             Swal.fire({
               icon: 'error',
               title: 'Error',
@@ -383,7 +535,7 @@ export class GestionarProductosComponent implements OnInit {
             return;
           }
           Swal.fire('Error', errorMessage, 'error');
-        }
+        },
       });
     }
   }
@@ -405,7 +557,7 @@ export class GestionarProductosComponent implements OnInit {
       sucursalId: this.authService.getSucursalId() || 0,
       categoriaId: 0,
       activo: true,
-      proveedorIds: []
+      proveedorIds: [],
     };
   }
 
@@ -417,24 +569,36 @@ export class GestionarProductosComponent implements OnInit {
       fechaVencimiento: null,
       cantidadStock: 0,
       activo: true,
-      productoId: null
+      productoId: null,
     };
   }
 
   filtrarProductos(): Producto[] {
-    return this.productos.filter(prod =>
-      prod.nombre.toLowerCase().includes(this.filtro.toLowerCase()) ||
-      prod.detalle.toLowerCase().includes(this.filtro.toLowerCase()) ||
-      prod.codigoBarra.includes(this.filtro) ||
-      prod.id.toString().includes(this.filtro) ||
-      (prod.categoriaNombre && prod.categoriaNombre.toLowerCase().includes(this.filtro.toLowerCase())) ||
-      (prod.proveedorNombres && prod.proveedorNombres.some(nombre => nombre.toLowerCase().includes(this.filtro.toLowerCase())))
-    ).sort((a, b) => a.id - b.id);
+    return this.productos
+      .filter(
+        (prod) =>
+          prod.nombre.toLowerCase().includes(this.filtro.toLowerCase()) ||
+          prod.detalle.toLowerCase().includes(this.filtro.toLowerCase()) ||
+          prod.codigoBarra.includes(this.filtro) ||
+          prod.id.toString().includes(this.filtro) ||
+          (prod.categoriaNombre &&
+            prod.categoriaNombre
+              .toLowerCase()
+              .includes(this.filtro.toLowerCase())) ||
+          (prod.proveedorNombres &&
+            prod.proveedorNombres.some((nombre) =>
+              nombre.toLowerCase().includes(this.filtro.toLowerCase())
+            ))
+      )
+      .sort((a, b) => a.id - b.id);
   }
 
   obtenerProductosPaginados(): Producto[] {
     const inicio = (this.paginaActual - 1) * this.elementosPorPagina;
-    return this.filtrarProductos().slice(inicio, inicio + this.elementosPorPagina);
+    return this.filtrarProductos().slice(
+      inicio,
+      inicio + this.elementosPorPagina
+    );
   }
 
   totalPaginas(): number {
@@ -459,7 +623,11 @@ export class GestionarProductosComponent implements OnInit {
       reader.onload = () => {
         const imageData = reader.result as string;
         if (!this.isValidBase64Image(imageData)) {
-          Swal.fire('Error', 'La imagen debe ser un formato de imagen válido en base64', 'error');
+          Swal.fire(
+            'Error',
+            'La imagen debe ser un formato de imagen válido en base64',
+            'error'
+          );
           input.value = '';
           return;
         }
@@ -474,18 +642,27 @@ export class GestionarProductosComponent implements OnInit {
     setTimeout(() => {
       this.videoElement = document.getElementById('video') as HTMLVideoElement;
       if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
-        navigator.mediaDevices.getUserMedia({ video: true })
-          .then(stream => {
+        navigator.mediaDevices
+          .getUserMedia({ video: true })
+          .then((stream) => {
             if (this.videoElement) {
               this.videoElement.srcObject = stream;
             }
           })
-          .catch(err => {
-            Swal.fire('Error', 'No se pudo acceder a la cámara: ' + err.message, 'error');
+          .catch((err) => {
+            Swal.fire(
+              'Error',
+              'No se pudo acceder a la cámara: ' + err.message,
+              'error'
+            );
             this.mostrarCamara = false;
           });
       } else {
-        Swal.fire('Error', 'La API de la cámara no está soportada en este navegador', 'error');
+        Swal.fire(
+          'Error',
+          'La API de la cámara no está soportada en este navegador',
+          'error'
+        );
         this.mostrarCamara = false;
       }
     }, 0);
@@ -500,19 +677,31 @@ export class GestionarProductosComponent implements OnInit {
         ctx.drawImage(this.videoElement, 0, 0);
         const imageData = this.canvas.toDataURL('image/jpeg');
         if (!this.isValidBase64Image(imageData)) {
-          Swal.fire('Error', 'La imagen capturada tiene un formato inválido', 'error');
+          Swal.fire(
+            'Error',
+            'La imagen capturada tiene un formato inválido',
+            'error'
+          );
           return;
         }
         try {
           const imgSizeBytes = atob(imageData.split(',')[1]).length;
           if (imgSizeBytes > 1_000_000) {
-            Swal.fire('Error', 'La imagen capturada no debe exceder 1MB', 'error');
+            Swal.fire(
+              'Error',
+              'La imagen capturada no debe exceder 1MB',
+              'error'
+            );
             return;
           }
           this.productoSeleccionado.imagen = imageData;
           this.cerrarCamara();
         } catch (e) {
-          Swal.fire('Error', 'No se pudo procesar la imagen capturada: formato base64 inválido', 'error');
+          Swal.fire(
+            'Error',
+            'No se pudo procesar la imagen capturada: formato base64 inválido',
+            'error'
+          );
           return;
         }
       }
@@ -522,7 +711,7 @@ export class GestionarProductosComponent implements OnInit {
   cerrarCamara(): void {
     if (this.videoElement && this.videoElement.srcObject) {
       const stream = this.videoElement.srcObject as MediaStream;
-      stream.getTracks().forEach(track => track.stop());
+      stream.getTracks().forEach((track) => track.stop());
       this.videoElement.srcObject = null;
     }
     this.mostrarCamara = false;
