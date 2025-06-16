@@ -316,14 +316,12 @@ export class ReporteConteoComponent implements OnInit {
           finalY = (doc as any).lastAutoTable.finalY || finalY;
           finalY += 5;
 
-          // Totales por categoría
+          // Totales por categoría (Egresos primero, luego Ingresos)
           doc.setFontSize(10);
           doc.setFont('helvetica', 'bold');
-
-          doc.text(`Ingresos: ${categoria.ingresos} unidades`, 14, finalY);
-          finalY += 6; // espacio entre líneas
-
           doc.text(`Egresos: ${categoria.egresos} unidades`, 14, finalY);
+          finalY += 6; // espacio entre líneas
+          doc.text(`Ingresos: ${categoria.ingresos} unidades`, 14, finalY);
           finalY += 10; // espacio después del bloque
 
           // Espacio entre categorías
@@ -334,20 +332,21 @@ export class ReporteConteoComponent implements OnInit {
       });
     }
 
-    // Totales Generales
+    // Totales Generales (Egresos primero, luego Ingresos, luego Diferencia)
     doc.setFontSize(12);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0);
     doc.text('Totales Generales:', 14, finalY + 10);
 
     doc.setFont('helvetica', 'normal');
-    doc.text(`Ingresos Totales: ${this.ingresosTotales} unidades`, 14, finalY + 18);
-    doc.text(`Egresos Totales: ${this.egresosTotales} unidades`, 14, finalY + 26);
+    doc.text(`Egresos Totales: ${this.egresosTotales} unidades`, 14, finalY + 18);
+    doc.text(`Ingresos Totales: ${this.ingresosTotales} unidades`, 14, finalY + 26);
+    doc.text(`Diferencia: ${this.egresosTotales - this.ingresosTotales} unidades`, 14, finalY + 34);
 
     // Línea divisoria final
     doc.setDrawColor(200);
     doc.setLineWidth(0.5);
-    doc.line(14, finalY + 32, 196, finalY + 32);
+    doc.line(14, finalY + 40, 196, finalY + 40);
 
     // Agregar pie de página a todas las páginas
     const pageCount = doc.getNumberOfPages();
@@ -377,6 +376,6 @@ export class ReporteConteoComponent implements OnInit {
   }
 
   volver(): void {
-    this.router.navigate(['A', '/admin-gestionar-conteos']);
+    this.router.navigate(['/admin/gestionar-conteos']);
   }
 }

@@ -80,7 +80,6 @@ export class EstadisticasComponent implements OnInit {
         });
     }
 
-
     private formatDate(fecha: Date): string {
         const yyyy = fecha.getFullYear();
         const mm = String(fecha.getMonth() + 1).padStart(2, '0');
@@ -168,7 +167,7 @@ export class EstadisticasComponent implements OnInit {
             return;
         }
 
-        const sucursalIdSeguro = this.sucursalId; // variable local no nula
+        const sucursalIdSeguro = this.sucursalId;
 
         this.estadisticasService.getDineroFaltantePorMes(this.anioActual, sucursalIdSeguro).subscribe({
             next: (dataFaltante) => {
@@ -194,7 +193,6 @@ export class EstadisticasComponent implements OnInit {
         });
     }
 
-
     private filterAndLimitData<T>(data: T[]): T[] {
         return data.slice(0, this.limit);
     }
@@ -209,88 +207,71 @@ export class EstadisticasComponent implements OnInit {
     async downloadReport(): Promise<void> {
         try {
             this.loading = true;
-            const doc = new jsPDF('p', 'mm', 'a4');
-            const pageWidth = doc.internal.pageSize.getWidth();
-            const pageHeight = doc.internal.pageSize.getHeight();
-            const margin = 15;
-            const primaryColor: [number, number, number] = [43, 74, 123];
-            const secondaryColor: [number, number, number] = [224, 231, 255];
-            const textColor: [number, number, number] = [51, 51, 51];
-            const whiteColor: [number, number, number] = [255, 255, 255];
+            const doc = new jsPDF({
+                orientation: 'portrait',
+                unit: 'mm',
+                format: 'a4'
+            });
 
-            const addFooter = (pageNum: number) => {
-                doc.setFontSize(10);
-                doc.setTextColor(textColor[0], textColor[1], textColor[2]);
-                doc.setFont('helvetica', 'normal');
-                doc.text(`Stockify - Reporte de Inventario | Página ${pageNum}`, pageWidth / 2, pageHeight - 10, { align: 'center' });
-                doc.text(`Generado el ${new Date().toLocaleDateString()}`, margin, pageHeight - 10);
-            };
-
+            // Configurar fuente
             doc.setFont('helvetica', 'normal');
-            doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-            doc.rect(0, 0, pageWidth, 30, 'F');
-            doc.setFontSize(22);
-            doc.setTextColor(whiteColor[0], whiteColor[1], whiteColor[2]);
+
+            // Encabezado
+            doc.setFontSize(10);
+            doc.setTextColor(100);
+            doc.text('Stockify', 14, 15);
+
+            doc.setFontSize(16);
+            doc.setTextColor(0);
             doc.setFont('helvetica', 'bold');
-            doc.text('Reporte de Inventario - Stockify', pageWidth / 2, 20, { align: 'center' });
+            doc.text('Reporte de Inventario', 14, 25);
 
-            let yPosition = 40;
             doc.setFontSize(12);
-            doc.setTextColor(textColor[0], textColor[1], textColor[2]);
             doc.setFont('helvetica', 'normal');
-            doc.text(`Generado por: ${this.nombreUsuarioLogueado}`, margin, yPosition);
-            yPosition += 7;
-            doc.text(`Fecha: ${new Date().toLocaleDateString()}`, margin, yPosition);
-            yPosition += 7;
-            doc.text(`Período: ${this.fechaDesde} a ${this.fechaHasta}`, margin, yPosition);
-            yPosition += 10;
+            doc.text(`Fecha: ${new Date().toLocaleDateString('es-AR')}`, 14, 33);
+            doc.text(`Período: ${this.fechaDesde} a ${this.fechaHasta}`, 14, 41);
+            doc.text(`Generado por: ${this.nombreUsuarioLogueado}`, 14, 49);
 
+            // Línea divisoria
+            doc.setDrawColor(200);
+            doc.setLineWidth(0.5);
+            doc.line(14, 54, 196, 54);
+
+            let yPosition = 64;
+
+            // Resumen General
             doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
-            doc.text('Resumen General', margin, yPosition);
-            yPosition += 5;
-            doc.setLineWidth(0.5);
-            doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-            doc.line(margin, yPosition, pageWidth - margin, yPosition);
-            yPosition += 10;
+            doc.text('Resumen General', 14, yPosition);
+            yPosition += 8;
 
             const totalFaltantes = this.masFaltaron.reduce((sum, item) => sum + item.cantidadFaltante, 0);
             const totalSobrantes = this.masSobrantes.reduce((sum, item) => sum + item.cantidadSobrante, 0);
             const totalDineroFaltante = this.dineroFaltanteMes.reduce((sum, item) => sum + item.totalFaltante, 0);
             const totalDineroSobrante = this.dineroSobranteMes.reduce((sum, item) => sum + item.totalSobrante, 0);
 
-            doc.setFontSize(11);
+            doc.setFontSize(12);
             doc.setFont('helvetica', 'normal');
-            doc.setFillColor(secondaryColor[0], secondaryColor[1], secondaryColor[2]);
-            doc.rect(margin, yPosition, pageWidth - 2 * margin, 30, 'F');
-            doc.text(`Total Productos Faltantes: ${totalFaltantes}`, margin + 5, yPosition + 8);
-            doc.text(`Total Productos Sobrantes: ${totalSobrantes}`, margin + 5, yPosition + 16);
-            doc.text(`Dinero Faltante Total: $${totalDineroFaltante.toFixed(2)}`, margin + 5, yPosition + 24);
-            doc.text(`Dinero Sobrante Total: $${totalDineroSobrante.toFixed(2)}`, pageWidth / 2, yPosition + 24);
-            yPosition += 40;
+            doc.text(`Total Productos Faltantes: ${totalFaltantes} unidades`, 14, yPosition);
+            yPosition += 8;
+            doc.text(`Total Productos Sobrantes: ${totalSobrantes} unidades`, 14, yPosition);
+            yPosition += 8;
+            doc.text(`Dinero Faltante Total: $${totalDineroFaltante.toFixed(2)}`, 14, yPosition);
+            yPosition += 8;
+            doc.text(`Dinero Sobrante Total: $${totalDineroSobrante.toFixed(2)}`, 14, yPosition);
+            yPosition += 10;
 
-            let pageCount = 1;
-            addFooter(pageCount);
-
-            const checkPage = () => {
-                if (yPosition > pageHeight - 50) {
-                    doc.addPage();
-                    pageCount++;
-                    yPosition = 20;
-                    addFooter(pageCount);
-                }
-            };
+            // Línea divisoria
+            doc.setDrawColor(200);
+            doc.setLineWidth(0.5);
+            doc.line(14, yPosition, 196, yPosition);
+            yPosition += 10;
 
             if (this.masFaltaron.length > 0) {
-                checkPage();
                 doc.setFontSize(14);
                 doc.setFont('helvetica', 'bold');
-                doc.text('Productos con Mayor Faltante', margin, yPosition);
-                yPosition += 5;
-                doc.setLineWidth(0.5);
-                doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-                doc.line(margin, yPosition, pageWidth - margin, yPosition);
-                yPosition += 10;
+                doc.text('Productos con Mayor Faltante', 14, yPosition);
+                yPosition += 8;
 
                 autoTable(doc, {
                     startY: yPosition,
@@ -298,40 +279,38 @@ export class EstadisticasComponent implements OnInit {
                     body: this.masFaltaron.map(item => [item.productoId, item.nombreProducto, item.cantidadFaltante]),
                     theme: 'grid',
                     headStyles: {
-                        fillColor: primaryColor,
-                        textColor: whiteColor,
-                        fontSize: 11,
+                        fillColor: [60, 60, 60],
+                        textColor: [255, 255, 255],
+                        fontSize: 10,
                         fontStyle: 'bold',
                         halign: 'center'
                     },
                     bodyStyles: {
-                        textColor: textColor,
                         fontSize: 10,
-                        cellPadding: 4
+                        textColor: [50, 50, 50]
                     },
                     alternateRowStyles: {
-                        fillColor: secondaryColor
+                        fillColor: [240, 240, 240]
                     },
-                    margin: { left: margin, right: margin },
                     columnStyles: {
-                        0: { cellWidth: 20 },
+                        0: { cellWidth: 20, halign: 'center' },
                         1: { cellWidth: 'auto' },
                         2: { cellWidth: 40, halign: 'right' }
+                    },
+                    margin: { left: 14, right: 14 },
+                    styles: {
+                        lineColor: [200, 200, 200],
+                        lineWidth: 0.1
                     }
                 });
                 yPosition = (doc as any).lastAutoTable.finalY + 15;
             }
 
             if (this.masSobrantes.length > 0) {
-                checkPage();
                 doc.setFontSize(14);
                 doc.setFont('helvetica', 'bold');
-                doc.text('Productos con Mayor Sobrante', margin, yPosition);
-                yPosition += 5;
-                doc.setLineWidth(0.5);
-                doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-                doc.line(margin, yPosition, pageWidth - margin, yPosition);
-                yPosition += 10;
+                doc.text('Productos con Mayor Sobrante', 14, yPosition);
+                yPosition += 8;
 
                 autoTable(doc, {
                     startY: yPosition,
@@ -339,40 +318,38 @@ export class EstadisticasComponent implements OnInit {
                     body: this.masSobrantes.map(item => [item.productoId, item.nombreProducto, item.cantidadSobrante]),
                     theme: 'grid',
                     headStyles: {
-                        fillColor: primaryColor,
-                        textColor: whiteColor,
-                        fontSize: 11,
+                        fillColor: [60, 60, 60],
+                        textColor: [255, 255, 255],
+                        fontSize: 10,
                         fontStyle: 'bold',
                         halign: 'center'
                     },
                     bodyStyles: {
-                        textColor: textColor,
                         fontSize: 10,
-                        cellPadding: 4
+                        textColor: [50, 50, 50]
                     },
                     alternateRowStyles: {
-                        fillColor: secondaryColor
+                        fillColor: [240, 240, 240]
                     },
-                    margin: { left: margin, right: margin },
                     columnStyles: {
-                        0: { cellWidth: 20 },
+                        0: { cellWidth: 20, halign: 'center' },
                         1: { cellWidth: 'auto' },
                         2: { cellWidth: 40, halign: 'right' }
+                    },
+                    margin: { left: 14, right: 14 },
+                    styles: {
+                        lineColor: [200, 200, 200],
+                        lineWidth: 0.1
                     }
                 });
                 yPosition = (doc as any).lastAutoTable.finalY + 15;
             }
 
             if (this.categoriasFaltantes.length > 0) {
-                checkPage();
                 doc.setFontSize(14);
                 doc.setFont('helvetica', 'bold');
-                doc.text('Categorías con Mayor Faltante', margin, yPosition);
-                yPosition += 5;
-                doc.setLineWidth(0.5);
-                doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-                doc.line(margin, yPosition, pageWidth - margin, yPosition);
-                yPosition += 10;
+                doc.text('Categorías con Mayor Faltante', 14, yPosition);
+                yPosition += 8;
 
                 autoTable(doc, {
                     startY: yPosition,
@@ -380,40 +357,38 @@ export class EstadisticasComponent implements OnInit {
                     body: this.categoriasFaltantes.map(item => [item.categoriaId, item.nombreCategoria, item.cantidadFaltante]),
                     theme: 'grid',
                     headStyles: {
-                        fillColor: primaryColor,
-                        textColor: whiteColor,
-                        fontSize: 11,
+                        fillColor: [60, 60, 60],
+                        textColor: [255, 255, 255],
+                        fontSize: 10,
                         fontStyle: 'bold',
                         halign: 'center'
                     },
                     bodyStyles: {
-                        textColor: textColor,
                         fontSize: 10,
-                        cellPadding: 4
+                        textColor: [50, 50, 50]
                     },
                     alternateRowStyles: {
-                        fillColor: secondaryColor
+                        fillColor: [240, 240, 240]
                     },
-                    margin: { left: margin, right: margin },
                     columnStyles: {
-                        0: { cellWidth: 20 },
+                        0: { cellWidth: 20, halign: 'center' },
                         1: { cellWidth: 'auto' },
                         2: { cellWidth: 40, halign: 'right' }
+                    },
+                    margin: { left: 14, right: 14 },
+                    styles: {
+                        lineColor: [200, 200, 200],
+                        lineWidth: 0.1
                     }
                 });
                 yPosition = (doc as any).lastAutoTable.finalY + 15;
             }
 
             if (this.categoriasSobrantes.length > 0) {
-                checkPage();
                 doc.setFontSize(14);
                 doc.setFont('helvetica', 'bold');
-                doc.text('Categorías con Mayor Sobrante', margin, yPosition);
-                yPosition += 5;
-                doc.setLineWidth(0.5);
-                doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-                doc.line(margin, yPosition, pageWidth - margin, yPosition);
-                yPosition += 10;
+                doc.text('Categorías con Mayor Sobrante', 14, yPosition);
+                yPosition += 8;
 
                 autoTable(doc, {
                     startY: yPosition,
@@ -421,40 +396,38 @@ export class EstadisticasComponent implements OnInit {
                     body: this.categoriasSobrantes.map(item => [item.categoriaId, item.nombreCategoria, item.cantidadSobrante]),
                     theme: 'grid',
                     headStyles: {
-                        fillColor: primaryColor,
-                        textColor: whiteColor,
-                        fontSize: 11,
+                        fillColor: [60, 60, 60],
+                        textColor: [255, 255, 255],
+                        fontSize: 10,
                         fontStyle: 'bold',
                         halign: 'center'
                     },
                     bodyStyles: {
-                        textColor: textColor,
                         fontSize: 10,
-                        cellPadding: 4
+                        textColor: [50, 50, 50]
                     },
                     alternateRowStyles: {
-                        fillColor: secondaryColor
+                        fillColor: [240, 240, 240]
                     },
-                    margin: { left: margin, right: margin },
                     columnStyles: {
-                        0: { cellWidth: 20 },
+                        0: { cellWidth: 20, halign: 'center' },
                         1: { cellWidth: 'auto' },
                         2: { cellWidth: 40, halign: 'right' }
+                    },
+                    margin: { left: 14, right: 14 },
+                    styles: {
+                        lineColor: [200, 200, 200],
+                        lineWidth: 0.1
                     }
                 });
                 yPosition = (doc as any).lastAutoTable.finalY + 15;
             }
 
             if (this.dineroFaltanteMes.length > 0 || this.dineroSobranteMes.length > 0) {
-                checkPage();
                 doc.setFontSize(14);
                 doc.setFont('helvetica', 'bold');
-                doc.text(`Dinero Faltante y Sobrante por Mes (${this.anioActual})`, margin, yPosition);
-                yPosition += 5;
-                doc.setLineWidth(0.5);
-                doc.setDrawColor(primaryColor[0], primaryColor[1], primaryColor[2]);
-                doc.line(margin, yPosition, pageWidth - margin, yPosition);
-                yPosition += 10;
+                doc.text(`Dinero Faltante y Sobrante por Mes (${this.anioActual})`, 14, yPosition);
+                yPosition += 8;
 
                 const mesesNombre = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
                 const body = mesesNombre.map((mes, idx) => {
@@ -470,28 +443,38 @@ export class EstadisticasComponent implements OnInit {
                     body: body,
                     theme: 'grid',
                     headStyles: {
-                        fillColor: primaryColor,
-                        textColor: whiteColor,
-                        fontSize: 11,
+                        fillColor: [60, 60, 60],
+                        textColor: [255, 255, 255],
+                        fontSize: 10,
                         fontStyle: 'bold',
                         halign: 'center'
                     },
                     bodyStyles: {
-                        textColor: textColor,
                         fontSize: 10,
-                        cellPadding: 4
+                        textColor: [50, 50, 50]
                     },
                     alternateRowStyles: {
-                        fillColor: secondaryColor
+                        fillColor: [240, 240, 240]
                     },
-                    margin: { left: margin, right: margin },
                     columnStyles: {
                         0: { cellWidth: 'auto' },
                         1: { cellWidth: 50, halign: 'right' },
                         2: { cellWidth: 50, halign: 'right' }
+                    },
+                    margin: { left: 14, right: 14 },
+                    styles: {
+                        lineColor: [200, 200, 200],
+                        lineWidth: 0.1
                     }
                 });
                 yPosition = (doc as any).lastAutoTable.finalY + 15;
+            }
+
+            // Agregar pie de página a todas las páginas
+            const pageCount = doc.getNumberOfPages();
+            for (let i = 1; i <= pageCount; i++) {
+                doc.setPage(i);
+                this.addFooter(doc, i, pageCount);
             }
 
             doc.save(`Stockify_Report_Sucursal${this.sucursalId}_${this.fechaDesde}_${this.fechaHasta}.pdf`);
@@ -501,6 +484,17 @@ export class EstadisticasComponent implements OnInit {
         } finally {
             this.loading = false;
         }
+    }
+
+    private addFooter(doc: jsPDF, pageNumber: number, totalPages: number): void {
+        const pageHeight = doc.internal.pageSize.height;
+        doc.setFontSize(8);
+        doc.setTextColor(100);
+        doc.text(`Página ${pageNumber} de ${totalPages}`, 196, pageHeight - 10, { align: 'right' });
+
+        doc.setDrawColor(200);
+        doc.setLineWidth(0.5);
+        doc.line(14, pageHeight - 15, 196, pageHeight - 15);
     }
 
     private generarGraficoMasFaltaron(): void {
