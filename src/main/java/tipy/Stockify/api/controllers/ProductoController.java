@@ -9,6 +9,7 @@ import tipy.Stockify.dtos.ProductoDto;
 import tipy.Stockify.services.ProductoService;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -71,14 +72,37 @@ public class ProductoController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
+//    @PostMapping("/actualizar-masivo")
+//    @Operation(description = "Actualiza masivamente productos por código de barra (precio y stock).")
+//    public ResponseEntity<Map<String, String>> actualizarMasivo(@RequestBody List<ProductoDto> productos) {
+//        for (ProductoDto dto : productos) {
+//            productoService.actualizarStockYPrecioPorCodigoBarra(dto.getCodigoBarra(), dto.getPrecio(), dto.getCantidadStock());
+//        }
+//        return ResponseEntity.ok(Map.of("mensaje", "Productos actualizados correctamente."));
+//    }
+
     @PostMapping("/actualizar-masivo")
     @Operation(description = "Actualiza masivamente productos por código de barra (precio y stock).")
-    public ResponseEntity<Map<String, String>> actualizarMasivo(@RequestBody List<ProductoDto> productos) {
-        for (ProductoDto dto : productos) {
-            productoService.actualizarStockYPrecioPorCodigoBarra(dto.getCodigoBarra(), dto.getPrecio(), dto.getCantidadStock());
-        }
-        return ResponseEntity.ok(Map.of("mensaje", "Productos actualizados correctamente."));
-    }
+    public ResponseEntity<Map<String, Object>> actualizarMasivo(@RequestBody List<ProductoDto> productos) {
+        List<String> actualizados = new ArrayList<>();
+        List<String> noEncontrados = new ArrayList<>();
 
+        for (ProductoDto dto : productos) {
+            productoService.actualizarStockYPrecioPorCodigoBarraSiExiste(
+                    dto.getCodigoBarra(),
+                    dto.getPrecio(),
+                    dto.getCantidadStock(),
+                    noEncontrados,
+                    actualizados
+            );
+        }
+
+        Map<String, Object> resultado = new HashMap<>();
+        resultado.put("mensaje", "Actualización completada.");
+        resultado.put("actualizados", actualizados);
+        resultado.put("noEncontrados", noEncontrados);
+
+        return ResponseEntity.ok(resultado);
+    }
 
 }

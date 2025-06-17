@@ -175,6 +175,42 @@ export class GestionarProductosComponent implements OnInit {
     return null;
   }
 
+//   actualizarProductosDesdeExcel(productos: any[]): void {
+//     const productosValidos = productos.filter(
+//       (p) =>
+//         p.codigoBarra &&
+//         (typeof p.precio === 'number' || typeof p.cantidadStock === 'number')
+//     );
+//
+//     if (productosValidos.length === 0) {
+//       Swal.fire(
+//         'Archivo inválido',
+//         'No se encontraron productos válidos para actualizar.',
+//         'warning'
+//       );
+//       return;
+//     }
+//
+//     this.productoService.actualizarMasivoProductos(productosValidos).subscribe({
+//       next: () => {
+//         Swal.fire(
+//           'Actualización exitosa',
+//           'Se actualizaron los productos correctamente.',
+//           'success'
+//         );
+//         this.cargarDatosIniciales();
+//       },
+//       error: (err) => {
+//         console.error('Error del backend:', err);
+//         Swal.fire(
+//           'Error',
+//           'Ocurrió un error al actualizar productos.',
+//           'error'
+//         );
+//       },
+//     });
+//   }
+
   actualizarProductosDesdeExcel(productos: any[]): void {
     const productosValidos = productos.filter(
       (p) =>
@@ -192,12 +228,39 @@ export class GestionarProductosComponent implements OnInit {
     }
 
     this.productoService.actualizarMasivoProductos(productosValidos).subscribe({
-      next: () => {
-        Swal.fire(
-          'Actualización exitosa',
-          'Se actualizaron los productos correctamente.',
-          'success'
-        );
+      next: (respuesta) => {
+        const noEncontrados = respuesta.noEncontrados || [];
+        const actualizados = respuesta.actualizados || [];
+
+        if (noEncontrados.length > 0) {
+          const mensaje =
+            noEncontrados.length === 1
+              ? 'No se encontró el siguiente código de barra en la base de datos:'
+              : `No se encontraron los siguientes ${noEncontrados.length} códigos de barra en la base de datos:`;
+
+          Swal.fire({
+            icon: 'warning',
+            title: 'Productos no encontrados',
+            html: `
+              <p>${mensaje}</p>
+              <div style="max-height: 200px; overflow-y: auto; text-align: left;">
+                <ul>
+                  ${noEncontrados.map((c: string) => `<li>${c}</li>`).join('')}
+                </ul>
+              </div>
+              <hr/>
+              <p>Los <b>${actualizados.length}</b> productos restantes fueron actualizados correctamente.</p>
+            `,
+            confirmButtonText: 'Entendido',
+          });
+        } else {
+          Swal.fire(
+            'Actualización exitosa',
+            'Se actualizaron los productos correctamente.',
+            'success'
+          );
+        }
+
         this.cargarDatosIniciales();
       },
       error: (err) => {

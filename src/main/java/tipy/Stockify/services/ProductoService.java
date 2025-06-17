@@ -13,6 +13,8 @@ import tipy.Stockify.business.repositories.ProductoRepository;
 import tipy.Stockify.business.repositories.ProveedorRepository;
 import tipy.Stockify.dtos.ProductoDto;
 
+import java.util.Optional;
+
 import java.util.Base64;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -201,18 +203,46 @@ public class ProductoService {
         return productoDto;
     }
 
-    public void actualizarStockYPrecioPorCodigoBarra(String codigoBarra, Float precio, Long stock) {
-        Producto producto = productoRepository.findByCodigoBarra(codigoBarra)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado con código de barra: " + codigoBarra));
+//    public void actualizarStockYPrecioPorCodigoBarra(String codigoBarra, Float precio, Long stock) {
+//        Producto producto = productoRepository.findByCodigoBarra(codigoBarra)
+//                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado con código de barra: " + codigoBarra));
+//
+//        if (precio != null && precio >= 0) {
+//            producto.setPrecio(precio);
+//        }
+//        if (stock != null && stock >= 0) {
+//            producto.setCantidadStock(stock);
+//        }
+//
+//        productoRepository.save(producto);
+//    }
+
+    public void actualizarStockYPrecioPorCodigoBarraSiExiste(String codigoBarra, Float precio, Long stock, List<String> noEncontrados, List<String> actualizados) {
+        Optional<Producto> productoOpt = productoRepository.findByCodigoBarra(codigoBarra);
+
+        if (productoOpt.isEmpty()) {
+            noEncontrados.add(codigoBarra);
+            return;
+        }
+
+        Producto producto = productoOpt.get();
+
+        boolean seActualizo = false;
 
         if (precio != null && precio >= 0) {
             producto.setPrecio(precio);
-        }
-        if (stock != null && stock >= 0) {
-            producto.setCantidadStock(stock);
+            seActualizo = true;
         }
 
-        productoRepository.save(producto);
+        if (stock != null && stock >= 0) {
+            producto.setCantidadStock(stock);
+            seActualizo = true;
+        }
+
+        if (seActualizo) {
+            productoRepository.save(producto);
+            actualizados.add(codigoBarra);
+        }
     }
 
 }
