@@ -161,55 +161,23 @@ export class GestionarProductosComponent implements OnInit {
 
   parsearPrecio(valor: any): number | null {
     if (typeof valor === 'string') {
-      const valorParseado = parseFloat(valor.replace(',', '.'));
+      // Eliminar separadores de miles (puntos)
+      let limpio = valor.replace(/\./g, '');
+
+      // Reemplazar coma decimal por punto
+      limpio = limpio.replace(',', '.');
+
+      const valorParseado = parseFloat(limpio);
       return isNaN(valorParseado) ? null : valorParseado;
     }
 
     if (typeof valor === 'number') {
-      if (valor > 40000) {
-        return null;
-      }
+      if (valor > 40000) return null;
       return valor;
     }
 
     return null;
   }
-
-//   actualizarProductosDesdeExcel(productos: any[]): void {
-//     const productosValidos = productos.filter(
-//       (p) =>
-//         p.codigoBarra &&
-//         (typeof p.precio === 'number' || typeof p.cantidadStock === 'number')
-//     );
-//
-//     if (productosValidos.length === 0) {
-//       Swal.fire(
-//         'Archivo inválido',
-//         'No se encontraron productos válidos para actualizar.',
-//         'warning'
-//       );
-//       return;
-//     }
-//
-//     this.productoService.actualizarMasivoProductos(productosValidos).subscribe({
-//       next: () => {
-//         Swal.fire(
-//           'Actualización exitosa',
-//           'Se actualizaron los productos correctamente.',
-//           'success'
-//         );
-//         this.cargarDatosIniciales();
-//       },
-//       error: (err) => {
-//         console.error('Error del backend:', err);
-//         Swal.fire(
-//           'Error',
-//           'Ocurrió un error al actualizar productos.',
-//           'error'
-//         );
-//       },
-//     });
-//   }
 
   actualizarProductosDesdeExcel(productos: any[]): void {
     const productosValidos = productos.filter(

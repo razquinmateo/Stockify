@@ -72,15 +72,6 @@ public class ProductoController {
         return new ResponseEntity<>(HttpStatus.NO_CONTENT);
     }
 
-//    @PostMapping("/actualizar-masivo")
-//    @Operation(description = "Actualiza masivamente productos por código de barra (precio y stock).")
-//    public ResponseEntity<Map<String, String>> actualizarMasivo(@RequestBody List<ProductoDto> productos) {
-//        for (ProductoDto dto : productos) {
-//            productoService.actualizarStockYPrecioPorCodigoBarra(dto.getCodigoBarra(), dto.getPrecio(), dto.getCantidadStock());
-//        }
-//        return ResponseEntity.ok(Map.of("mensaje", "Productos actualizados correctamente."));
-//    }
-
     @PostMapping("/actualizar-masivo")
     @Operation(description = "Actualiza masivamente productos por código de barra (precio y stock).")
     public ResponseEntity<Map<String, Object>> actualizarMasivo(@RequestBody List<ProductoDto> productos) {
