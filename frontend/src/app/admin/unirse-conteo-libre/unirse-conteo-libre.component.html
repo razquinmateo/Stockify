@@ -69,7 +69,6 @@
         </div>
     </div>
 
-
     <!-- Botones de acción -->
     <div class="d-flex justify-content-center mb-4">
         <div>
@@ -125,7 +124,7 @@
                 <thead class="table-dark">
                     <tr>
                         <th>ID Producto</th>
-                        <th>Código de Barras</th>
+                        <th>Códigos de Barras</th>
                         <th>Producto</th>
                         <th>Esperado</th>
                         <th>Contado</th>
@@ -134,7 +133,7 @@
                 <tbody>
                     <tr *ngFor="let r of registrosFiltrados">
                         <td>{{ r.productoId }}</td>
-                        <td>{{ r.codigoBarra || 'N/A' }}</td>
+                        <td>{{ r.codigosBarra.length ? r.codigosBarra.join(', ') : 'N/A' }}</td>
                         <td>{{ r.nombre }}</td>
                         <td>{{ r.cantidadEsperada }}</td>
                         <td>{{ r.cantidadContada }}</td>
@@ -156,7 +155,6 @@
                 <thead class="table-dark">
                     <tr>
                         <th>ID Producto</th>
-                        <th>Código de Barras</th>
                         <th>Nombre</th>
                         <th>Stock Esperado</th>
                     </tr>
@@ -164,7 +162,6 @@
                 <tbody>
                     <tr *ngFor="let p of productosNoContados">
                         <td>{{ p.id }}</td>
-                        <td>{{ p.codigoBarra || 'N/A' }}</td>
                         <td>{{ p.nombre }}</td>
                         <td>{{ p.cantidadStock }}</td>
                     </tr>

@@ -41,7 +41,6 @@
     </div>
   </div>
 
-
   <!-- Preview de cámara -->
   <div class="row justify-content-center mb-4" *ngIf="mostrarCamara">
     <div class="col-12 col-md-6 d-flex justify-content-center">
@@ -62,13 +61,6 @@
     </div>
   </div>
 
-  <!-- Filtro -->
-  <!--<div class="row justify-content-center mb-3">
-    <div class="col-12 col-md-6">
-      <input type="text" class="form-control" placeholder="Filtrar por ID o nombre" [(ngModel)]="filtro" />
-    </div>
-  </div>-->
-
   <!-- Botón para mostrar/ocultar tabla de registros -->
   <div class="text-center mb-3">
     <button class="btn btn-outline-success" (click)="showRegistros = !showRegistros">
@@ -84,7 +76,6 @@
         <thead class="table-dark">
           <tr>
             <th>ID Producto</th>
-            <th>Código de Barras</th>
             <th>Producto</th>
             <th>Esperado</th>
             <th>Contado</th>
@@ -93,7 +84,6 @@
         <tbody>
           <tr *ngFor="let r of registrosFiltrados">
             <td>{{ r.productoId }}</td>
-            <td>{{ r.codigoBarra || 'N/A' }}</td>
             <td>{{ r.nombre }}</td>
             <td>{{ r.cantidadEsperada }}</td>
             <td>{{ r.cantidadContada }}</td>

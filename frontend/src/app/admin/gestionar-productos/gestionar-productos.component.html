@@ -46,7 +46,6 @@
   <h2 class="mb-5 text-center">Lista de Productos</h2>
 
   <div class="d-flex justify-content-between align-items-start mb-4 gap-3">
-
     <!-- Buscador -->
     <div class="w-50">
       <label class="form-label d-block">Buscar producto:</label>
@@ -57,11 +56,7 @@
     <!-- Subida de Excel -->
     <div class="w-50">
       <label class="form-label d-block text-center">Actualizar productos vía Excel (.xlsx / .xls):</label>
-
-      <!-- Input oculto -->
       <input type="file" accept=".xlsx, .xls" (change)="onArchivoSeleccionado($event)" #fileInput class="d-none">
-
-      <!-- Botón estilizado -->
       <div class="text-center">
         <button class="btn btn-success" (click)="fileInput.click()">
           <i class="bi bi-upload me-2"></i>
@@ -69,7 +64,6 @@
         </button>
       </div>
     </div>
-
   </div>
 
   <!-- Tabla -->
@@ -80,7 +74,7 @@
         <tr>
           <th>Imagen</th>
           <th>Nombre</th>
-          <th>Código</th>
+          <th>Códigos de Barra</th>
           <th>Detalle</th>
           <th>Precio</th>
           <th>Stock</th>
@@ -97,7 +91,7 @@
               class="img-thumbnail" />
           </td>
           <td>{{ prod.nombre }}</td>
-          <td>{{ prod.codigoBarra }}</td>
+          <td>{{ prod.codigosBarra.join(', ') }}</td>
           <td>{{ prod.detalle }}</td>
           <td>${{ prod.precio | number: '1.2-2' }}</td>
           <td>{{ prod.cantidadStock }}</td>
@@ -119,8 +113,8 @@
             <button class="btn btn-sm" [ngClass]="prod.activo ? 'btn-danger' : 'btn-success'"
               (click)="toggleEstadoProducto(prod)" [title]="prod.activo ? 'Desactivar producto' : 'Activar producto'">
               <i [ngClass]="
-                prod.activo
-                  ? 'bi bi-slash-circle'
+                prod.activo 
+                  ? 'bi bi-slash-circle' 
                   : 'bi bi-check-circle-fill'
               "></i>
             </button>
@@ -199,7 +193,6 @@
                   <i class="bi bi-x-circle"></i> Cerrar Cámara
                 </button>
               </div>
-              <!-- Contenedor para la cámara -->
               <div *ngIf="mostrarCamara" class="mt-3">
                 <video id="video" autoplay style="
                     max-width: 100%;
@@ -221,13 +214,14 @@
               <input type="text" class="form-control" [(ngModel)]="productoSeleccionado.nombre" name="nombre"
                 required />
             </div>
-            <!-- Código de Barra -->
+            <!-- Códigos de Barra -->
             <div class="col-md-6">
               <label class="form-label">
-                Código de Barra <span class="text-danger">*</span>
+                Códigos de Barra <span class="text-danger">*</span>
               </label>
-              <input type="text" class="form-control" [(ngModel)]="productoSeleccionado.codigoBarra" name="codigoBarra"
-                required />
+              <textarea class="form-control" [(ngModel)]="codigosBarraInput" name="codigosBarra"
+                placeholder="Ingrese códigos de barra (separados por comas, espacios o líneas)" rows="4" required></textarea>
+              <small class="form-text text-muted">Ejemplo: 123456789, 987654321 o ingrese uno por línea</small>
             </div>
             <!-- Precio -->
             <div class="col-md-6">

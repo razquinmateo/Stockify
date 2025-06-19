@@ -11,3 +11,22 @@
   border: 1px solid #dee2e6;
   border-radius: 0.25rem;
 }
+
+.export-btn {
+  transition: all 0.2s ease-in-out;
+}
+
+.export-btn:hover {
+  transform: scale(1.02);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.modal-content {
+  border-radius: 1rem;
+}
+
+button.btn-outline-secondary:hover {
+  background-color: #6c757d;
+  color: white;
+  transition: all 0.2s ease-in-out;
+}

@@ -10,6 +10,7 @@ import Swal from 'sweetalert2';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import { formatDate } from '@angular/common';
+import * as XLSX from 'xlsx';
 
 interface ReporteItem {
   id: number;
@@ -45,6 +46,8 @@ export class ReporteConteoComponent implements OnInit {
   egresosTotales: number = 0;
   nombreUsuarioLogueado: string = '';
   conteoFecha: string = '';
+  mostrarModalExportar: boolean = false;
+
 
   constructor(
     private route: ActivatedRoute,
@@ -78,6 +81,15 @@ export class ReporteConteoComponent implements OnInit {
       }
     });
   }
+
+  cerrarModalExportar() {
+    this.mostrarModalExportar = false;
+  }
+
+  abrirModalExportar() {
+    this.mostrarModalExportar = true;
+  }
+
 
   cargarReporte(): void {
     this.conteoProductoService.getConteoProductosByConteoId(this.conteoId).subscribe({
@@ -186,6 +198,14 @@ export class ReporteConteoComponent implements OnInit {
     });
   }
 
+  openExportModal(): void {
+    const modal = document.getElementById('exportModal');
+    if (modal) {
+      const bootstrapModal = (window as any).bootstrap.Modal.getOrCreateInstance(modal);
+      bootstrapModal.show();
+    }
+  }
+
   descargarPDF(): void {
     const doc = new jsPDF({
       orientation: 'portrait',
@@ -196,27 +216,31 @@ export class ReporteConteoComponent implements OnInit {
     // Configurar fuente
     doc.setFont('helvetica', 'normal');
 
-    // Encabezado
-    doc.setFontSize(10);
-    doc.setTextColor(100);
-    doc.text('Stockify', 14, 15);
+    // Encabezado mejorado
+    doc.setFillColor(30, 30, 30);
+    doc.rect(0, 0, 210, 20, 'F');
+    doc.setFontSize(12);
+    doc.setTextColor(255, 255, 255);
+    doc.setFont('helvetica', 'bold');
+    doc.text('Stockify - Reporte de Inventario', 14, 12);
 
     doc.setFontSize(16);
     doc.setTextColor(0);
     doc.setFont('helvetica', 'bold');
-    doc.text(`Reporte de Conteo #${this.conteoId}`, 14, 25);
+    doc.text(`Reporte de Conteo #${this.conteoId}`, 14, 30);
 
     doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
-    doc.text(`Fecha: ${this.conteoFecha || 'No disponible'}`, 14, 33);
-    doc.text(`Tipo: ${this.tipoConteo === 'CATEGORIAS' ? 'Por rubro' : 'Libre'}`, 14, 41);
+    doc.text(`Fecha: ${this.conteoFecha || 'No disponible'}`, 14, 38);
+    doc.text(`Tipo: ${this.tipoConteo === 'CATEGORIAS' ? 'Por rubro' : 'Libre'}`, 14, 46);
+    doc.text(`Usuario: ${this.nombreUsuarioLogueado}`, 14, 54);
 
     // Línea divisoria
-    doc.setDrawColor(200);
+    doc.setDrawColor(100);
     doc.setLineWidth(0.5);
-    doc.line(14, 46, 196, 46);
+    doc.line(14, 60, 196, 60);
 
-    let finalY = 56;
+    let finalY = 70;
 
     if (this.tipoConteo === 'LIBRE') {
       // Tabla única para LIBRE
@@ -233,7 +257,7 @@ export class ReporteConteoComponent implements OnInit {
         ]),
         theme: 'grid',
         headStyles: {
-          fillColor: [60, 60, 60],
+          fillColor: [30, 30, 30],
           textColor: [255, 255, 255],
           fontSize: 10,
           fontStyle: 'bold',
@@ -244,7 +268,7 @@ export class ReporteConteoComponent implements OnInit {
           textColor: [50, 50, 50]
         },
         alternateRowStyles: {
-          fillColor: [240, 240, 240]
+          fillColor: [245, 245, 245]
         },
         columnStyles: {
           0: { cellWidth: 20, halign: 'center' },
@@ -254,10 +278,13 @@ export class ReporteConteoComponent implements OnInit {
           4: { cellWidth: 25, halign: 'center' },
           5: { cellWidth: 25, halign: 'center' }
         },
-        margin: { top: 50, left: 14, right: 14 },
+        margin: { top: 60, left: 14, right: 14 },
         styles: {
-          lineColor: [200, 200, 200],
-          lineWidth: 0.1
+          lineColor: [150, 150, 150],
+          lineWidth: 0.2
+        },
+        didDrawPage: (data) => {
+          finalY = data.cursor?.y ?? finalY; // Fallback to current finalY if cursor is null
         }
       });
       finalY = (doc as any).lastAutoTable.finalY || finalY;
@@ -268,6 +295,7 @@ export class ReporteConteoComponent implements OnInit {
           // Título de la categoría
           doc.setFontSize(14);
           doc.setFont('helvetica', 'bold');
+          doc.setTextColor(30, 30, 30);
           doc.text(categoria.nombre, 14, finalY);
           finalY += 8;
 
@@ -285,7 +313,7 @@ export class ReporteConteoComponent implements OnInit {
             ]),
             theme: 'grid',
             headStyles: {
-              fillColor: [60, 60, 60],
+              fillColor: [30, 30, 30],
               textColor: [255, 255, 255],
               fontSize: 10,
               fontStyle: 'bold',
@@ -296,7 +324,7 @@ export class ReporteConteoComponent implements OnInit {
               textColor: [50, 50, 50]
             },
             alternateRowStyles: {
-              fillColor: [240, 240, 240]
+              fillColor: [245, 245, 245]
             },
             columnStyles: {
               0: { cellWidth: 20, halign: 'center' },
@@ -308,23 +336,26 @@ export class ReporteConteoComponent implements OnInit {
             },
             margin: { left: 14, right: 14 },
             styles: {
-              lineColor: [200, 200, 200],
-              lineWidth: 0.1
+              lineColor: [150, 150, 150],
+              lineWidth: 0.2
+            },
+            didDrawPage: (data) => {
+              finalY = data.cursor?.y ?? finalY; // Fallback to current finalY if cursor is null
             }
           });
 
           finalY = (doc as any).lastAutoTable.finalY || finalY;
           finalY += 5;
 
-          // Totales por categoría (Egresos primero, luego Ingresos)
+          // Totales por categoría
           doc.setFontSize(10);
           doc.setFont('helvetica', 'bold');
+          doc.setTextColor(0);
           doc.text(`Egresos: ${categoria.egresos} unidades`, 14, finalY);
-          finalY += 6; // espacio entre líneas
+          finalY += 6;
           doc.text(`Ingresos: ${categoria.ingresos} unidades`, 14, finalY);
-          finalY += 10; // espacio después del bloque
+          finalY += 10;
 
-          // Espacio entre categorías
           if (index < this.categoriasReporte.length - 1) {
             finalY += 5;
           }
@@ -332,23 +363,24 @@ export class ReporteConteoComponent implements OnInit {
       });
     }
 
-    // Totales Generales (Egresos primero, luego Ingresos, luego Diferencia)
-    doc.setFontSize(12);
+    // Totales Generales
+    doc.setFontSize(14);
     doc.setFont('helvetica', 'bold');
     doc.setTextColor(0);
     doc.text('Totales Generales:', 14, finalY + 10);
 
+    doc.setFontSize(12);
     doc.setFont('helvetica', 'normal');
     doc.text(`Egresos Totales: ${this.egresosTotales} unidades`, 14, finalY + 18);
     doc.text(`Ingresos Totales: ${this.ingresosTotales} unidades`, 14, finalY + 26);
-    doc.text(`Diferencia: ${this.egresosTotales - this.ingresosTotales} unidades`, 14, finalY + 34);
+    doc.text(`Diferencia: ${this.ingresosTotales - this.egresosTotales} unidades`, 14, finalY + 34);
 
     // Línea divisoria final
-    doc.setDrawColor(200);
+    doc.setDrawColor(100);
     doc.setLineWidth(0.5);
     doc.line(14, finalY + 40, 196, finalY + 40);
 
-    // Agregar pie de página a todas las páginas
+    // Pie de página
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
@@ -357,15 +389,46 @@ export class ReporteConteoComponent implements OnInit {
 
     // Guardar PDF
     doc.save(`reporte-conteo-${this.conteoId}.pdf`);
+
+    // Cerrar modal
+    const modal = document.getElementById('exportModal');
+    if (modal) {
+      const bootstrapModal = (window as any).bootstrap.Modal.getOrCreateInstance(modal);
+      bootstrapModal.hide();
+    }
+  }
+
+  descargarXLS(): void {
+    // Preparar datos para XLS
+    const data = this.reporteItems.map(item => ({
+      ID: item.id,
+      Producto: item.producto,
+      'Cantidad Contada': item.cantidadContada ?? 0
+    }));
+
+    // Crear hoja de cálculo
+    const ws = XLSX.utils.json_to_sheet(data);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Reporte');
+
+    // Guardar archivo
+    XLSX.writeFile(wb, `reporte-conteo-${this.conteoId}.xlsx`);
+
+    // Cerrar modal
+    const modal = document.getElementById('exportModal');
+    if (modal) {
+      const bootstrapModal = (window as any).bootstrap.Modal.getOrCreateInstance(modal);
+      bootstrapModal.hide();
+    }
   }
 
   private addFooter(doc: jsPDF, pageNumber: number, totalPages: number): void {
     const pageHeight = doc.internal.pageSize.height;
     doc.setFontSize(8);
     doc.setTextColor(100);
-    doc.text(`Página ${pageNumber} de ${totalPages}`, 196, pageHeight - 10, { align: 'right' });
+    doc.text(`Stockify - Reporte de Conteo #${this.conteoId} | Página ${pageNumber} de ${totalPages}`, 196, pageHeight - 10, { align: 'right' });
 
-    doc.setDrawColor(200);
+    doc.setDrawColor(100);
     doc.setLineWidth(0.5);
     doc.line(14, pageHeight - 15, 196, pageHeight - 15);
   }

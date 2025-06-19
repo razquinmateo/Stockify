@@ -1,7 +1,6 @@
 package tipy.Stockify.dtos;
 
 import com.fasterxml.jackson.annotation.JsonProperty;
-import jakarta.persistence.Column;
 import lombok.Data;
 
 import java.util.ArrayList;
@@ -13,8 +12,8 @@ public class ProductoDto {
     @JsonProperty("id")
     private Long id;
 
-    @JsonProperty("codigoBarra")
-    private String codigoBarra;
+    @JsonProperty("codigosBarra")
+    private List<String> codigosBarra = new ArrayList<>();
 
     @JsonProperty("imagen")
     private String imagen;

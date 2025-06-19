@@ -23,7 +23,7 @@ interface RegistroConteo {
   cantidadContada: number;
   usuario: string;
   usuarioId: number;
-  codigoBarra?: string;
+  codigosBarra: string[];
 }
 
 @Component({
@@ -81,7 +81,6 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
   }
 
   ngOnInit(): void {
-    // Load usuarioId
     this.usuarioService.getUsuarios().subscribe({
       next: (usuarios) => {
         const usuario = usuarios.find(u => u.nombreUsuario === this.nombreUsuarioLogueado);
@@ -99,10 +98,8 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Initialize barcode scanner
     window.addEventListener('keydown', this.handleScannerKey);
 
-    // Load cameras
     navigator.mediaDevices.getUserMedia({ video: true })
       .then(stream => {
         stream.getTracks().forEach(t => t.stop());
@@ -119,24 +116,21 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
         Swal.fire('Error', 'No se pudo acceder a las cámaras', 'error');
       });
 
-    // Load registros from localStorage
     const saved = localStorage.getItem(this.REGISTROS_KEY);
     if (saved) {
       this.registros = JSON.parse(saved);
-      // Initialize productosConteo from registros
       this.productosConteo = this.registros.map(r => ({
-        id: 0, // ID will be updated via WebSocket or API
+        id: 0,
         conteoId: this.conteoId || 0,
         productoId: r.productoId,
         cantidadEsperada: r.cantidadEsperada,
         cantidadContada: r.cantidadContada,
-        precioActual: 0, // Will be updated
+        precioActual: 0,
         activo: true
       }));
       this.cdr.detectChanges();
     }
 
-    // Load productos
     const sucursalId = this.authService.getSucursalId();
     if (sucursalId == null) {
       Swal.fire('Error', 'No se pudo obtener el ID de la sucursal', 'error');
@@ -154,10 +148,9 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
       }
     });
 
-    // WebSocket subscriptions
     this.wsSubs.push(
       this.wsService.onConteoProductoActualizado().subscribe(msg => {
-        console.log('WebSocket ConteoProductoMensaje received:', msg); // Debug
+        console.log('WebSocket ConteoProductoMensaje received:', msg);
         if (msg.conteoId === this.conteoId) {
           const prod = this.allProductos.find(p => p.id === msg.productoId);
           if (prod) {
@@ -169,7 +162,7 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
               cantidadContada: msg.cantidadContada ?? 0,
               usuario: this.nombreUsuarioLogueado,
               usuarioId: this.usuarioId!,
-              codigoBarra: prod.codigoBarra
+              codigosBarra: prod.codigosBarra
             };
             if (existente) {
               Object.assign(existente, reg);
@@ -195,8 +188,8 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
                 activo: msg.activo
               });
             }
-            console.log('Updated productosConteo:', this.productosConteo); // Debug
-            console.log('Updated registros:', this.registros); // Debug
+            console.log('Updated productosConteo:', this.productosConteo);
+            console.log('Updated registros:', this.registros);
             this.cdr.detectChanges();
           } else {
             console.warn(`Producto ${msg.productoId} not found in allProductos`);
@@ -207,7 +200,6 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
       })
     );
 
-    // Subscripción a conteoFinalizado
     this.wsSubs.push(
       this.wsService.onConteoFinalizado().subscribe({
         next: (msg: ConteoMensaje) => {
@@ -284,12 +276,10 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
 
   private cargarProductosConteo(): void {
     if (!this.conteoId) return;
-    // Assume ConteoService.getById doesn't include productos; use ConteoProductoService
     this.conteoProdService.getConteoProductosByConteoId1(this.conteoId).subscribe({
       next: (productos) => {
-        console.log('Loaded conteoProductos:', productos); // Debug
+        console.log('Loaded conteoProductos:', productos);
         this.productosConteo = productos;
-        // Update registros for products not already counted by this user
         productos.forEach(p => {
           const prod = this.allProductos.find(prod => prod.id === p.productoId);
           if (prod && !this.registros.find(r => r.productoId === p.productoId)) {
@@ -300,13 +290,13 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
               cantidadContada: p.cantidadContada ?? 0,
               usuario: this.nombreUsuarioLogueado,
               usuarioId: this.usuarioId!,
-              codigoBarra: prod.codigoBarra
+              codigosBarra: prod.codigosBarra
             };
             this.registros.push(reg);
           }
         });
         localStorage.setItem(this.REGISTROS_KEY, JSON.stringify(this.registros));
-        console.log('Initial registros:', this.registros); // Debug
+        console.log('Initial registros:', this.registros);
         this.cdr.detectChanges();
       },
       error: (err) => {
@@ -412,7 +402,7 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
       return;
     }
     const prod = this.allProductos.find(p =>
-      p.codigoBarra === codigo || p.id.toString() === codigo
+      p.codigosBarra.includes(codigo) || p.id.toString() === codigo
     );
     if (!prod) {
       Swal.fire('Error', `Código "${codigo}" no corresponde a un producto registrado`, 'warning');
@@ -435,7 +425,7 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
         );
         item = await lastValueFrom(createObservable);
         this.productosConteo.push(item);
-        console.log('Created new ConteoProducto:', item); // Debug
+        console.log('Created new ConteoProducto:', item);
       } catch (err) {
         console.error('Error creating conteo producto:', err);
         Swal.fire('Error', 'No se pudo registrar el conteo', 'error');
@@ -483,7 +473,7 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
           cantidadContada: updated.cantidadContada ?? 0,
           usuario: this.nombreUsuarioLogueado,
           usuarioId: this.usuarioId!,
-          codigoBarra: prod.codigoBarra
+          codigosBarra: prod.codigosBarra
         };
         if (existente) {
           Object.assign(existente, reg);
@@ -491,9 +481,8 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
           this.registros.push(reg);
         }
         localStorage.setItem(this.REGISTROS_KEY, JSON.stringify(this.registros));
-        console.log('Registros after scan:', this.registros); // Debug
+        console.log('Registros after scan:', this.registros);
 
-        // Clean other users' local storage
         for (let i = 0; i < localStorage.length; i++) {
           const key = localStorage.key(i);
           if (key && key.startsWith('registros_') && key !== this.REGISTROS_KEY) {
@@ -518,7 +507,8 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
     return term
       ? this.registros.filter(r =>
         r.productoId.toString().includes(term) ||
-        r.nombre.toLowerCase().includes(term)
+        r.nombre.toLowerCase().includes(term) ||
+        r.codigosBarra.some(c => c.toLowerCase().includes(term))
       )
       : this.registros;
   }

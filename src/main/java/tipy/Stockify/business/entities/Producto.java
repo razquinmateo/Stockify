@@ -19,8 +19,8 @@ public class Producto {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name = "CODIGO_BARRA", nullable = false, unique = true)
-    private String codigoBarra;
+    @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<CodigoBarra> codigosBarra = new ArrayList<>();
 
     @Column(name = "IMAGEN", columnDefinition = "TEXT")
     private String imagen;
@@ -58,6 +58,16 @@ public class Producto {
             inverseJoinColumns = @JoinColumn(name = "proveedor_id")
     )
     private List<Proveedor> proveedores = new ArrayList<>();
+
+    public void addCodigoBarra(CodigoBarra codigoBarra) {
+        codigosBarra.add(codigoBarra);
+        codigoBarra.setProducto(this);
+    }
+
+    public void removeCodigoBarra(CodigoBarra codigoBarra) {
+        codigosBarra.remove(codigoBarra);
+        codigoBarra.setProducto(null);
+    }
 
     public void addLote(Lote lote) {
         lotes.add(lote);

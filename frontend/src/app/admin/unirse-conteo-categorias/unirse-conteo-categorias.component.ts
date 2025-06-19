@@ -23,7 +23,7 @@ interface RegistroConteo {
     cantidadContada: number | null;
     usuario: string;
     usuarioId: number;
-    codigoBarra?: string;
+    codigosBarra: string[];
     categoriaId: number;
     categoriaNombre: string;
 }
@@ -96,7 +96,7 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
         };
     }
 
-    get productosNoContados(): { id: number; nombre: string; codigoBarra: string | undefined; categoriaNombre: string }[] {
+    get productosNoContados(): { id: number; nombre: string; codigosBarra: string[]; categoriaNombre: string }[] {
         return this.productosConteo
             .filter(p => p.cantidadContada === null)
             .map(p => {
@@ -105,7 +105,7 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
                 return {
                     id: p.productoId,
                     nombre: producto?.nombre || 'Desconocido',
-                    codigoBarra: producto?.codigoBarra,
+                    codigosBarra: producto?.codigosBarra || [],
                     categoriaNombre: categoria?.nombre || 'Sin Categoría'
                 };
             })
@@ -395,7 +395,7 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
                 cantidadContada: cp.cantidadContada,
                 usuario: this.nombreUsuarioLogueado,
                 usuarioId: this.usuarioId!,
-                codigoBarra: prod.codigoBarra,
+                codigosBarra: prod.codigosBarra,
                 categoriaId: prod.categoriaId,
                 categoriaNombre: cat?.nombre || 'Sin Categoría'
             };
@@ -457,70 +457,67 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
         Swal.fire({
             title: `Categoría Completada: ${category?.nombre || 'Sin Categoría'}`,
             html: `
-                <style>
-                    .table-container {
-                        max-height: 400px;
-                        max-width: 100%;
-                        overflow-y: auto;
-                        overflow-x: auto;
-                        margin-bottom: 1rem;
-                    }
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        min-width: 600px;
-                        table-layout: fixed;
-                    }
-                    th, td {
-                        padding: 8px;
-                        border: 1px solid #dee2e6;
-                        text-align: left;
-                        white-space: normal;
-                        word-wrap: break-word;
-                    }
-                    th:nth-child(1), td:nth-child(1) { width: 10%; }
-                    th:nth-child(2), td:nth-child(2) { width: 35%; min-width: 200px; }
-                    th:nth-child(3), td:nth-child(3) { width: 35%; min-width: 150px; }
-                    th:nth-child(4), td:nth-child(4) { width: 20%; }
-                    th:nth-child(5), td:nth-child(5) { width: 20%; }
-                    input.form-control-sm {
-                        width: 100%;
-                        box-sizing: border-box;
-                    }
-                    thead th {
-                        position: sticky;
-                        top: 0;
-                        background-color: #343a40;
-                        color: white;
-                        z-index: 2;
-                    }
-                </style>
-                <p>Esta categoría ya ha sido completamente contada. Puedes revisar y editar las cantidades contadas:</p>
-                <div class="table-container">
-                    <table class="table table-bordered">
-                        <thead>
+            <style>
+                .table-container {
+                    max-height: 400px;
+                    max-width: 100%;
+                    overflow-y: auto;
+                    overflow-x: auto;
+                    margin-bottom: 1rem;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    min-width: 600px;
+                    table-layout: fixed;
+                }
+                th, td {
+                    padding: 8px;
+                    border: 1px solid #dee2e6;
+                    text-align: left;
+                    white-space: normal;
+                    word-wrap: break-word;
+                }
+                th:nth-child(1), td:nth-child(1) { width: 20%; }
+                th:nth-child(2), td:nth-child(2) { width: 50%; min-width: 200px; }
+                th:nth-child(3), td:nth-child(3) { width: 15%; }
+                th:nth-child(4), td:nth-child(4) { width: 15%; }
+                input.form-control-sm {
+                    width: 100%;
+                    box-sizing: border-box;
+                }
+                thead th {
+                    position: sticky;
+                    top: 0;
+                    background-color: #343a40;
+                    color: white;
+                    z-index: 2;
+                }
+            </style>
+            <p>Esta categoría ya ha sido completamente contada. Puedes revisar y editar las cantidades contadas:</p>
+            <div class="table-container">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Esperada</th>
+                            <th>Contada</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${categoryRegistros.map(r => `
                             <tr>
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>Código de Barras</th>
-                                <th>Esperada</th>
-                                <th>Contada</th>
+                                <td>${r.productoId}</td>
+                                <td>${r.nombre}</td>
+                                <td>${r.cantidadEsperada}</td>
+                                <td><input type="number" id="contada-${r.productoId}" value="${r.cantidadContada != null ? r.cantidadContada : ''}" min="0" class="form-control form-control-sm"></td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            ${categoryRegistros.map(r => `
-                                <tr>
-                                    <td>${r.productoId}</td>
-                                    <td>${r.nombre}</td>
-                                    <td>${r.codigoBarra || 'N/A'}</td>
-                                    <td>${r.cantidadEsperada}</td>
-                                    <td><input type="number" id="contada-${r.productoId}" value="${r.cantidadContada != null ? r.cantidadContada : ''}" min="0" class="form-control form-control-sm"></td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `,
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `,
             showConfirmButton: true,
             confirmButtonText: 'Entendido',
             confirmButtonColor: '#3085d6',
@@ -593,7 +590,7 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
                     cantidadContada: updated.cantidadContada,
                     usuario: this.nombreUsuarioLogueado,
                     usuarioId: this.usuarioId!,
-                    codigoBarra: prod.codigoBarra,
+                    codigosBarra: prod.codigosBarra,
                     categoriaId: prod.categoriaId,
                     categoriaNombre: cat?.nombre || 'Sin Categoría'
                 };
@@ -628,69 +625,66 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
         Swal.fire({
             title: `Categoría Completada: ${category?.nombre || 'Sin Categoría'}`,
             html: `
-                <style>
-                    .table-container {
-                        max-height: 400px;
-                        max-width: 100%;
-                        overflow-y: auto;
-                        overflow-x: auto;
-                        margin-bottom: 1rem;
-                    }
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        min-width: 600px;
-                        table-layout: fixed;
-                    }
-                    th, td {
-                        padding: 8px;
-                        border: 1px solid #dee2e6;
-                        text-align: left;
-                        white-space: normal;
-                        word-wrap: break-word;
-                    }
-                    th:nth-child(1), td:nth-child(1) { width: 10%; }
-                    th:nth-child(2), td:nth-child(2) { width: 35%; min-width: 200px; }
-                    th:nth-child(3), td:nth-child(3) { width: 25%; min-width: 150px; }
-                    th:nth-child(4), td:nth-child(4) { width: 15%; }
-                    th:nth-child(5), td:nth-child(5) { width: 15%; }
-                    input.form-control-sm {
-                        width: 100%;
-                        box-sizing: border-box;
-                    }
-                    thead th {
-                        position: sticky;
-                        top: 0;
-                        background-color: #343a40;
-                        color: white;
-                        z-index: 2;
-                    }
-                </style>
-                <div class="table-container">
-                    <table class="table table-bordered">
-                        <thead>
+            <style>
+                .table-container {
+                    max-height: 400px;
+                    max-width: 100%;
+                    overflow-y: auto;
+                    overflow-x: auto;
+                    margin-bottom: 1rem;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    min-width: 600px;
+                    table-layout: fixed;
+                }
+                th, td {
+                    padding: 8px;
+                    border: 1px solid #dee2e6;
+                    text-align: left;
+                    white-space: normal;
+                    word-wrap: break-word;
+                }
+                th:nth-child(1), td:nth-child(1) { width: 20%; }
+                th:nth-child(2), td:nth-child(2) { width: 50%; min-width: 200px; }
+                th:nth-child(3), td:nth-child(3) { width: 15%; }
+                th:nth-child(4), td:nth-child(4) { width: 15%; }
+                input.form-control-sm {
+                    width: 100%;
+                    box-sizing: border-box;
+                }
+                thead th {
+                    position: sticky;
+                    top: 0;
+                    background-color: #343a40;
+                    color: white;
+                    z-index: 2;
+                }
+            </style>
+            <div class="table-container">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Esperada</th>
+                            <th>Contada</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${categoryRegistros.map(r => `
                             <tr>
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>Código de Barras</th>
-                                <th>Esperada</th>
-                                <th>Contada</th>
+                                <td>${r.productoId}</td>
+                                <td>${r.nombre}</td>
+                                <td>${r.cantidadEsperada}</td>
+                                <td><input type="number" id="contada-${r.productoId}" value="${r.cantidadContada != null ? r.cantidadContada : ''}" min="0" class="form-control form-control-sm"></td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            ${categoryRegistros.map(r => `
-                                <tr>
-                                    <td>${r.productoId}</td>
-                                    <td>${r.nombre}</td>
-                                    <td>${r.codigoBarra || 'N/A'}</td>
-                                    <td>${r.cantidadEsperada}</td>
-                                    <td><input type="number" id="contada-${r.productoId}" value="${r.cantidadContada != null ? r.cantidadContada : ''}" min="0" class="form-control form-control-sm"></td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `,
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `,
             showConfirmButton: true,
             confirmButtonText: 'Entendido',
             confirmButtonColor: '#3085d6',
@@ -833,67 +827,64 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
         } else {
             const tablaProductos = productosNoContados
                 .map(p => `
-                    <tr>
-                        <td>${p.categoriaNombre}</td>
-                        <td>${p.id}</td>
-                        <td>${p.nombre}</td>
-                        <td>${p.codigoBarra || 'N/A'}</td>
-                    </tr>
-                `)
+                <tr>
+                    <td>${p.categoriaNombre}</td>
+                    <td>${p.id}</td>
+                    <td>${p.nombre}</td>
+                </tr>
+            `)
                 .join('');
 
             Swal.fire({
                 title: '¿Finalizar conteo con productos sin contar?',
                 html: `
-                    <style>
-                        .table-container {
-                            max-height: 400px;
-                            overflow-y: auto;
-                            margin-bottom: 1rem;
-                        }
-                        table {
-                            width: 100%;
-                            border-collapse: collapse;
-                            min-width: 600px;
-                            table-layout: fixed;
-                        }
-                        th, td {
-                            padding: 8px;
-                            border: 1px solid #dee2e6;
-                            text-align: left;
-                            white-space: normal;
-                            word-wrap: break-word;
-                        }
-                        th:nth-child(1), td:nth-child(1) { width: 25%; min-width: 150px; }
-                        th:nth-child(2), td:nth-child(2) { width: 10%; }
-                        th:nth-child(3), td:nth-child(3) { width: 40%; min-width: 200px; }
-                        th:nth-child(4), td:nth-child(4) { width: 25%; min-width: 150px; }
-                        thead th {
-                            position: sticky;
-                            top: 0;
-                            background-color: #343a40;
-                            color: white;
-                            z-index: 2;
-                        }
-                    </style>
-                    <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar. Al finalizar, se registrarán con cantidad contada 0:</p>
-                    <div class="table-container">
-                        <table>
-                            <thead>
-                                <tr>
-                                    <th>Categoría</th>
-                                    <th>ID</th>
-                                    <th>Nombre</th>
-                                    <th>Código de Barras</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                ${tablaProductos}
-                            </tbody>
-                        </table>
-                    </div>
-                    <p>¿Estás seguro de finalizar el conteo?</p>
-                `,
+                <style>
+                    .table-container {
+                        max-height: 400px;
+                        overflow-y: auto;
+                        margin-bottom: 1rem;
+                    }
+                    table {
+                        width: 100%;
+                        border-collapse: collapse;
+                        min-width: 600px;
+                        table-layout: fixed;
+                    }
+                    th, td {
+                        padding: 8px;
+                        border: 1px solid #dee2e6;
+                        text-align: left;
+                        white-space: normal;
+                        word-wrap: break-word;
+                    }
+                    th:nth-child(1), td:nth-child(1) { width: 30%; min-width: 150px; }
+                    th:nth-child(2), td:nth-child(2) { width: 20%; }
+                    th:nth-child(3), td:nth-child(3) { width: 50%; min-width: 200px; }
+                    thead th {
+                        position: sticky;
+                        top: 0;
+                        background-color: #343a40;
+                        color: white;
+                        z-index: 2;
+                    }
+                </style>
+                <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar. Al finalizar, se registrarán con cantidad contada 0:</p>
+                <div class="table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Categoría</th>
+                                <th>ID</th>
+                                <th>Nombre</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${tablaProductos}
+                        </tbody>
+                    </table>
+                </div>
+                <p>¿Estás seguro de finalizar el conteo?</p>
+            `,
                 icon: 'warning',
                 showCancelButton: true,
                 confirmButtonColor: '#3085d6',

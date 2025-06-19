@@ -37,6 +37,7 @@ export class GestionarProductosComponent implements OnInit {
   mostrarCamara: boolean = false;
   videoElement: HTMLVideoElement | null = null;
   canvas: HTMLCanvasElement = document.createElement('canvas');
+  codigosBarraInput: string = '';
 
   constructor(
     private productoService: ProductoService,
@@ -63,33 +64,25 @@ export class GestionarProductosComponent implements OnInit {
       const hoja = workbook.Sheets[workbook.SheetNames[0]];
       const productosExcelRaw = XLSX.utils.sheet_to_json(hoja);
 
-      // Normalizar claves
-          const productosExcel = productosExcelRaw.map((prod: any) => {
-            const productoNormalizado: any = {};
+      const productosExcel = productosExcelRaw.map((prod: any) => {
+        const productoNormalizado: any = {};
+        for (const clave in prod) {
+          const valor = prod[clave];
+          const claveLower = clave.toLowerCase().trim();
 
-            for (const clave in prod) {
-              const valor = prod[clave];
-              const claveLower = clave.toLowerCase().trim();
+          if (["codigo", "código", "códigos", "códigos de barras", "codigos de barras", "barcode", "barcodes"].includes(claveLower)) {
+            productoNormalizado.codigosBarra = typeof valor === 'string' ? valor.split(',').map((s: string) => s.trim()) : [valor];
+          } else if (["precio", "precio unitario", "coste"].includes(claveLower)) {
+            productoNormalizado.precio = valor;
+          } else if (["stock", "cantidad", "cantidad stock", "existencia"].includes(claveLower)) {
+            productoNormalizado.cantidadStock = valor;
+          } else {
+            productoNormalizado[clave] = valor;
+          }
+        }
+        return productoNormalizado;
+      });
 
-            /* "Código de barras", "codigo", "barcode" → codigoBarra
-            "Precio unitario", "coste" → precio
-            "Stock", "Cantidad", "Existencia" → cantidadStock */
-
-              if (["codigo", "código", "código de barras", "codigo de barras", "barcode"].includes(claveLower)) {
-                productoNormalizado.codigoBarra = valor;
-              } else if (["precio", "precio unitario", "coste"].includes(claveLower)) {
-                productoNormalizado.precio = valor;
-              } else if (["stock", "cantidad", "cantidad stock", "existencia"].includes(claveLower)) {
-                productoNormalizado.cantidadStock = valor;
-              } else {
-                productoNormalizado[clave] = valor; // conservar el resto
-              }
-            }
-
-            return productoNormalizado;
-          });
-
-      // Validar y enviar al backend
       this.actualizarProductosDesdeExcel(productosExcel);
     };
     lector.readAsArrayBuffer(archivo);
@@ -97,8 +90,9 @@ export class GestionarProductosComponent implements OnInit {
 
   actualizarProductosDesdeExcel(productos: any[]): void {
     const productosValidos = productos.filter(p =>
-      p.codigoBarra && (typeof p.precio === 'number' || typeof p.cantidadStock === 'number'
-    ));
+      p.codigosBarra && Array.isArray(p.codigosBarra) && p.codigosBarra.length > 0 &&
+      (typeof p.precio === 'number' || typeof p.cantidadStock === 'number')
+    );
 
     if (productosValidos.length === 0) {
       Swal.fire('Archivo inválido', 'No se encontraron productos válidos para actualizar.', 'warning');
@@ -115,7 +109,6 @@ export class GestionarProductosComponent implements OnInit {
         Swal.fire('Error', 'Ocurrió un error al actualizar productos.', 'error');
       }
     });
-
   }
 
   cargarDatosIniciales(): void {
@@ -144,7 +137,6 @@ export class GestionarProductosComponent implements OnInit {
                       return proveedor ? proveedor.nombre : 'Desconocido';
                     })
                   : [];
-                // Sanitize imagen to prevent invalid base64
                 if (prod.imagen && !this.isValidBase64Image(prod.imagen)) {
                   console.warn(`Invalid imagen for product ${prod.id}: ${prod.imagen}`);
                   prod.imagen = null;
@@ -186,13 +178,15 @@ export class GestionarProductosComponent implements OnInit {
   abrirModalAgregar(): void {
     this.esEditar = false;
     this.productoSeleccionado = this.resetProducto();
+    this.codigosBarraInput = '';
     this.mostrarCamara = false;
     this.mostrarModal('productoModal');
   }
 
   editarProducto(prod: Producto): void {
     this.esEditar = true;
-    this.productoSeleccionado = { ...prod, proveedorIds: prod.proveedorIds || [] };
+    this.productoSeleccionado = { ...prod, proveedorIds: prod.proveedorIds || [], codigosBarra: [...(prod.codigosBarra || [])] };
+    this.codigosBarraInput = prod.codigosBarra.join('\n');
     this.mostrarCamara = false;
     this.mostrarModal('productoModal');
   }
@@ -305,8 +299,14 @@ export class GestionarProductosComponent implements OnInit {
 
   guardarProducto(): void {
     const modal = bootstrap.Modal.getInstance(document.getElementById('productoModal'));
+    // Parsear los códigos de barra desde el textarea
+    const codigos = this.codigosBarraInput
+      .split(/[\n\s,]+/)
+      .map(c => c.trim())
+      .filter(c => c.length > 0);
+    
     if (!this.productoSeleccionado.nombre ||
-        !this.productoSeleccionado.codigoBarra ||
+        codigos.length === 0 ||
         this.productoSeleccionado.categoriaId === 0 ||
         this.productoSeleccionado.precio < 0 ||
         this.productoSeleccionado.cantidadStock < 0) {
@@ -330,7 +330,8 @@ export class GestionarProductosComponent implements OnInit {
         return;
       }
     }
-    const productoToSave = { ...this.productoSeleccionado };
+
+    const productoToSave = { ...this.productoSeleccionado, codigosBarra: codigos };
     if (this.esEditar) {
       this.productoService.actualizarProducto(productoToSave).subscribe({
         next: () => {
@@ -388,6 +389,19 @@ export class GestionarProductosComponent implements OnInit {
     }
   }
 
+  agregarCodigoBarra(): void {
+    this.codigosBarraInput += '\n';
+  }
+
+  removerCodigoBarra(index: number): void {
+    const codigos = this.codigosBarraInput
+      .split(/[\n\s,]+/)
+      .map(c => c.trim())
+      .filter(c => c.length > 0);
+    codigos.splice(index, 1);
+    this.codigosBarraInput = codigos.join('\n');
+  }
+
   mostrarModal(modalId: string): void {
     const modal = new bootstrap.Modal(document.getElementById(modalId));
     modal.show();
@@ -396,7 +410,7 @@ export class GestionarProductosComponent implements OnInit {
   resetProducto(): Producto {
     return {
       id: 0,
-      codigoBarra: '',
+      codigosBarra: [''],
       imagen: null,
       nombre: '',
       detalle: '',
@@ -425,7 +439,7 @@ export class GestionarProductosComponent implements OnInit {
     return this.productos.filter(prod =>
       prod.nombre.toLowerCase().includes(this.filtro.toLowerCase()) ||
       prod.detalle.toLowerCase().includes(this.filtro.toLowerCase()) ||
-      prod.codigoBarra.includes(this.filtro) ||
+      prod.codigosBarra.some(c => c.includes(this.filtro)) ||
       prod.id.toString().includes(this.filtro) ||
       (prod.categoriaNombre && prod.categoriaNombre.toLowerCase().includes(this.filtro.toLowerCase())) ||
       (prod.proveedorNombres && prod.proveedorNombres.some(nombre => nombre.toLowerCase().includes(this.filtro.toLowerCase())))

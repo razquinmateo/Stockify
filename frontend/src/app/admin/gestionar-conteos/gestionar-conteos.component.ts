@@ -21,7 +21,7 @@ interface RegistroConteo {
   cantidadContada: number | null;
   usuario: string;
   usuarioId: number;
-  codigoBarra?: string;
+  codigosBarra: string[];
   categoriaNombre?: string;
 }
 
@@ -180,14 +180,14 @@ export class GestionarConteosComponent implements OnInit {
         cantidadContada: cp.cantidadContada,
         usuario: this.nombreUsuarioLogueado,
         usuarioId: this.usuarioId!,
-        codigoBarra: prod.codigoBarra,
+        codigosBarra: prod.codigosBarra,
         categoriaNombre: cat?.nombre || 'Sin Categoría'
       };
       this.registros.push(reg);
     }
   }
 
-  get productosNoContados(): { id: number; nombre: string; codigoBarra: string | undefined; categoriaNombre: string }[] {
+  get productosNoContados(): { id: number; nombre: string; codigosBarra: string[]; categoriaNombre: string }[] {
     return this.productosConteo
       .filter(p => p.cantidadContada === null)
       .map(p => {
@@ -196,7 +196,7 @@ export class GestionarConteosComponent implements OnInit {
         return {
           id: p.productoId,
           nombre: producto?.nombre || 'Desconocido',
-          codigoBarra: producto?.codigoBarra,
+          codigosBarra: producto?.codigosBarra || [],
           categoriaNombre: categoria?.nombre || 'Sin Categoría'
         };
       })
@@ -376,7 +376,6 @@ export class GestionarConteosComponent implements OnInit {
           return {
             id: prod.id,
             nombre: prod.nombre,
-            codigoBarra: prod.codigoBarra,
             categoriaNombre: categoria?.nombre || 'Sin Categoría'
           };
         })
@@ -437,64 +436,61 @@ export class GestionarConteosComponent implements OnInit {
       } else {
         const tablaProductos = productosNoContados
           .map(p => `
-            <tr>
-              <td>${p.id}</td>
-              <td>${p.nombre}</td>
-              <td>${p.codigoBarra || 'N/A'}</td>
-            </tr>
-          `)
+          <tr>
+            <td>${p.id}</td>
+            <td>${p.nombre}</td>
+          </tr>
+        `)
           .join('');
 
         Swal.fire({
           title: '¿Finalizar conteo con productos sin contar?',
           html: `
-            <style>
-              .table-container {
-                max-height: 400px;
-                overflow-y: auto;
-                margin-bottom: 1rem;
-              }
-              table {
-                width: 100%;
-                border-collapse: collapse;
-                min-width: 600px;
-                table-layout: fixed;
-              }
-              th, td {
-                padding: 8px;
-                border: 1px solid #dee2e6;
-                text-align: left;
-                white-space: normal;
-                word-wrap: break-word;
-              }
-              th:nth-child(1), td:nth-child(1) { width: 10%; }
-              th:nth-child(2), td:nth-child(2) { width: 10%; }
-              th:nth-child(3), td:nth-child(3) { width: 10%; }
-              thead th {
-                position: sticky;
-                top: 0;
-                background-color: #343a40;
-                color: white;
-                z-index: 2;
-              }
-            </style>
-            <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar. Al finalizar, se registrarán con cantidad contada 0:</p>
-            <div class="table-container">
-              <table>
-                <thead>
-                  <tr>
-                    <th>ID</th>
-                    <th>Nombre</th>
-                    <th>Código de Barras</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  ${tablaProductos}
-                </tbody>
-              </table>
-            </div>
-            <p>¿Estás seguro de finalizar el conteo?</p>
-          `,
+          <style>
+            .table-container {
+              max-height: 400px;
+              overflow-y: auto;
+              margin-bottom: 1rem;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              min-width: 600px;
+              table-layout: fixed;
+            }
+            th, td {
+              padding: 8px;
+              border: 1px solid #dee2e6;
+              text-align: left;
+              white-space: normal;
+              word-wrap: break-word;
+            }
+            th:nth-child(1), td:nth-child(1) { width: 20%; }
+            th:nth-child(2), td:nth-child(2) { width: 80%; }
+            thead th {
+              position: sticky;
+              top: 0;
+              background-color: #343a40;
+              color: white;
+              z-index: 2;
+            }
+          </style>
+          <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar. Al finalizar, se registrarán con cantidad contada 0:</p>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tablaProductos}
+              </tbody>
+            </table>
+          </div>
+          <p>¿Estás seguro de finalizar el conteo?</p>
+        `,
           icon: 'warning',
           showCancelButton: true,
           confirmButtonColor: '#3085d6',
@@ -524,7 +520,7 @@ export class GestionarConteosComponent implements OnInit {
                   cantidadContada: 0,
                   usuario: this.nombreUsuarioLogueado,
                   usuarioId: this.usuarioId!,
-                  codigoBarra: prod.codigoBarra,
+                  codigosBarra: [],
                   categoriaNombre: prod.categoriaNombre
                 };
                 this.registros.push(reg);
@@ -614,66 +610,63 @@ export class GestionarConteosComponent implements OnInit {
     } else {
       const tablaProductos = productosNoContados
         .map(p => `
-          <tr>
-            <td>${p.categoriaNombre}</td>
-            <td>${p.id}</td>
-            <td>${p.nombre}</td>
-            <td>${p.codigoBarra || 'N/A'}</td>
-          </tr>
-        `)
+        <tr>
+          <td>${p.categoriaNombre}</td>
+          <td>${p.id}</td>
+          <td>${p.nombre}</td>
+        </tr>
+      `)
         .join('');
       Swal.fire({
         title: '¿Finalizar conteo con productos sin contar?',
         html: `
-          <style>
-            .table-container {
-              max-height: 400px;
-              overflow-y: auto;
-              margin-bottom: 1rem;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              min-width: 600px;
-              table-layout: fixed;
-            }
-            th, td {
-              padding: 8px;
-              border: 1px solid #dee2e6;
-              text-align: left;
-              white-space: normal;
-              word-wrap: break-word;
-            }
-            th:nth-child(1), td:nth-child(1) { width: 25%; min-width: 150px; }
-            th:nth-child(2), td:nth-child(2) { width: 10%; }
-            th:nth-child(3), td:nth-child(3) { width: 40%; min-width: 200px; }
-            th:nth-child(4), td:nth-child(4) { width: 25%; min-width: 150px; }
-            thead th {
-              position: sticky;
-              top: 0;
-              background-color: #343a40;
-              color: white;
-              z-index: 2;
-            }
-          </style>
-          <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar. Al finalizar, se registrarán con cantidad contada 0:</p>
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>Categoría</th>
-                  <th>ID</th>
-                  <th>Nombre</th>
-                  <th>Código de Barras</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${tablaProductos}
-              </tbody>
-            </table>
-          </div>
-          <p>¿Estás seguro de finalizar el conteo?</p>
-        `,
+        <style>
+          .table-container {
+            max-height: 400px;
+            overflow-y: auto;
+            margin-bottom: 1rem;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+            table-layout: fixed;
+          }
+          th, td {
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            text-align: left;
+            white-space: normal;
+            word-wrap: break-word;
+          }
+          th:nth-child(1), td:nth-child(1) { width: 30%; min-width: 150px; }
+          th:nth-child(2), td:nth-child(2) { width: 20%; }
+          th:nth-child(3), td:nth-child(3) { width: 50%; min-width: 200px; }
+          thead th {
+            position: sticky;
+            top: 0;
+            background-color: #343a40;
+            color: white;
+            z-index: 2;
+          }
+        </style>
+        <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar. Al finalizar, se registrarán con cantidad contada 0:</p>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>Categoría</th>
+                <th>ID</th>
+                <th>Nombre</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tablaProductos}
+            </tbody>
+          </table>
+        </div>
+        <p>¿Estás seguro de finalizar el conteo?</p>
+      `,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',

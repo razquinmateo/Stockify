@@ -6,7 +6,7 @@ import { environment } from '../../environments/environment';
 
 export interface Producto {
   id: number;
-  codigoBarra: string;
+  codigosBarra: string[];
   imagen: string | null;
   nombre: string;
   detalle: string;
@@ -67,7 +67,6 @@ export class ProductoService {
     );
   }
 
-
   obtenerCategoriaPorId(categoriaId: number): Observable<any> {
     return this.http.get<any>(`${this.categoriaUrl}/${categoriaId}`);
   }
@@ -84,7 +83,7 @@ export class ProductoService {
     return this.http.put<Producto>(`${this.apiUrl}/${producto.id}`, producto);
   }
 
-  actualizarMasivoProductos(productos: { codigoBarra: string; precio: number; cantidadStock: number }[]): Observable<any> {
+  actualizarMasivoProductos(productos: { codigosBarra: string[]; precio: number; cantidadStock: number }[]): Observable<any> {
     return this.http.post(`${this.apiUrl}/actualizar-masivo`, productos);
   }
 

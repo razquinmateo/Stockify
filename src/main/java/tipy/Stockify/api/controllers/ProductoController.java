@@ -73,7 +73,9 @@ public class ProductoController {
     @Operation(description = "Actualiza masivamente productos por código de barra (precio y stock).")
     public ResponseEntity<Map<String, String>> actualizarMasivo(@RequestBody List<ProductoDto> productos) {
         for (ProductoDto dto : productos) {
-            productoService.actualizarStockYPrecioPorCodigoBarra(dto.getCodigoBarra(), dto.getPrecio(), dto.getCantidadStock());
+            if (dto.getCodigosBarra() != null && !dto.getCodigosBarra().isEmpty()) {
+                productoService.actualizarStockYPrecioPorCodigoBarra(dto.getCodigosBarra().get(0), dto.getPrecio(), dto.getCantidadStock());
+            }
         }
         return ResponseEntity.ok(Map.of("mensaje", "Productos actualizados correctamente."));
     }

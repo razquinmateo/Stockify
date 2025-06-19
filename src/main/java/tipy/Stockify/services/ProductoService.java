@@ -7,6 +7,7 @@ import tipy.Stockify.business.entities.Categoria;
 import tipy.Stockify.business.entities.Sucursal;
 import tipy.Stockify.business.entities.Producto;
 import tipy.Stockify.business.entities.Proveedor;
+import tipy.Stockify.business.entities.CodigoBarra;
 import tipy.Stockify.business.repositories.CategoriaRepository;
 import tipy.Stockify.business.repositories.SucursalRepository;
 import tipy.Stockify.business.repositories.ProductoRepository;
@@ -15,6 +16,7 @@ import tipy.Stockify.dtos.ProductoDto;
 
 import java.util.Base64;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Service
@@ -65,6 +67,7 @@ public class ProductoService {
         Producto producto = mapToEntity(productoDto);
         producto.setActivo(true);
         assignProveedores(producto, productoDto.getProveedorIds());
+        assignCodigosBarra(producto, productoDto.getCodigosBarra());
         return mapToDto(productoRepository.save(producto));
     }
 
@@ -74,6 +77,7 @@ public class ProductoService {
                 .map(existingProducto -> {
                     updateProductoFields(existingProducto, productoDto);
                     assignProveedores(existingProducto, productoDto.getProveedorIds());
+                    assignCodigosBarra(existingProducto, productoDto.getCodigosBarra());
                     return mapToDto(productoRepository.save(existingProducto));
                 })
                 .orElse(null);
@@ -104,8 +108,8 @@ public class ProductoService {
         if (productoDto.getNombre() == null || productoDto.getNombre().isEmpty()) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El nombre del producto es requerido");
         }
-        if (productoDto.getCodigoBarra() == null || productoDto.getCodigoBarra().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El código de barra es requerido");
+        if (productoDto.getCodigosBarra() == null || productoDto.getCodigosBarra().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Al menos un código de barra es requerido");
         }
         if (productoDto.getPrecio() == null || productoDto.getPrecio() < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El precio debe ser mayor o igual a 0");
@@ -117,9 +121,7 @@ public class ProductoService {
 
     private void assignProveedores(Producto producto, List<Long> proveedorIds) {
         if (proveedorIds != null) {
-            // Limpiar proveedores existentes
             producto.getProveedores().clear();
-            // Asignar nuevos proveedores
             for (Long proveedorId : proveedorIds) {
                 Proveedor proveedor = proveedorRepository.findByIdAndActivoTrue(proveedorId)
                         .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Proveedor no encontrado con id: " + proveedorId));
@@ -128,10 +130,36 @@ public class ProductoService {
         }
     }
 
-    private void updateProductoFields(Producto producto, ProductoDto productoDto) {
-        if (productoDto.getCodigoBarra() != null) {
-            producto.setCodigoBarra(productoDto.getCodigoBarra());
+    private void assignCodigosBarra(Producto producto, List<String> codigosBarra) {
+        if (codigosBarra != null) {
+            //elimina codigos de barra que no esten en la lista nueva
+            producto.getCodigosBarra().removeIf(cb -> !codigosBarra.contains(cb.getCodigo()));
+
+            // añade o actualiza los codigos de barra
+            for (String codigo : codigosBarra) {
+                if (codigo == null || codigo.trim().isEmpty()) {
+                    continue; // saltea si no hay codigos de barra
+                }
+                // ve si el codigo de barra ya existe en la bd
+                Optional<Producto> existingProducto = productoRepository.findByCodigoBarra(codigo);
+                if (existingProducto.isPresent() && !existingProducto.get().getId().equals(producto.getId())) {
+                    throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                            "El código de barras " + codigo + " ya está asignado a otro producto");
+                }
+
+                // ve si el codigo de barra ya estaba asignado a el producto
+                boolean existsInProduct = producto.getCodigosBarra().stream()
+                        .anyMatch(cb -> cb.getCodigo().equals(codigo));
+                if (!existsInProduct) {
+                    CodigoBarra codigoBarra = new CodigoBarra();
+                    codigoBarra.setCodigo(codigo);
+                    producto.addCodigoBarra(codigoBarra);
+                }
+            }
         }
+    }
+
+    private void updateProductoFields(Producto producto, ProductoDto productoDto) {
         if (productoDto.getImagen() != null) {
             producto.setImagen(productoDto.getImagen());
         }
@@ -178,7 +206,6 @@ public class ProductoService {
 
     public Producto mapToEntity(ProductoDto productoDto) {
         Producto producto = new Producto();
-        producto.setCodigoBarra(productoDto.getCodigoBarra());
         producto.setImagen(productoDto.getImagen());
         producto.setNombre(productoDto.getNombre());
         producto.setDetalle(productoDto.getDetalle());
@@ -200,7 +227,9 @@ public class ProductoService {
     public ProductoDto mapToDto(Producto producto) {
         ProductoDto productoDto = new ProductoDto();
         productoDto.setId(producto.getId());
-        productoDto.setCodigoBarra(producto.getCodigoBarra());
+        productoDto.setCodigosBarra(producto.getCodigosBarra().stream()
+                .map(CodigoBarra::getCodigo)
+                .collect(Collectors.toList()));
         productoDto.setImagen(producto.getImagen());
         productoDto.setNombre(producto.getNombre());
         productoDto.setDetalle(producto.getDetalle());
@@ -214,5 +243,4 @@ public class ProductoService {
                 .collect(Collectors.toList()));
         return productoDto;
     }
-
 }

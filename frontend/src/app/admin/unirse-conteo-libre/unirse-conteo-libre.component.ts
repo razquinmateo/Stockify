@@ -22,7 +22,7 @@ interface RegistroConteo {
   cantidadContada: number | null;
   usuario: string;
   usuarioId: number;
-  codigoBarra?: string;
+  codigosBarra: string[];
 }
 
 @Component({
@@ -164,7 +164,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
               cantidadContada: msg.cantidadContada ?? 0,
               usuario: this.nombreUsuarioLogueado,
               usuarioId: this.usuarioId!,
-              codigoBarra: prod.codigoBarra
+              codigosBarra: prod.codigosBarra
             };
             if (existente) {
               Object.assign(existente, reg);
@@ -335,7 +335,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
       return;
     }
     const prod = this.allProductos.find(p =>
-      p.codigoBarra === codigo || p.id.toString() === codigo
+      p.codigosBarra.includes(codigo) || p.id.toString() === codigo
     );
     if (!prod) {
       await Swal.fire({
@@ -404,7 +404,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
             cantidadContada: updated.cantidadContada,
             usuario: this.nombreUsuarioLogueado,
             usuarioId: this.usuarioId!,
-            codigoBarra: prod.codigoBarra
+            codigosBarra: prod.codigosBarra
           };
           existente ? Object.assign(existente, reg) : this.registros.push(reg);
           localStorage.setItem(`registros_${this.nombreUsuarioLogueado}`, JSON.stringify(this.registros));
@@ -432,7 +432,8 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
     return term
       ? this.registros.filter(r =>
         r.productoId.toString().includes(term) ||
-        r.nombre.toLowerCase().includes(term)
+        r.nombre.toLowerCase().includes(term) ||
+        r.codigosBarra.some(c => c.toLowerCase().includes(term))
       )
       : this.registros;
   }
@@ -514,62 +515,59 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
     } else {
       const tablaProductos = productosNoContados
         .map(p => `
-          <tr>
-            <td>${p.id}</td>
-            <td>${p.nombre}</td>
-            <td>${p.codigoBarra || 'N/A'}</td>
-          </tr>
-        `)
+        <tr>
+          <td>${p.id}</td>
+          <td>${p.nombre}</td>
+        </tr>
+      `)
         .join('');
       Swal.fire({
         title: '¿Finalizar conteo con productos sin contar?',
         html: `
-  <style>
-    .table-container {
-      max-height: 420px; /* 10 filas aprox. */
-      overflow-y: auto;
-    }
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 600px;
-      table-layout: fixed;
-    }
-    th, td {
-      padding: 8px;
-      border: 1px solid #dee2e6;
-      text-align: left;
-      white-space: normal;
-      word-wrap: break-word;
-    }
-    th:nth-child(1), td:nth-child(1) { width: 15%; }
-    th:nth-child(2), td:nth-child(2) { width: 50%; min-width: 200px; }
-    th:nth-child(3), td:nth-child(3) { width: 35%; min-width: 150px; }
-    thead th {
-      position: sticky;
-      top: 0;
-      background-color: #343a40;
-      color: white;
-      z-index: 2;
-    }
-  </style>
-  <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar. Se crearán registros con cantidad contada 0 para estos productos.</p>
-  <div class="table-container">
-    <table>
-      <thead>
-        <tr>
-          <th>ID</th>
-          <th>Nombre</th>
-          <th>Código de Barras</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${tablaProductos}
-      </tbody>
-    </table>
-    </div>
-  <p>¿Estás seguro de finalizar el conteo?</p>
-`,
+        <style>
+          .table-container {
+            max-height: 420px; /* 10 filas aprox. */
+            overflow-y: auto;
+          }
+          table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px;
+            table-layout: fixed;
+          }
+          th, td {
+            padding: 8px;
+            border: 1px solid #dee2e6;
+            text-align: left;
+            white-space: normal;
+            word-wrap: break-word;
+          }
+          th:nth-child(1), td:nth-child(1) { width: 20%; }
+          th:nth-child(2), td:nth-child(2) { width: 80%; min-width: 200px; }
+          thead th {
+            position: sticky;
+            top: 0;
+            background-color: #343a40;
+            color: white;
+            z-index: 2;
+          }
+        </style>
+        <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar. Se crearán registros con cantidad contada 0 para estos productos.</p>
+        <div class="table-container">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Nombre</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tablaProductos}
+            </tbody>
+          </table>
+        </div>
+        <p>¿Estás seguro de finalizar el conteo?</p>
+      `,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
@@ -601,7 +599,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
                 cantidadContada: 0,
                 usuario: this.nombreUsuarioLogueado,
                 usuarioId: this.usuarioId!,
-                codigoBarra: prod.codigoBarra
+                codigosBarra: prod.codigosBarra
               };
               this.registros.push(reg);
             }

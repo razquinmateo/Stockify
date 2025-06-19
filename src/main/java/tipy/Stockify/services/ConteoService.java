@@ -68,17 +68,17 @@ public class ConteoService {
         Conteo conteo = mapToEntity(conteoDto);
         conteo.setActivo(!conteo.isConteoFinalizado());
 
-        // Save the conteo first to get its ID
+        // creamos el conteo primero, asi podemos tener su id
         Conteo saved = conteoRepository.save(conteo);
 
-        // If tipoConteo is CATEGORIAS, populate ConteoProducto with products from categories
+        // y si el tipoconteo es CATEGORIAS, crea los conteo-productos con productos activos de la categorias de la sucursal
         if (conteo.getTipoConteo() == Conteo.TipoConteo.CATEGORIAS) {
             if (conteoDto.getUsuarioId() == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "UsuarioId es requerido para conteos de tipo CATEGORIAS");
             }
             Usuario usuario = usuarioRepository.findById(conteoDto.getUsuarioId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con id: " + conteoDto.getUsuarioId()));
-            Long sucursalId = usuario.getSucursal().getId(); // Assuming Usuario has a Sucursal reference
+            Long sucursalId = usuario.getSucursal().getId();
             List<Categoria> categorias = categoriaRepository.findByActivoTrue().stream()
                     .filter(c -> c.getSucursal().getId().equals(sucursalId))
                     .collect(Collectors.toList());

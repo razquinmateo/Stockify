@@ -23,7 +23,7 @@ interface RegistroConteo {
     cantidadContada: number | null;
     usuario: string;
     usuarioId: number;
-    codigoBarra?: string;
+    codigosBarra: string[];
     categoriaId: number;
     categoriaNombre: string;
 }
@@ -366,7 +366,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
                 cantidadContada: cp.cantidadContada,
                 usuario: this.nombreUsuarioLogueado,
                 usuarioId: this.usuarioId!,
-                codigoBarra: prod.codigoBarra,
+                codigosBarra: prod.codigosBarra,
                 categoriaId: prod.categoriaId,
                 categoriaNombre: cat?.nombre || 'Sin Categoría'
             };
@@ -428,70 +428,67 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
         Swal.fire({
             title: `Categoría Completada: ${category?.nombre || 'Sin Categoría'}`,
             html: `
-                <style>
-                    .table-container {
-                        max-height: 400px;
-                        max-width: 100%;
-                        overflow-y: auto;
-                        overflow-x: auto;
-                        margin-bottom: 1rem;
-                    }
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        min-width: 600px;
-                        table-layout: fixed;
-                    }
-                    th, td {
-                        padding: 8px;
-                        border: 1px solid #dee2e6;
-                        text-align: left;
-                        white-space: normal;
-                        word-wrap: break-word;
-                    }
-                    th:nth-child(1), td:nth-child(1) { width: 10%; }
-                    th:nth-child(2), td:nth-child(2) { width: 35%; min-width: 200px; }
-                    th:nth-child(3), td:nth-child(3) { width: 35%; min-width: 150px; }
-                    th:nth-child(4), td:nth-child(4) { width: 20%; }
-                    th:nth-child(5), td:nth-child(5) { width: 20%; }
-                    input.form-control-sm {
-                        width: 100%;
-                        box-sizing: border-box;
-                    }
-                    thead th {
-                        position: sticky;
-                        top: 0;
-                        background-color: #343a40;
-                        color: white;
-                        z-index: 2;
-                    }
-                </style>
-                <p>Esta categoría ya ha sido completamente contada. Puedes revisar y editar las cantidades contadas:</p>
-                <div class="table-container">
-                    <table class="table table-bordered">
-                        <thead>
+            <style>
+                .table-container {
+                    max-height: 400px;
+                    max-width: 100%;
+                    overflow-y: auto;
+                    overflow-x: auto;
+                    margin-bottom: 1rem;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    min-width: 600px;
+                    table-layout: fixed;
+                }
+                th, td {
+                    padding: 8px;
+                    border: 1px solid #dee2e6;
+                    text-align: left;
+                    white-space: normal;
+                    word-wrap: break-word;
+                }
+                th:nth-child(1), td:nth-child(1) { width: 20%; }
+                th:nth-child(2), td:nth-child(2) { width: 50%; min-width: 200px; }
+                th:nth-child(3), td:nth-child(3) { width: 15%; }
+                th:nth-child(4), td:nth-child(4) { width: 15%; }
+                input.form-control-sm {
+                    width: 100%;
+                    box-sizing: border-box;
+                }
+                thead th {
+                    position: sticky;
+                    top: 0;
+                    background-color: #343a40;
+                    color: white;
+                    z-index: 2;
+                }
+            </style>
+            <p>Esta categoría ya ha sido completamente contada. Puedes revisar y editar las cantidades contadas:</p>
+            <div class="table-container">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Esperada</th>
+                            <th>Contada</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${categoryRegistros.map(r => `
                             <tr>
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>Código de Barras</th>
-                                <th>Esperada</th>
-                                <th>Contada</th>
+                                <td>${r.productoId}</td>
+                                <td>${r.nombre}</td>
+                                <td>${r.cantidadEsperada}</td>
+                                <td><input type="number" id="contada-${r.productoId}" value="${r.cantidadContada != null ? r.cantidadContada : ''}" min="0" class="form-control form-control-sm"></td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            ${categoryRegistros.map(r => `
-                                <tr>
-                                    <td>${r.productoId}</td>
-                                    <td>${r.nombre}</td>
-                                    <td>${r.codigoBarra || 'N/A'}</td>
-                                    <td>${r.cantidadEsperada}</td>
-                                    <td><input type="number" id="contada-${r.productoId}" value="${r.cantidadContada != null ? r.cantidadContada : ''}" min="0" class="form-control form-control-sm"></td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `,
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `,
             showConfirmButton: true,
             confirmButtonText: 'Entendido',
             confirmButtonColor: '#3085d6',
@@ -520,6 +517,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
             }
         });
     }
+
 
     private getNextUncountedProductId(categoryId: number): number | null {
         const conteoProductos = this.conteoProductosByCategory.get(categoryId) || [];
@@ -564,7 +562,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
                     cantidadContada: updated.cantidadContada,
                     usuario: this.nombreUsuarioLogueado,
                     usuarioId: this.usuarioId!,
-                    codigoBarra: prod.codigoBarra,
+                    codigosBarra: prod.codigosBarra,
                     categoriaId: prod.categoriaId,
                     categoriaNombre: cat?.nombre || 'Sin Categoría'
                 };
@@ -599,69 +597,66 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
         Swal.fire({
             title: `Categoría Completada: ${category?.nombre || 'Sin Categoría'}`,
             html: `
-                <style>
-                    .table-container {
-                        max-height: 400px;
-                        max-width: 100%;
-                        overflow-y: auto;
-                        overflow-x: auto;
-                        margin-bottom: 1rem;
-                    }
-                    table {
-                        width: 100%;
-                        border-collapse: collapse;
-                        min-width: 600px;
-                        table-layout: fixed;
-                    }
-                    th, td {
-                        padding: 8px;
-                        border: 1px solid #dee2e6;
-                        text-align: left;
-                        white-space: normal;
-                        word-wrap: break-word;
-                    }
-                    th:nth-child(1), td:nth-child(1) { width: 10%; }
-                    th:nth-child(2), td:nth-child(2) { width: 35%; min-width: 200px; }
-                    th:nth-child(3), td:nth-child(3) { width: 25%; min-width: 150px; }
-                    th:nth-child(4), td:nth-child(4) { width: 15%; }
-                    th:nth-child(5), td:nth-child(5) { width: 15%; }
-                    input.form-control-sm {
-                        width: 100%;
-                        box-sizing: border-box;
-                    }
-                    thead th {
-                        position: sticky;
-                        top: 0;
-                        background-color: #343a40;
-                        color: white;
-                        z-index: 2;
-                    }
-                </style>
-                <div class="table-container">
-                    <table class="table table-bordered">
-                        <thead>
+            <style>
+                .table-container {
+                    max-height: 400px;
+                    max-width: 100%;
+                    overflow-y: auto;
+                    overflow-x: auto;
+                    margin-bottom: 1rem;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    min-width: 600px;
+                    table-layout: fixed;
+                }
+                th, td {
+                    padding: 8px;
+                    border: 1px solid #dee2e6;
+                    text-align: left;
+                    white-space: normal;
+                    word-wrap: break-word;
+                }
+                th:nth-child(1), td:nth-child(1) { width: 20%; }
+                th:nth-child(2), td:nth-child(2) { width: 50%; min-width: 200px; }
+                th:nth-child(3), td:nth-child(3) { width: 15%; }
+                th:nth-child(4), td:nth-child(4) { width: 15%; }
+                input.form-control-sm {
+                    width: 100%;
+                    box-sizing: border-box;
+                }
+                thead th {
+                    position: sticky;
+                    top: 0;
+                    background-color: #343a40;
+                    color: white;
+                    z-index: 2;
+                }
+            </style>
+            <div class="table-container">
+                <table class="table table-bordered">
+                    <thead>
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Esperada</th>
+                            <th>Contada</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${categoryRegistros.map(r => `
                             <tr>
-                                <th>ID</th>
-                                <th>Nombre</th>
-                                <th>Código de Barras</th>
-                                <th>Esperada</th>
-                                <th>Contada</th>
+                                <td>${r.productoId}</td>
+                                <td>${r.nombre}</td>
+                                <td>${r.cantidadEsperada}</td>
+                                <td><input type="number" id="contada-${r.productoId}" value="${r.cantidadContada != null ? r.cantidadContada : ''}" min="0" class="form-control form-control-sm"></td>
                             </tr>
-                        </thead>
-                        <tbody>
-                            ${categoryRegistros.map(r => `
-                                <tr>
-                                    <td>${r.productoId}</td>
-                                    <td>${r.nombre}</td>
-                                    <td>${r.codigoBarra || 'N/A'}</td>
-                                    <td>${r.cantidadEsperada}</td>
-                                    <td><input type="number" id="contada-${r.productoId}" value="${r.cantidadContada != null ? r.cantidadContada : ''}" min="0" class="form-control form-control-sm"></td>
-                                </tr>
-                            `).join('')}
-                        </tbody>
-                    </table>
-                </div>
-            `,
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `,
             showConfirmButton: true,
             confirmButtonText: 'Entendido',
             confirmButtonColor: '#3085d6',
