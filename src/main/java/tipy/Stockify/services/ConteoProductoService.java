@@ -103,6 +103,31 @@ public class ConteoProductoService {
         }
     }
 
+    public List<ConteoProductoDto> batchUpdate(List<ConteoProductoDto> conteoProductoDtos) {
+        List<ConteoProducto> entities = conteoProductoDtos.stream()
+                .map(dto -> {
+                    ConteoProducto existing = conteoProductoRepository.findById(dto.getId())
+                            .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "ConteoProducto no encontrado con id: " + dto.getId()));
+                    updateConteoProductoFields(existing, dto);
+                    return existing;
+                })
+                .collect(Collectors.toList());
+
+        List<ConteoProducto> updatedEntities = conteoProductoRepository.saveAll(entities);
+
+        // Enviar notificaciones WebSocket para cada actualización
+        updatedEntities.forEach(updated -> {
+            messagingTemplate.convertAndSend(
+                    "/topic/conteo-producto-actualizado",
+                    mapToDto(updated)
+            );
+        });
+
+        return updatedEntities.stream()
+                .map(this::mapToDto)
+                .collect(Collectors.toList());
+    }
+
     public ConteoProducto mapToEntity(ConteoProductoDto conteoProductoDto) {
         ConteoProducto conteoProducto = new ConteoProducto();
         conteoProducto.setPrecioActual(conteoProductoDto.getPrecioActual());

@@ -152,9 +152,9 @@ export class GestionarConteosComponent implements OnInit {
             },
             error
 
-: (err) => {
-              console.error(`Error al obtener usuarios del conteo ${conteo.id}`, err);
-            },
+              : (err) => {
+                console.error(`Error al obtener usuarios del conteo ${conteo.id}`, err);
+              },
           });
         }
       },
@@ -805,23 +805,36 @@ export class GestionarConteosComponent implements OnInit {
 
   private async updateUncountedProductsToZero(): Promise<void> {
     const uncounted = this.productosConteo.filter(p => p.cantidadContada === null);
-    for (const item of uncounted) {
-      try {
-        const updated = await lastValueFrom(
-          this.conteoProductoService.update(item.id, { cantidadContada: 0 }).pipe(retry(2), delay(500))
-        );
-        console.log(`Updated productoId: ${item.productoId} to cantidadContada: 0`);
-        item.cantidadContada = 0;
-        const reg = this.registros.find(r => r.productoId === item.productoId);
-        if (reg) {
-          reg.cantidadContada = 0;
+    if (uncounted.length === 0) return;
+
+    const updates: Partial<ConteoProducto>[] = uncounted.map(item => ({
+      id: item.id,
+      cantidadContada: 0
+    }));
+
+    try {
+      const updated = await lastValueFrom(
+        this.conteoProductoService.batchUpdate(updates).pipe(retry(2), delay(500))
+      );
+      console.log(`Updated ${updated.length} uncounted products to cantidadContada: 0`);
+
+      // Actualizar el estado local
+      updated.forEach(updatedItem => {
+        const item = this.productosConteo.find(p => p.id === updatedItem.id);
+        if (item) {
+          item.cantidadContada = updatedItem.cantidadContada;
+          const reg = this.registros.find(r => r.productoId === item.productoId);
+          if (reg) {
+            reg.cantidadContada = 0;
+          }
         }
-      } catch (err) {
-        console.error(`Error updating productoId: ${item.productoId} to 0`, err);
-        throw err;
-      }
+      });
+
+      localStorage.setItem(this.REGISTROS_KEY, JSON.stringify(this.registros));
+    } catch (err) {
+      console.error('Error updating uncounted products:', err);
+      throw err;
     }
-    localStorage.setItem(this.REGISTROS_KEY, JSON.stringify(this.registros));
   }
 
   private clearStorage(): void {

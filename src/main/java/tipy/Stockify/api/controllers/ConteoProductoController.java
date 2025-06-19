@@ -92,6 +92,13 @@ public class ConteoProductoController {
                 : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
+    @PostMapping("/batch-update")
+    @Operation(description = "Actualiza múltiples conteos de producto en una sola operación.")
+    public ResponseEntity<List<ConteoProductoDto>> batchUpdateConteoProductos(@RequestBody List<ConteoProductoDto> conteoProductoDtos) {
+        List<ConteoProductoDto> updated = conteoProductoService.batchUpdate(conteoProductoDtos);
+        return new ResponseEntity<>(updated, HttpStatus.OK);
+    }
+
     @DeleteMapping("/{id}")
     @Operation(description = "Desactiva un conteo de producto por su ID.")
     public ResponseEntity<Void> deactivateConteoProducto(@PathVariable Integer id) {

@@ -760,27 +760,40 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
 
     private async updateUncountedProductsToZero(): Promise<void> {
         const uncounted = this.productosConteo.filter(p => p.cantidadContada === null);
-        for (const item of uncounted) {
-            try {
-                const updated = await lastValueFrom(
-                    this.conteoProdService.update(item.id, { cantidadContada: 0 }).pipe(retry(2), delay(500))
-                );
-                console.log(`Updated uncounted productoId: ${item.productoId} to cantidadContada: 0`);
-                item.cantidadContada = 0;
-                this.countedProducts.add(item.productoId);
-                const reg = this.registros.find(r => r.productoId === item.productoId);
-                if (reg) {
-                    reg.cantidadContada = 0;
+        if (uncounted.length === 0) return;
+
+        const updates: Partial<ConteoProducto>[] = uncounted.map(item => ({
+            id: item.id,
+            cantidadContada: 0
+        }));
+
+        try {
+            const updated = await lastValueFrom(
+                this.conteoProdService.batchUpdate(updates).pipe(retry(2), delay(500))
+            );
+            console.log(`Updated ${updated.length} uncounted products to cantidadContada: 0`);
+
+            // Actualizar el estado local
+            updated.forEach(updatedItem => {
+                const item = this.productosConteo.find(p => p.id === updatedItem.id);
+                if (item) {
+                    item.cantidadContada = updatedItem.cantidadContada;
+                    this.countedProducts.add(item.productoId);
+                    const reg = this.registros.find(r => r.productoId === item.productoId);
+                    if (reg) {
+                        reg.cantidadContada = 0;
+                    }
                 }
-            } catch (err) {
-                console.error(`Error updating productoId: ${item.productoId} to 0`, err);
-                throw err;
-            }
+            });
+
+            this.updateRegistros();
+            this.updateCategories();
+            this.saveState();
+            this.cdr.detectChanges();
+        } catch (err) {
+            console.error('Error updating uncounted products:', err);
+            throw err;
         }
-        this.updateRegistros();
-        this.updateCategories();
-        this.saveState();
-        this.cdr.detectChanges();
     }
 
     finalizarConteo(): void {

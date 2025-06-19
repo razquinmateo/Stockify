@@ -43,6 +43,10 @@ export class ConteoProductoService {
     return this.http.put<ConteoProducto>(`${this.apiUrl}/${id}`, item);
   }
 
+  batchUpdate(items: Partial<ConteoProducto>[]): Observable<ConteoProducto[]> {
+    return this.http.post<ConteoProducto[]>(`${this.apiUrl}/batch-update`, items);
+  }
+
   deactivate(id: number): Observable<void> {
     return this.http.delete<void>(`${this.apiUrl}/${id}`);
   }
