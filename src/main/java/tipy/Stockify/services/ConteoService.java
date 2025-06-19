@@ -68,25 +68,33 @@ public class ConteoService {
         Conteo conteo = mapToEntity(conteoDto);
         conteo.setActivo(!conteo.isConteoFinalizado());
 
-        // creamos el conteo primero, asi podemos tener su id
+        // Crear el conteo primero para obtener su ID
         Conteo saved = conteoRepository.save(conteo);
 
-        // y si el tipoconteo es CATEGORIAS, crea los conteo-productos con productos activos de la categorias de la sucursal
+        // Si el tipo de conteo es CATEGORIAS, poblar ConteoProducto con productos de las categorías seleccionadas
         if (conteo.getTipoConteo() == Conteo.TipoConteo.CATEGORIAS) {
             if (conteoDto.getUsuarioId() == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "UsuarioId es requerido para conteos de tipo CATEGORIAS");
             }
+            if (conteoDto.getCategoriaIds() == null || conteoDto.getCategoriaIds().isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Debe seleccionar al menos una categoría para conteos de tipo CATEGORIAS");
+            }
+
             Usuario usuario = usuarioRepository.findById(conteoDto.getUsuarioId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con id: " + conteoDto.getUsuarioId()));
             Long sucursalId = usuario.getSucursal().getId();
-            List<Categoria> categorias = categoriaRepository.findByActivoTrue().stream()
-                    .filter(c -> c.getSucursal().getId().equals(sucursalId))
-                    .collect(Collectors.toList());
+
+            // Filtrar categorías activas de la sucursal y que estén en la lista proporcionada
+            List<Categoria> categorias = categoriaRepository.findByIdInAndActivoTrueAndSucursalId(
+                    conteoDto.getCategoriaIds(), sucursalId
+            );
+
+            if (categorias.isEmpty()) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "No se encontraron categorías válidas para la sucursal");
+            }
 
             for (Categoria categoria : categorias) {
-                List<Producto> productos = productoRepository.findByActivoTrue().stream()
-                        .filter(p -> p.getCategoria().getId().equals(categoria.getId()))
-                        .collect(Collectors.toList());
+                List<Producto> productos = productoRepository.findByCategoriaIdAndActivoTrue(categoria.getId());
                 for (Producto producto : productos) {
                     ConteoProducto conteoProducto = new ConteoProducto();
                     conteoProducto.setConteo(saved);
@@ -100,7 +108,7 @@ public class ConteoService {
             }
         }
 
-        // Notify WebSocket subscribers
+        // Notificar a los suscriptores de WebSocket
         messagingTemplate.convertAndSend(
                 "/topic/conteo-activo",
                 new ConteoMensaje(saved.getId(), saved.getFechaHora().toString())

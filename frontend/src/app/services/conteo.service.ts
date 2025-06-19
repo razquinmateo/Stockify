@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { catchError, Observable, tap, throwError } from 'rxjs';
+import { catchError, Observable, throwError } from 'rxjs';
 import { environment } from '../../environments/environment';
 import { UsuarioDto } from '../models/usuario-dto';
 
@@ -11,6 +11,7 @@ export interface Conteo {
   usuarioId: number;
   activo: boolean;
   tipoConteo: 'LIBRE' | 'CATEGORIAS';
+  categoriaIds?: number[];    // Nueva propiedad para IDs de categorías
 }
 
 @Injectable({

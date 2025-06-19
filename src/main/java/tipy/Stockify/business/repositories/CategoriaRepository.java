@@ -26,4 +26,5 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
     Optional<Categoria> findByIdAndActivoTrue(Long id);
 
     List<Categoria> findBySucursalIdAndActivoTrue(Long sucursalId);
+    List<Categoria> findByIdInAndActivoTrueAndSucursalId(List<Long> ids, Long sucursalId);
 }

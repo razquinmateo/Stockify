@@ -6,7 +6,7 @@
       <ul class="navbar-nav me-auto mb-2 mb-lg-0">
         <li class="nav-item">
           <a class="nav-link" routerLink="/admin/dashboard">
-            <i class="bi bi-house-door-fill me-1"></i> Inicio
+            <i class="bi bi-house-door me-1"></i> Inicio
           </a>
         </li>
       </ul>
@@ -38,7 +38,7 @@
     <!-- Botones -->
     <div class="d-flex justify-content-center gap-3">
       <button class="btn btn-primary" [disabled]="hayConteoActivoEnSucursal()"
-        [title]="hayConteoActivoEnSucursal() ? 'Ya hay un conteo activo en la sucursal' : ''" (click)="abrirModalTipoConteo()">
+        [title]="hayConteoActivoEnSucursal() ? 'Ya hay un conteo activo en la sucursal' : ''" (click)="empezarConteo()">
         Empezar conteo
       </button>
       <button class="btn btn-outline-primary" [disabled]="!hayConteoActivoEnSucursal()"
@@ -119,59 +119,26 @@
   </ul>
 </nav>
 
-<!-- Modal para Conteo -->
-<div class="modal fade" id="conteoModal" tabindex="-1" aria-labelledby="conteoModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content border-0 shadow">
-      <div class="modal-header bg-danrk text-white">
-        <h5 class="modal-title" id="conteoModalLabel">
-          {{ esEditar ? 'Editar Conteo' : 'Agregar Conteo' }}
-        </h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        <form (ngSubmit)="guardarConteo()">
-          <div class="mb-3">
-            <label class="form-label">Asignar a:</label>
-            <select class="form-select" [(ngModel)]="conteoSeleccionado.usuarioId" name="usuarioId" required>
-              <option *ngFor="let usuario of usuariosMismaSucursal" [value]="usuario.id">
-                {{ usuario.nombre }} {{ usuario.apellido }}
-              </option>
-            </select>
-          </div>
-        </form>
-      </div>
-      <div class="modal-footer bg-light">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
-          Cancelar
-        </button>
-        <button type="button" class="btn btn-success" (click)="guardarConteo()">
-          {{ esEditar ? 'Guardar Cambios' : 'Agregar Conteo' }}
-        </button>
-      </div>
-    </div>
-  </div>
-</div>
-
 <!-- Modal para Seleccionar Tipo de Conteo -->
 <div class="modal fade show" tabindex="-1" style="display: block; background-color: rgba(0,0,0,0.5);" *ngIf="mostrarModalTipoConteo">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow-lg">
       <div class="modal-header bg-dark text-white">
         <h5 class="modal-title">Iniciar nuevo conteo</h5>
+        <button type="button" class="btn-close btn-close-white" aria-label="Cerrar" (click)="cerrarModalTipoConteo()"></button>
       </div>
       <div class="modal-body text-center">
         <p class="mb-4 fs-5">Selecciona el tipo de conteo que deseas iniciar:</p>
         <div class="row g-3">
           <div class="col-12 col-md-6">
-            <button class="btn btn-outline-primary w-100 py-3" (click)="crearConteo('LIBRE')">
+            <button class="btn btn-outline-primary w-100 py-3" (click)="crearConteoLibre()">
               <i class="bi bi-card-checklist fs-4 me-2"></i>
               <span class="fw-bold">Conteo Libre</span><br>
               <small class="text-muted">Elige libremente los productos a contar</small>
             </button>
           </div>
           <div class="col-12 col-md-6">
-            <button class="btn btn-outline-primary w-100 py-3" (click)="crearConteo('CATEGORIAS')">
+            <button class="btn btn-outline-primary w-100 py-3" (click)="abrirModalSeleccionCategorias()">
               <i class="bi bi-diagram-3 fs-4 me-2"></i>
               <span class="fw-bold">Conteo por Rubro</span><br>
               <small class="text-muted">Basado en categorías de productos</small>
@@ -186,6 +153,36 @@
   </div>
 </div>
 
+<!-- Modal para Seleccionar Categorías -->
+<div class="modal fade show" tabindex="-1" style="display: block; background-color: rgba(0,0,0,0.5);" *ngIf="mostrarModalCategorias">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content border-0 shadow-lg">
+      <div class="modal-header bg-dark text-white">
+        <h5 class="modal-title">Configurar Conteo por Rubro</h5>
+        <button type="button" class="btn-close btn-close-white" aria-label="Cerrar" (click)="cerrarModalCategorias()"></button>
+      </div>
+      <div class="modal-body">
+        <p class="mb-3 fw-bold">Selecciona una o más categorías:</p>
+        <div class="row g-3">
+          <div class="col-12 col-sm-6 col-lg-4" *ngFor="let categoria of allCategorias">
+            <label class="categoria-box d-flex align-items-center gap-2">
+              <input class="form-check-input" type="checkbox"
+                [(ngModel)]="categoriasSeleccionadas[categoria.id]" />
+              <span class="ms-1">{{ categoria.nombre }}</span>
+            </label>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer bg-light">
+        <button type="button" class="btn btn-secondary" (click)="cerrarModalCategorias()">Cancelar</button>
+        <button type="button" class="btn btn-success" (click)="crearConteoCategorias()"
+          [disabled]="!categoriasSeleccionadasValidas()">
+          Iniciar Conteo
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
 
 <!-- Modal de Participantes -->
 <div class="modal fade show" tabindex="-1" style="display: block; background-color: rgba(0,0,0,0.5);" *ngIf="mostrarModalParticipantes">

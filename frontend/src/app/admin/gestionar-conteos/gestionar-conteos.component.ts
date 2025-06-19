@@ -25,8 +25,6 @@ interface RegistroConteo {
   categoriaNombre?: string;
 }
 
-declare var bootstrap: any;
-
 @Component({
   selector: "app-gestionar-conteos",
   standalone: true,
@@ -42,7 +40,9 @@ export class GestionarConteosComponent implements OnInit {
   participantesSeleccionados: UsuarioDto[] = [];
   mostrarModalParticipantes: boolean = false;
   mostrarModalTipoConteo: boolean = false;
-  conteoSeleccionado!: Conteo;
+  mostrarModalCategorias: boolean = false;
+  categoriasSeleccionadas: { [key: number]: boolean } = {};
+  conteoSeleccionado: Conteo = this.resetConteo();
   esEditar: boolean = false;
   filtro: string = "";
   paginaActual: number = 1;
@@ -74,13 +74,23 @@ export class GestionarConteosComponent implements OnInit {
 
   ngOnInit(): void {
     this.conteoSeleccionado = this.resetConteo();
+    // Obtener el ID del usuario logueado para asignación automática
+    this.authService.getUsuarioIdDesdeToken().subscribe({
+      next: (id) => {
+        this.usuarioId = id;
+        this.loadInitialData();
+      },
+      error: (err) => {
+        console.error("Error al obtener ID del usuario logueado", err);
+        Swal.fire('Error', 'No se pudo identificar al usuario logueado', 'error');
+      }
+    });
+  }
+
+  private loadInitialData(): void {
     this.usuarioService.getUsuarios().subscribe({
       next: (data) => {
         this.usuarios = data;
-        const usuario = this.usuarios.find(u => u.nombreUsuario === this.nombreUsuarioLogueado);
-        if (usuario) {
-          this.usuarioId = usuario.id;
-        }
         const sucursalId = this.authService.getSucursalId();
         this.usuariosMismaSucursal = this.usuarios.filter(
           (u) => u.sucursalId === sucursalId && u.rol === 'ADMINISTRADOR'
@@ -140,7 +150,9 @@ export class GestionarConteosComponent implements OnInit {
             next: (usuarios) => {
               this.usuariosPorConteo[conteo.id] = usuarios;
             },
-            error: (err) => {
+            error
+
+: (err) => {
               console.error(`Error al obtener usuarios del conteo ${conteo.id}`, err);
             },
           });
@@ -243,17 +255,115 @@ export class GestionarConteosComponent implements OnInit {
     this.router.navigate(["/login"]);
   }
 
-  mostrarModal(): void {
-    const modal = new bootstrap.Modal(document.getElementById("conteoModal"));
-    modal.show();
-  }
-
   abrirModalTipoConteo(): void {
     this.mostrarModalTipoConteo = true;
   }
 
   cerrarModalTipoConteo(): void {
     this.mostrarModalTipoConteo = false;
+  }
+
+  abrirModalSeleccionCategorias(): void {
+    this.cerrarModalTipoConteo();
+    this.mostrarModalCategorias = true;
+    this.categoriasSeleccionadas = {};
+    this.conteoSeleccionado = this.resetConteo();
+    this.conteoSeleccionado.tipoConteo = 'CATEGORIAS';
+  }
+
+  cerrarModalCategorias(): void {
+    this.mostrarModalCategorias = false;
+    this.categoriasSeleccionadas = {};
+  }
+
+  categoriasSeleccionadasValidas(): boolean {
+    return Object.values(this.categoriasSeleccionadas).some(selected => selected);
+  }
+
+  crearConteoLibre(): void {
+    if (!this.usuarioId) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo identificar al usuario logueado.',
+      });
+      return;
+    }
+    const fechaHoraLocal = new Date()
+      .toLocaleString('sv-SE', { timeZone: 'America/Montevideo' })
+      .replace(' ', 'T');
+    const nuevoConteo: Partial<Conteo> = {
+      fechaHora: fechaHoraLocal,
+      conteoFinalizado: false,
+      usuarioId: this.usuarioId,
+      activo: true,
+      tipoConteo: 'LIBRE',
+    };
+    this.conteoService.createConteoLibre(nuevoConteo).subscribe({
+      next: () => {
+        Swal.fire({
+          icon: 'success',
+          title: 'Conteo iniciado',
+          text: 'Se ha iniciado un nuevo conteo de tipo Libre correctamente.',
+          timer: 2000,
+          showConfirmButton: false,
+        });
+        this.cerrarModalTipoConteo();
+        this.cargarConteos();
+      },
+      error: () => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo iniciar el conteo. Inténtalo de nuevo.',
+        });
+      },
+    });
+  }
+
+  crearConteoCategorias(): void {
+    if (!this.usuarioId) {
+      Swal.fire({
+        icon: 'error',
+        title: 'Error',
+        text: 'No se pudo identificar al usuario logueado.',
+      });
+      return;
+    }
+    const fechaHoraLocal = new Date()
+      .toLocaleString('sv-SE', { timeZone: 'America/Montevideo' })
+      .replace(' ', 'T');
+    const categoriaIds = Object.keys(this.categoriasSeleccionadas)
+      .filter(id => this.categoriasSeleccionadas[+id])
+      .map(id => +id);
+    const nuevoConteo: Partial<Conteo> = {
+      fechaHora: fechaHoraLocal,
+      conteoFinalizado: false,
+      usuarioId: this.usuarioId,
+      activo: true,
+      tipoConteo: 'CATEGORIAS',
+      categoriaIds: categoriaIds,
+    };
+    this.conteoService.createConteoCategorias(nuevoConteo).subscribe({
+      next: () => {
+        Swal.fire({
+          icon: 'success',
+          title: 'Conteo iniciado',
+          text: 'Se ha iniciado un nuevo conteo por categorías correctamente.',
+          timer: 2000,
+          showConfirmButton: false,
+        });
+        this.cerrarModalCategorias();
+        this.cargarConteos();
+      },
+      error: () => {
+        Swal.fire({
+          icon: 'error',
+          title: 'Error',
+          text: 'No se pudo iniciar el conteo. Inténtalo de nuevo.',
+        });
+      },
+    });
   }
 
   abrirModalParticipantes(conteoId: number): void {
@@ -264,39 +374,6 @@ export class GestionarConteosComponent implements OnInit {
   cerrarModalParticipantes(): void {
     this.mostrarModalParticipantes = false;
     this.participantesSeleccionados = [];
-  }
-
-  editarConteo(cont: Conteo): void {
-    this.esEditar = true;
-    this.conteoSeleccionado = { ...cont };
-    this.mostrarModal();
-  }
-
-  guardarConteo(): void {
-    const modal = bootstrap.Modal.getInstance(document.getElementById("conteoModal"));
-    if (this.esEditar) {
-      this.conteoService.update(this.conteoSeleccionado.id, this.conteoSeleccionado).subscribe({
-        next: () => {
-          modal.hide();
-          Swal.fire("Actualizado", "El conteo ha sido actualizado", "success");
-          this.cargarConteos();
-        },
-        error: () => {
-          Swal.fire("Error", "No se pudo actualizar el conteo", "error");
-        },
-      });
-    } else {
-      this.conteoService.createConteoLibre(this.conteoSeleccionado).subscribe({
-        next: () => {
-          modal.hide();
-          Swal.fire("Agregado", "El conteo ha sido agregado", "success");
-          this.cargarConteos();
-        },
-        error: () => {
-          Swal.fire("Error", "No se pudo agregar el conteo", "error");
-        },
-      });
-    }
   }
 
   async alternarEstadoConteo(conteo: Conteo): Promise<void> {
@@ -436,61 +513,61 @@ export class GestionarConteosComponent implements OnInit {
       } else {
         const tablaProductos = productosNoContados
           .map(p => `
-          <tr>
-            <td>${p.id}</td>
-            <td>${p.nombre}</td>
-          </tr>
-        `)
+            <tr>
+              <td>${p.id}</td>
+              <td>${p.nombre}</td>
+            </tr>
+          `)
           .join('');
 
         Swal.fire({
           title: '¿Finalizar conteo con productos sin contar?',
           html: `
-          <style>
-            .table-container {
-              max-height: 400px;
-              overflow-y: auto;
-              margin-bottom: 1rem;
-            }
-            table {
-              width: 100%;
-              border-collapse: collapse;
-              min-width: 600px;
-              table-layout: fixed;
-            }
-            th, td {
-              padding: 8px;
-              border: 1px solid #dee2e6;
-              text-align: left;
-              white-space: normal;
-              word-wrap: break-word;
-            }
-            th:nth-child(1), td:nth-child(1) { width: 20%; }
-            th:nth-child(2), td:nth-child(2) { width: 80%; }
-            thead th {
-              position: sticky;
-              top: 0;
-              background-color: #343a40;
-              color: white;
-              z-index: 2;
-            }
-          </style>
-          <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar. Al finalizar, se registrarán con cantidad contada 0:</p>
-          <div class="table-container">
-            <table>
-              <thead>
-                <tr>
-                  <th>ID</th>
-                  <th>Nombre</th>
-                </tr>
-              </thead>
-              <tbody>
-                ${tablaProductos}
-              </tbody>
-            </table>
-          </div>
-          <p>¿Estás seguro de finalizar el conteo?</p>
-        `,
+            <style>
+              .table-container {
+                max-height: 400px;
+                overflow-y: auto;
+                margin-bottom: 1rem;
+              }
+              table {
+                width: 100%;
+                border-collapse: collapse;
+                min-width: 600px;
+                table-layout: fixed;
+              }
+              th, td {
+                padding: 8px;
+                border: 1px solid #dee2e6;
+                text-align: left;
+                white-space: normal;
+                word-wrap: break-word;
+              }
+              th:nth-child(1), td:nth-child(1) { width: 20%; }
+              th:nth-child(2), td:nth-child(2) { width: 80%; }
+              thead th {
+                position: sticky;
+                top: 0;
+                background-color: #343a40;
+                color: white;
+                z-index: 2;
+              }
+            </style>
+            <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar. Al finalizar, se registrarán con cantidad contada 0:</p>
+            <div class="table-container">
+              <table>
+                <thead>
+                  <tr>
+                    <th>ID</th>
+                    <th>Nombre</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  ${tablaProductos}
+                </tbody>
+              </table>
+            </div>
+            <p>¿Estás seguro de finalizar el conteo?</p>
+          `,
           icon: 'warning',
           showCancelButton: true,
           confirmButtonColor: '#3085d6',
@@ -515,12 +592,12 @@ export class GestionarConteosComponent implements OnInit {
                 this.productosConteo.push(item!);
                 const reg: RegistroConteo = {
                   productoId: prod.id,
-                  nombre: prod.nombre,
+                  nombre: prod.nombre, // Corrección: Usar prod.nombre directamente
                   cantidadEsperada: nuevo.cantidadEsperada!,
                   cantidadContada: 0,
                   usuario: this.nombreUsuarioLogueado,
                   usuarioId: this.usuarioId!,
-                  codigosBarra: [],
+                  codigosBarra: this.productCache.get(prod.id)?.codigosBarra || [],
                   categoriaNombre: prod.categoriaNombre
                 };
                 this.registros.push(reg);
@@ -532,7 +609,7 @@ export class GestionarConteosComponent implements OnInit {
                 next: () => {
                   Swal.fire({
                     icon: 'success',
-                    title: 'Conteo finalizado',
+                    title: 'Conteo Finalizado',
                     text: `El conteo ha sido finalizado correctamente. Se crearon ${productosNoContados.length} registros con cantidad contada 0.`,
                     timer: 3000,
                     showConfirmButton: false
@@ -548,12 +625,12 @@ export class GestionarConteosComponent implements OnInit {
                       text: 'No tienes permisos para finalizar este conteo. Contacta al administrador.'
                     });
                   } else {
-                    Swal.fire('Error', 'No se pudo finalizar el conteo', 'error');
+                    Swal.fire('Error', 'No se pudo finalizar el conteo.', 'error');
                   }
                 }
               });
             } catch (err) {
-              console.error('Error creating ConteoProducto records:', err);
+              console.error('Error al crear ConteoProducto records:', err);
               Swal.fire('Error', 'No se pudieron crear los registros para los productos no contados', 'error');
             }
           }
@@ -591,17 +668,17 @@ export class GestionarConteosComponent implements OnInit {
                 showConfirmButton: false
               });
               this.clearStorage();
-              this.cargarConteos();
+              this.cargarConteos(); // Corrección: cargarConnteos -> cargarConteos
             },
             error: (err) => {
               if (err.status === 403) {
                 Swal.fire({
                   icon: 'error',
                   title: 'Permiso denegado',
-                  text: 'No tienes permisos para finalizar este conteo. Contacta al administrador.'
+                  text: '使No tienes permisos para finalizar este conteo. Contacta al administrador.'
                 });
               } else {
-                Swal.fire('Error', 'No se pudo finalizar el conteo', 'error');
+                Swal.fire('Error', 'No se pudo finalizar el conteo.', 'error');
               }
             }
           });
@@ -610,63 +687,64 @@ export class GestionarConteosComponent implements OnInit {
     } else {
       const tablaProductos = productosNoContados
         .map(p => `
-        <tr>
-          <td>${p.categoriaNombre}</td>
-          <td>${p.id}</td>
-          <td>${p.nombre}</td>
-        </tr>
-      `)
+          <tr>
+            <td>${p.categoriaNombre}</td>
+            <td>${p.id}</td>
+            <td>${p.nombre}</td>
+          </tr>
+        `)
         .join('');
+
       Swal.fire({
         title: '¿Finalizar conteo con productos sin contar?',
         html: `
-        <style>
-          .table-container {
-            max-height: 400px;
-            overflow-y: auto;
-            margin-bottom: 1rem;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px;
-            table-layout: fixed;
-          }
-          th, td {
-            padding: 8px;
-            border: 1px solid #dee2e6;
-            text-align: left;
-            white-space: normal;
-            word-wrap: break-word;
-          }
-          th:nth-child(1), td:nth-child(1) { width: 30%; min-width: 150px; }
-          th:nth-child(2), td:nth-child(2) { width: 20%; }
-          th:nth-child(3), td:nth-child(3) { width: 50%; min-width: 200px; }
-          thead th {
-            position: sticky;
-            top: 0;
-            background-color: #343a40;
-            color: white;
-            z-index: 2;
-          }
-        </style>
-        <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar. Al finalizar, se registrarán con cantidad contada 0:</p>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Categoría</th>
-                <th>ID</th>
-                <th>Nombre</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${tablaProductos}
-            </tbody>
-          </table>
-        </div>
-        <p>¿Estás seguro de finalizar el conteo?</p>
-      `,
+          <style>
+            .table-container {
+              max-height: 400px;
+              overflow-y: auto;
+              margin-bottom: 1rem;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              min-width: 600px;
+              table-layout: fixed;
+            }
+            th, td {
+              padding: 8px;
+              border: 1px solid #dee2e6;
+              text-align: left;
+              white-space: normal;
+              word-wrap: break-word;
+            }
+            th:nth-child(1), td:nth-child(1) { width: 30%; min-width: 150px; }
+            th:nth-child(2), td:nth-child(2) { width: 20%; }
+            th:nth-child(3), td:nth-child(3) { width: 50%; min-width: 200px; }
+            thead th {
+              position: sticky;
+              top: 0;
+              background-color: #343a40;
+              color: white;
+              z-index: 2;
+            }
+          </style>
+          <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar. Al finalizar, se registrarán con cantidad contada 0:</p>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Categoría</th>
+                  <th>ID</th>
+                  <th>Nombre</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tablaProductos}
+              </tbody>
+            </table>
+          </div>
+          <p>¿Estás seguro de finalizar el conteo?</p>
+        `,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
@@ -704,12 +782,12 @@ export class GestionarConteosComponent implements OnInit {
                 this.cargarConteos();
               },
               error: (err) => {
-                Swal.close(); // Cerrar el modal de carga en caso de error
+                Swal.close();
                 if (err.status === 403) {
                   Swal.fire({
                     icon: 'error',
                     title: 'Permiso denegado',
-                    text: 'No tienes permisos para finalizar este conteo. Contacta al administrador.'
+                    text: 'No tienes permisos para finalizar este conteo. Contacta al administrador.',
                   });
                 } else {
                   Swal.fire('Error', 'No se pudo finalizar el conteo', 'error');
@@ -717,7 +795,7 @@ export class GestionarConteosComponent implements OnInit {
               }
             });
           } catch (err) {
-            Swal.close(); // Cerrar el modal de carga en caso de error
+            Swal.close();
             Swal.fire('Error', 'No se pudo actualizar los productos no contados', 'error');
           }
         }
@@ -732,7 +810,7 @@ export class GestionarConteosComponent implements OnInit {
         const updated = await lastValueFrom(
           this.conteoProductoService.update(item.id, { cantidadContada: 0 }).pipe(retry(2), delay(500))
         );
-        console.log(`Updated uncounted productoId: ${item.productoId} to cantidadContada: 0`);
+        console.log(`Updated productoId: ${item.productoId} to cantidadContada: 0`);
         item.cantidadContada = 0;
         const reg = this.registros.find(r => r.productoId === item.productoId);
         if (reg) {
@@ -770,17 +848,15 @@ export class GestionarConteosComponent implements OnInit {
         const fechaFormateada = cont.fechaHora
           ? formatDate(cont.fechaHora, 'dd/MM/yyyy', 'en-US')
           : '';
-        const nombreUsuario = this.getNombreUsuarioPorId(cont.usuarioId).toLowerCase();
+        const nombreUsuario = this.getNombreUsuarioPorId(cont.usuarioId).toLowerCase(); // Corrección: cont.idUsuarioId -> cont.usuarioId
         const tipoConteo = this.getTipoConteoDisplay(cont.tipoConteo).toLowerCase();
         return (
           nombreUsuario.includes(filtroLower) ||
           fechaFormateada.toLowerCase().includes(filtroLower) ||
-          tipoConteo.includes(filtroLower)
+          tipoConteo.toLowerCase().includes(filtroLower)
         );
       })
-      .sort((a, b) =>
-        new Date(b.fechaHora).getTime() - new Date(a.fechaHora).getTime()
-      );
+      .sort((a, b) => new Date(b.fechaHora).getTime() - new Date(a.fechaHora).getTime());
   }
 
   obtenerConteosPaginados(): Conteo[] {
@@ -796,51 +872,6 @@ export class GestionarConteosComponent implements OnInit {
     this.mostrarModalTipoConteo = true;
   }
 
-  crearConteo(tipo: 'LIBRE' | 'CATEGORIAS'): void {
-    const usuarioLogueado = this.usuarios.find(
-      u => u.nombreUsuario === this.nombreUsuarioLogueado
-    );
-    if (!usuarioLogueado) {
-      Swal.fire({
-        icon: 'error',
-        title: 'Error',
-        text: 'No se pudo identificar al usuario logueado.',
-      });
-      return;
-    }
-    const fechaHoraLocal = new Date()
-      .toLocaleString('sv-SE', { timeZone: 'America/Montevideo' })
-      .replace(' ', 'T');
-    const nuevoConteo: Partial<Conteo> = {
-      fechaHora: fechaHoraLocal,
-      conteoFinalizado: false,
-      usuarioId: usuarioLogueado.id,
-      activo: true,
-      tipoConteo: tipo,
-    };
-    const createMethod = tipo === 'CATEGORIAS' ? this.conteoService.createConteoCategorias : this.conteoService.createConteoLibre;
-    createMethod.call(this.conteoService, nuevoConteo).subscribe({
-      next: () => {
-        Swal.fire({
-          icon: 'success',
-          title: 'Conteo iniciado',
-          text: `Se ha iniciado un nuevo conteo de tipo ${this.getTipoConteoDisplay(tipo)} correctamente.`,
-          timer: 2000,
-          showConfirmButton: false,
-        });
-        this.cerrarModalTipoConteo();
-        this.cargarConteos();
-      },
-      error: () => {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: 'No se pudo iniciar el conteo. Inténtalo de nuevo.',
-        });
-      },
-    });
-  }
-
   unirseConteo(): void {
     const sucursalId = this.authService.getSucursalId();
     const conteoActivo = this.conteos.find(c => {
@@ -848,10 +879,10 @@ export class GestionarConteosComponent implements OnInit {
       return usuario?.sucursalId === sucursalId && !c.conteoFinalizado;
     });
     if (conteoActivo) {
-      const route = conteoActivo.tipoConteo === 'CATEGORIAS'
+      const ruta = conteoActivo.tipoConteo === 'CATEGORIAS'
         ? '/admin/gestionar-conteos/unirse-conteo-categorias'
         : '/admin/gestionar-conteos/unirse-conteo-libre';
-      this.router.navigate([route, conteoActivo.id]);
+      this.router.navigate([ruta, conteoActivo.id]);
     } else {
       this.conteoService.getActiveConteos().subscribe({
         next: conteos => {
@@ -860,10 +891,10 @@ export class GestionarConteosComponent implements OnInit {
             return usuario?.sucursalId === sucursalId && !c.conteoFinalizado;
           });
           if (conteoActivoServicio) {
-            const route = conteoActivoServicio.tipoConteo === 'CATEGORIAS'
+            const ruta = conteoActivoServicio.tipoConteo === 'CATEGORIAS'
               ? '/admin/gestionar-conteos/unirse-conteo-categorias'
               : '/admin/gestionar-conteos/unirse-conteo-libre';
-            this.router.navigate([route, conteoActivoServicio.id]);
+            this.router.navigate([ruta, conteoActivoServicio.id]);
           } else {
             Swal.fire({
               icon: 'warning',

@@ -23,3 +23,28 @@ button.btn-outline-primary:hover {
 .list-group-item:last-child {
   border-bottom: none;
 }
+
+
+/* Mejor scroll en móviles para modales con mucho contenido */
+.modal-body {
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+/* Tarjetas para categorías */
+.categoria-box {
+  padding: 1rem;
+  border: 1px solid #dee2e6;
+  border-radius: 0.5rem;
+  background-color: #f8f9fa;
+  transition: background-color 0.2s;
+  cursor: pointer;
+}
+
+.categoria-box:hover {
+  background-color: #e9ecef;
+}
+
+.categoria-box input[type="checkbox"] {
+  cursor: pointer;
+}
