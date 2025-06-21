@@ -41,6 +41,7 @@ export class GestionarProductosComponent implements OnInit {
   mostrarCamara: boolean = false;
   videoElement: HTMLVideoElement | null = null;
   canvas: HTMLCanvasElement = document.createElement('canvas');
+  productosExcel: any[] = [];
 
   constructor(
     private productoService: ProductoService,
@@ -69,8 +70,8 @@ export class GestionarProductosComponent implements OnInit {
 
       let detectoErrorFecha = false;
 
-      // Normalizar claves y parsear precios
-      const productosExcel = productosExcelRaw.map((prod: any) => {
+      // Normalizar claves y limpiar datos
+      this.productosExcel = productosExcelRaw.map((prod: any) => {
         const productoNormalizado: any = {};
 
         for (const clave in prod) {
@@ -78,31 +79,29 @@ export class GestionarProductosComponent implements OnInit {
           const claveLower = clave.toLowerCase().trim();
 
           if (
-            [
-              'codigo',
-              'código',
-              'código de barras',
-              'codigo de barras',
-              'barcode',
-            ].includes(claveLower)
+            ['codigo', 'código', 'código de barras', 'codigo de barras', 'barcode'].includes(claveLower)
           ) {
-            productoNormalizado.codigoBarra = valor;
+            productoNormalizado.codigoBarra = String(valor).trim();
           } else if (
-            ['precio', 'precio unitario', 'coste'].includes(claveLower)
+            ['precio', 'precio unitario'].includes(claveLower)
           ) {
             if (typeof valor === 'number' && valor > 40000) {
               detectoErrorFecha = true;
-              productoNormalizado.precio = null; // ignorar precio con formato fecha
+              productoNormalizado.precio = null;
             } else {
-              productoNormalizado.precio = this.parsearPrecio(valor);
+              const textoPrecio = String(valor).replace(',', '.');
+              productoNormalizado.precio = parseFloat(textoPrecio);
             }
           } else if (
-            ['stock', 'cantidad', 'cantidad stock', 'existencia'].includes(
-              claveLower
-            )
+            ['stock', 'cantidad', 'cantidad stock', 'existencia'].includes(claveLower)
           ) {
-            productoNormalizado.cantidadStock =
-              typeof valor === 'number' ? valor : parseInt(valor, 10);
+            productoNormalizado.cantidadStock = typeof valor === 'number'
+              ? valor
+              : parseInt(valor, 10);
+          } else if (
+            ['nombre', 'producto', 'descripcion'].includes(claveLower)
+          ) {
+            productoNormalizado.nombre = String(valor).trim();
           } else {
             productoNormalizado[clave] = valor;
           }
@@ -111,30 +110,29 @@ export class GestionarProductosComponent implements OnInit {
         return productoNormalizado;
       });
 
-      // Filtrar productos con código y precio o cantidad válida
-      const productosValidos = productosExcel.filter(
+      // ✅ Validar productos válidos
+      const productosValidos = this.productosExcel.filter(
         (p) =>
           p.codigoBarra &&
           (typeof p.precio === 'number' || typeof p.cantidadStock === 'number')
       );
 
+      // ✅ Mostrar alertas según corresponda
       if (detectoErrorFecha) {
-        // Mostrar advertencia pero seguir con la actualización si hay productos válidos
         Swal.fire({
           icon: 'warning',
           title: 'Posible error en el archivo Excel',
           html: `
-              <p>El archivo contiene valores que parecen <b>fechas</b> en la columna de <b>precios</b>  .</p>
-              <p><u>Estos precios serán ignorados.</u></p>
-              <hr />
-              <p><b>Solución:</b> Abre el archivo Excel, selecciona la columna de precios y cámbiala al formato <b>Texto</b>.</p>
-            `,
+            <p>El archivo contiene valores que parecen <b>fechas</b> en la columna de <b>precios</b>.</p>
+            <p><u>Estos precios serán ignorados.</u></p>
+            <hr />
+            <p><b>Solución:</b> Abre el archivo Excel, selecciona la columna de precios y cámbiala al formato <b>Texto</b>.</p>
+          `,
           confirmButtonText: 'Entendido',
         }).then(() => {
           if (productosValidos.length > 0) {
             this.actualizarProductosDesdeExcel(productosValidos);
           } else {
-            // No hay productos válidos para actualizar después de ignorar precios con formato fecha
             Swal.fire(
               'Archivo inválido',
               'No se encontraron productos válidos para actualizar.',
@@ -143,7 +141,6 @@ export class GestionarProductosComponent implements OnInit {
           }
         });
       } else {
-        // No hay errores, actualizar normalmente si hay productos válidos
         if (productosValidos.length > 0) {
           this.actualizarProductosDesdeExcel(productosValidos);
         } else {
@@ -195,10 +192,25 @@ export class GestionarProductosComponent implements OnInit {
       return;
     }
 
-    this.productoService.actualizarMasivoProductos(productosValidos).subscribe({
-      next: (respuesta) => {
+    const sucursalId = this.authService.getSucursalId();
+
+    if (sucursalId === null) {
+      Swal.fire('Error', 'No se pudo obtener la sucursal del usuario.', 'error');
+      return;
+    }
+
+    this.productoService.actualizarMasivoProductos(productosValidos, sucursalId).subscribe({
+      next: async (respuesta) => {
         const noEncontrados = respuesta.noEncontrados || [];
         const actualizados = respuesta.actualizados || [];
+
+        if (actualizados.length > 0) {
+          await Swal.fire(
+            'Actualización exitosa',
+            `Se actualizaron ${actualizados.length} producto(s) correctamente.`,
+            'success'
+          );
+        }
 
         if (noEncontrados.length > 0) {
           const mensaje =
@@ -217,16 +229,111 @@ export class GestionarProductosComponent implements OnInit {
                 </ul>
               </div>
               <hr/>
-              <p>Los <b>${actualizados.length}</b> productos restantes fueron actualizados correctamente.</p>
+              <p>¿Querés agregar automáticamente estos productos nuevos?</p>
             `,
-            confirmButtonText: 'Entendido',
+            showCancelButton: true,
+            confirmButtonText: 'Agregar productos',
+            cancelButtonText: 'Ignorar'
+          }).then(async result => {
+            if (result.isConfirmed) {
+              const codigosNoEncontradosSet = new Set(
+                noEncontrados.map((c: string) => c.toString().trim())
+              );
+
+              // Detectar productos con precio inválido antes de filtrarlos
+              const productosExcluidosPorPrecioInvalido = this.productosExcel.filter(p =>
+                codigosNoEncontradosSet.has((p.codigoBarra ?? '').toString().trim()) &&
+                (p.precio === null || typeof p.precio !== 'number' || isNaN(p.precio) || p.precio < 0)
+              );
+
+              if (productosExcluidosPorPrecioInvalido.length > 0) {
+                const listaCodigos = productosExcluidosPorPrecioInvalido
+                  .map(p => `<li>${p.codigoBarra}</li>`)
+                  .join('');
+
+                await Swal.fire({
+                  icon: 'warning',
+                  title: 'Productos ignorados por precio inválido',
+                  html: `
+                    <p>Se ignoraron ${productosExcluidosPorPrecioInvalido.length} producto(s) porque su precio tenía un formato inválido (probablemente una fecha).</p>
+                    <p><b>Códigos de barra afectados:</b></p>
+                    <ul style="text-align:left; max-height: 200px; overflow-y: auto;">
+                      ${listaCodigos}
+                    </ul>
+                    <hr>
+                    <p><b>Solución:</b> Verificá el archivo Excel y asegurate de que la columna de precios esté en formato <b>numérico</b>.</p>
+                  `,
+                  confirmButtonText: 'Entendido'
+                });
+              }
+
+              // Filtrar productos válidos para agregar
+              const productosFiltrados = this.productosExcel.filter((p) => {
+                const codigoExcel = (p.codigoBarra ?? '').toString().trim();
+                const estaNoEncontrado = codigosNoEncontradosSet.has(codigoExcel);
+
+                const tieneNombre = typeof p.nombre === 'string' && p.nombre.trim().length > 0;
+                const tieneCodigo = typeof p.codigoBarra === 'string' || typeof p.codigoBarra === 'number';
+                const tienePrecio = p.precio !== null && typeof p.precio === 'number' && !isNaN(p.precio) && p.precio >= 0;
+                const tieneStock = typeof p.cantidadStock === 'number' && !isNaN(p.cantidadStock);
+
+                return estaNoEncontrado && tieneNombre && tieneCodigo && tienePrecio && tieneStock;
+              });
+
+              const productosParaAgregar = productosFiltrados.map((p) => ({
+                nombre: p.nombre.trim(),
+                codigoBarra: p.codigoBarra.toString().trim(),
+                precio: p.precio,
+                cantidadStock: p.cantidadStock,
+                imagen: p.imagen ?? null,
+                detalle: p.detalle ?? null
+              }));
+
+              if (productosParaAgregar.length === 0) {
+                Swal.fire(
+                  'Datos insuficientes',
+                  'Ninguno de los productos no encontrados tiene todos los datos necesarios (nombre, código, precio y stock).',
+                  'warning'
+                );
+                return;
+              }
+
+              const sucursalId = this.authService.getSucursalId();
+              if (sucursalId === null) {
+                Swal.fire('Error', 'No se pudo obtener la sucursal del usuario. Por favor, inicie sesión nuevamente.', 'error');
+                return;
+              }
+
+              this.productoService.crearProductosSimples(productosParaAgregar, sucursalId).subscribe({
+                next: (r) => {
+                  const { creados, errores } = r;
+
+                  let mensaje = `Se agregaron ${creados.length} producto(s) correctamente.`;
+                  if (errores.length > 0) {
+                    mensaje += `<br><br>Hubo ${errores.length} error(es):<ul>`;
+                    mensaje += errores.map((e: string) => `<li>${e}</li>`).join('');
+                    mensaje += '</ul>';
+                  }
+
+                  Swal.fire({
+                    icon: 'info',
+                    title: 'Resultado de la carga',
+                    html: mensaje,
+                  });
+
+                  this.cargarDatosIniciales();
+                },
+                error: (err) => {
+                  console.error('Error al agregar productos:', err);
+                  Swal.fire(
+                    'Error',
+                    'Ocurrió un error al agregar productos nuevos.',
+                    'error'
+                  );
+                }
+              });
+            }
           });
-        } else {
-          Swal.fire(
-            'Actualización exitosa',
-            'Se actualizaron los productos correctamente.',
-            'success'
-          );
         }
 
         this.cargarDatosIniciales();

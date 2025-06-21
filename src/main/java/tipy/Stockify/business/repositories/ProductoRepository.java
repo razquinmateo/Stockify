@@ -29,4 +29,5 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
 
     Optional<Producto> findByCodigoBarra(String codigoBarra);
 
+    Optional<Producto> findByCodigoBarraAndSucursalId(String codigoBarra, Long sucursalId);
 }

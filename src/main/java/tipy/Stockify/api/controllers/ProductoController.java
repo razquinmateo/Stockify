@@ -73,8 +73,11 @@ public class ProductoController {
     }
 
     @PostMapping("/actualizar-masivo")
-    @Operation(description = "Actualiza masivamente productos por código de barra (precio y stock).")
-    public ResponseEntity<Map<String, Object>> actualizarMasivo(@RequestBody List<ProductoDto> productos) {
+    @Operation(description = "Actualiza productos solo de la sucursal del usuario.")
+    public ResponseEntity<Map<String, Object>> actualizarMasivo(
+            @RequestBody List<ProductoDto> productos,
+            @RequestParam Long sucursalId
+    ) {
         List<String> actualizados = new ArrayList<>();
         List<String> noEncontrados = new ArrayList<>();
 
@@ -83,6 +86,7 @@ public class ProductoController {
                     dto.getCodigoBarra(),
                     dto.getPrecio(),
                     dto.getCantidadStock(),
+                    sucursalId,
                     noEncontrados,
                     actualizados
             );
@@ -94,6 +98,14 @@ public class ProductoController {
         resultado.put("noEncontrados", noEncontrados);
 
         return ResponseEntity.ok(resultado);
+    }
+
+    @PostMapping("/crear-simples")
+    @Operation(description = "Crea productos sin categoría, sucursal ni proveedores obligatorios.")
+    public ResponseEntity<Map<String, Object>> crearProductosSimples(
+            @RequestBody List<ProductoDto> productos,
+            @RequestParam Long sucursalId) {
+        return ResponseEntity.ok(productoService.crearProductosSimples(productos, sucursalId));
     }
 
 }

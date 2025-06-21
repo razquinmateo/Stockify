@@ -89,16 +89,17 @@ export class ProductoService {
     }
   }
 
-//   actualizarStockYPrecioPorCodigoBarra(codigoBarra: string, precio: number, cantidadStock: number): Observable<any> {
-//     return this.http.put(`${this.apiUrl}/actualizar-por-codigo-barra`, {
-//       codigoBarra,
-//       precio,
-//       cantidadStock
-//     });
+//   actualizarMasivoProductos(productos: { codigoBarra: string; precio: number; cantidadStock: number }[]): Observable<any> {
+//     return this.http.post(`${this.apiUrl}/actualizar-masivo`, productos);
 //   }
 
-  actualizarMasivoProductos(productos: { codigoBarra: string; precio: number; cantidadStock: number }[]): Observable<any> {
-    return this.http.post(`${this.apiUrl}/actualizar-masivo`, productos);
+  actualizarMasivoProductos(productos: { codigoBarra: string; precio: number; cantidadStock: number }[], sucursalId: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/actualizar-masivo?sucursalId=${sucursalId}`, productos);
+  }
+
+  crearProductosSimples(productos: Partial<Producto>[], sucursalId: number): Observable<any> {
+    const url = `${this.apiUrl}/crear-simples?sucursalId=${sucursalId}`;
+    return this.http.post(url, productos);
   }
 
 }

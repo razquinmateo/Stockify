@@ -3,6 +3,7 @@ package tipy.Stockify.business.repositories;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import tipy.Stockify.business.entities.Empresa;
+import tipy.Stockify.business.entities.Sucursal;
 
 import java.util.List;
 import java.util.Optional;
@@ -24,4 +25,6 @@ public interface EmpresaRepository extends JpaRepository<Empresa, Long> {
      * @return Optional con la empresa activa, o vacío si no existe o está inactiva.
      */
     Optional<Empresa> findByIdAndActivoTrue(Long id);
+
+    Optional<Empresa> findByNombreIgnoreCase(String nombre);
 }
