@@ -96,7 +96,7 @@
     <div class="row justify-content-center mb-4">
         <div class="col-12 col-md-6">
             <div class="input-group">
-                <input type="text" class="form-control" placeholder="Ingresa o escanea el código de barras"
+                <input type="text" class="form-control" placeholder="Ingresa o escanea el código de barras o producto"
                     [(ngModel)]="codigoIngresado" (keyup.enter)="scanCodigo()" />
                 <button class="btn btn-primary" (click)="scanCodigo()">
                     <i class="bi bi-search me-1"></i> Buscar
@@ -123,7 +123,7 @@
             <table class="table table-striped">
                 <thead class="table-dark">
                     <tr>
-                        <th>ID Producto</th>
+                        <th>Código Producto</th>
                         <th>Códigos de Barras</th>
                         <th>Producto</th>
                         <th>Esperado</th>
@@ -132,14 +132,14 @@
                 </thead>
                 <tbody>
                     <tr *ngFor="let r of registrosFiltrados">
-                        <td>{{ r.productoId }}</td>
+                        <td>{{ r.codigoProducto }}</td>
                         <td>{{ r.codigosBarra.length ? r.codigosBarra.join(', ') : 'N/A' }}</td>
                         <td>{{ r.nombre }}</td>
                         <td>{{ r.cantidadEsperada }}</td>
                         <td>{{ r.cantidadContada }}</td>
                     </tr>
                     <tr *ngIf="registrosFiltrados.length === 0">
-                        <td colspan="6" class="text-center text-muted py-3">
+                        <td colspan="5" class="text-center text-muted py-3">
                             Aún no se ha contado ningún producto
                         </td>
                     </tr>
@@ -154,19 +154,19 @@
             <table class="table table-striped">
                 <thead class="table-dark">
                     <tr>
-                        <th>ID Producto</th>
+                        <th>Código Producto</th>
                         <th>Nombre</th>
                         <th>Stock Esperado</th>
                     </tr>
                 </thead>
                 <tbody>
                     <tr *ngFor="let p of productosNoContados">
-                        <td>{{ p.id }}</td>
+                        <td>{{ p.codigoProducto }}</td>
                         <td>{{ p.nombre }}</td>
                         <td>{{ p.cantidadStock }}</td>
                     </tr>
                     <tr *ngIf="productosNoContados.length === 0">
-                        <td colspan="4" class="text-center text-muted py-3">
+                        <td colspan="3" class="text-center text-muted py-3">
                             Todos los productos han sido contados
                         </td>
                     </tr>

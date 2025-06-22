@@ -62,8 +62,15 @@ public class ProductoService {
                 .orElse(null);
     }
 
+    public ProductoDto getByCodigoProducto(String codigoProducto) {
+        return productoRepository.findByCodigoProductoAndActivoTrue(codigoProducto)
+                .map(this::mapToDto)
+                .orElse(null);
+    }
+
     public ProductoDto create(ProductoDto productoDto) {
         validateProductoDto(productoDto);
+        validateCodigoProducto(productoDto.getCodigoProducto(), null);
         Producto producto = mapToEntity(productoDto);
         producto.setActivo(true);
         assignProveedores(producto, productoDto.getProveedorIds());
@@ -73,6 +80,7 @@ public class ProductoService {
 
     public ProductoDto update(Long id, ProductoDto productoDto) {
         validateProductoDto(productoDto);
+        validateCodigoProducto(productoDto.getCodigoProducto(), id);
         return productoRepository.findById(id)
                 .map(existingProducto -> {
                     updateProductoFields(existingProducto, productoDto);
@@ -117,6 +125,18 @@ public class ProductoService {
         if (productoDto.getCantidadStock() == null || productoDto.getCantidadStock() < 0) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El stock debe ser mayor o igual a 0");
         }
+        if (productoDto.getCodigoProducto() == null || productoDto.getCodigoProducto().isEmpty()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El código del producto es requerido");
+        }
+    }
+
+    private void validateCodigoProducto(String codigoProducto, Long id) {
+        if (codigoProducto != null && !codigoProducto.isEmpty()) {
+            Optional<Producto> existingProducto = productoRepository.findByCodigoProducto(codigoProducto);
+            if (existingProducto.isPresent() && (id == null || !existingProducto.get().getId().equals(id))) {
+                throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El código de producto " + codigoProducto + " ya está asignado a otro producto");
+            }
+        }
     }
 
     private void assignProveedores(Producto producto, List<Long> proveedorIds) {
@@ -132,22 +152,16 @@ public class ProductoService {
 
     private void assignCodigosBarra(Producto producto, List<String> codigosBarra) {
         if (codigosBarra != null) {
-            //elimina codigos de barra que no esten en la lista nueva
             producto.getCodigosBarra().removeIf(cb -> !codigosBarra.contains(cb.getCodigo()));
-
-            // añade o actualiza los codigos de barra
             for (String codigo : codigosBarra) {
                 if (codigo == null || codigo.trim().isEmpty()) {
-                    continue; // saltea si no hay codigos de barra
+                    continue;
                 }
-                // ve si el codigo de barra ya existe en la bd
                 Optional<Producto> existingProducto = productoRepository.findByCodigoBarra(codigo);
                 if (existingProducto.isPresent() && !existingProducto.get().getId().equals(producto.getId())) {
                     throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                             "El código de barras " + codigo + " ya está asignado a otro producto");
                 }
-
-                // ve si el codigo de barra ya estaba asignado a el producto
                 boolean existsInProduct = producto.getCodigosBarra().stream()
                         .anyMatch(cb -> cb.getCodigo().equals(codigo));
                 if (!existsInProduct) {
@@ -188,6 +202,9 @@ public class ProductoService {
         if (productoDto.getActivo() != null) {
             producto.setActivo(productoDto.getActivo());
         }
+        if (productoDto.getCodigoProducto() != null) {
+            producto.setCodigoProducto(productoDto.getCodigoProducto());
+        }
     }
 
     public void actualizarStockYPrecioPorCodigoBarra(String codigoBarra, Float precio, Long stock) {
@@ -206,6 +223,7 @@ public class ProductoService {
 
     public Producto mapToEntity(ProductoDto productoDto) {
         Producto producto = new Producto();
+        producto.setCodigoProducto(productoDto.getCodigoProducto());
         producto.setImagen(productoDto.getImagen());
         producto.setNombre(productoDto.getNombre());
         producto.setDetalle(productoDto.getDetalle());
@@ -227,6 +245,7 @@ public class ProductoService {
     public ProductoDto mapToDto(Producto producto) {
         ProductoDto productoDto = new ProductoDto();
         productoDto.setId(producto.getId());
+        productoDto.setCodigoProducto(producto.getCodigoProducto());
         productoDto.setCodigosBarra(producto.getCodigosBarra().stream()
                 .map(CodigoBarra::getCodigo)
                 .collect(Collectors.toList()));

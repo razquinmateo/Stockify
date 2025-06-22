@@ -6,6 +6,7 @@ import { environment } from '../../environments/environment';
 
 export interface Producto {
   id: number;
+  codigoProducto: string;
   codigosBarra: string[];
   imagen: string | null;
   nombre: string;
@@ -60,6 +61,15 @@ export class ProductoService {
 
   obtenerProductoPorId(id: number): Observable<Producto> {
     return this.http.get<Producto>(`${this.apiUrl}/${id}`).pipe(
+      map(prod => ({
+        ...prod,
+        imagen: this.sanitizeImagen(prod.imagen)
+      }))
+    );
+  }
+
+  obtenerProductoPorCodigoProducto(codigoProducto: string): Observable<Producto> {
+    return this.http.get<Producto>(`${this.apiUrl}/codigo/${codigoProducto}`).pipe(
       map(prod => ({
         ...prod,
         imagen: this.sanitizeImagen(prod.imagen)

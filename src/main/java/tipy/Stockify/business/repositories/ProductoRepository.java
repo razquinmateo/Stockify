@@ -20,5 +20,9 @@ public interface ProductoRepository extends JpaRepository<Producto, Long> {
     @Query("SELECT p FROM Producto p JOIN p.codigosBarra cb WHERE cb.codigo = :codigoBarra")
     Optional<Producto> findByCodigoBarra(String codigoBarra);
 
+    Optional<Producto> findByCodigoProductoAndActivoTrue(String codigoProducto);
+
+    Optional<Producto> findByCodigoProducto(String codigoProducto);
+
     List<Producto> findByCategoriaIdAndActivoTrue(Long categoriaId);
 }

@@ -18,6 +18,7 @@ import { WsService, ConteoMensaje, ConteoProductoMensaje } from '../../services/
 
 interface RegistroConteo {
   productoId: number;
+  codigoProducto: string;
   nombre: string;
   cantidadEsperada: number;
   cantidadContada: number;
@@ -57,7 +58,7 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
   mostrarCamara = false;
 
   private readonly STORAGE_KEY = 'conteoActivoRecibido';
-  private readonly REGISTROS_KEY = `registros_${this.nombreUsuarioLogueado}`;
+  private readonly REGISTROS_KEY: string;
   private wsSubs: Subscription[] = [];
 
   private scanBuffer = '';
@@ -139,7 +140,7 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
     }
     this.productoService.obtenerProductosActivosPorSucursal(sucursalId).subscribe({
       next: prods => {
-        this.allProductos = prods.sort((a, b) => a.id - b.id);
+        this.allProductos = prods.sort((a, b) => a.codigoProducto.localeCompare(b.codigoProducto));
         this.cdr.detectChanges();
       },
       error: (err) => {
@@ -157,6 +158,7 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
             const existente = this.registros.find(r => r.productoId === msg.productoId);
             const reg: RegistroConteo = {
               productoId: msg.productoId,
+              codigoProducto: prod.codigoProducto,
               nombre: prod.nombre,
               cantidadEsperada: msg.cantidadEsperada,
               cantidadContada: msg.cantidadContada ?? 0,
@@ -169,6 +171,7 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
             } else {
               this.registros.push(reg);
             }
+            this.registros.sort((a, b) => a.codigoProducto.localeCompare(b.codigoProducto));
             localStorage.setItem(this.REGISTROS_KEY, JSON.stringify(this.registros));
 
             const item = this.productosConteo.find(p => p.productoId === msg.productoId);
@@ -285,6 +288,7 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
           if (prod && !this.registros.find(r => r.productoId === p.productoId)) {
             const reg: RegistroConteo = {
               productoId: p.productoId,
+              codigoProducto: prod.codigoProducto,
               nombre: prod.nombre,
               cantidadEsperada: p.cantidadEsperada,
               cantidadContada: p.cantidadContada ?? 0,
@@ -295,6 +299,7 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
             this.registros.push(reg);
           }
         });
+        this.registros.sort((a, b) => a.codigoProducto.localeCompare(b.codigoProducto));
         localStorage.setItem(this.REGISTROS_KEY, JSON.stringify(this.registros));
         console.log('Initial registros:', this.registros);
         this.cdr.detectChanges();
@@ -402,7 +407,9 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
       return;
     }
     const prod = this.allProductos.find(p =>
-      p.codigosBarra.includes(codigo) || p.id.toString() === codigo
+      p.codigosBarra.includes(codigo) ||
+      p.codigoProducto.toLowerCase() === codigo.toLowerCase() ||
+      p.nombre.toLowerCase().includes(codigo.toLowerCase())
     );
     if (!prod) {
       Swal.fire('Error', `Código "${codigo}" no corresponde a un producto registrado`, 'warning');
@@ -468,6 +475,7 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
         const existente = this.registros.find(r => r.productoId === item!.productoId);
         const reg: RegistroConteo = {
           productoId: item!.productoId,
+          codigoProducto: prod.codigoProducto,
           nombre: prod.nombre,
           cantidadEsperada: item!.cantidadEsperada,
           cantidadContada: updated.cantidadContada ?? 0,
@@ -480,6 +488,7 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
         } else {
           this.registros.push(reg);
         }
+        this.registros.sort((a, b) => a.codigoProducto.localeCompare(b.codigoProducto));
         localStorage.setItem(this.REGISTROS_KEY, JSON.stringify(this.registros));
         console.log('Registros after scan:', this.registros);
 
@@ -506,7 +515,7 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
     const term = this.filtro.trim().toLowerCase();
     return term
       ? this.registros.filter(r =>
-        r.productoId.toString().includes(term) ||
+        r.codigoProducto.toLowerCase().includes(term) ||
         r.nombre.toLowerCase().includes(term) ||
         r.codigosBarra.some(c => c.toLowerCase().includes(term))
       )

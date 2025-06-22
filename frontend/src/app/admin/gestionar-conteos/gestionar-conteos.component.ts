@@ -16,6 +16,7 @@ import { UsuarioDto } from '../../models/usuario-dto';
 
 interface RegistroConteo {
   productoId: number;
+  codigoProducto: string;
   nombre: string;
   cantidadEsperada: number;
   cantidadContada: number | null;
@@ -129,7 +130,7 @@ export class GestionarConteosComponent implements OnInit {
     }
     this.productoService.obtenerProductosActivosPorSucursal(sucursalId).subscribe({
       next: prods => {
-        this.allProductos = prods.sort((a, b) => a.id - b.id);
+        this.allProductos = prods.sort((a, b) => a.codigoProducto.localeCompare(b.codigoProducto));
         prods.forEach(prod => this.productCache.set(prod.id, prod));
       },
       error: () => Swal.fire('Error', 'No se pudo cargar el catálogo de productos activos de la sucursal', 'error')
@@ -150,11 +151,9 @@ export class GestionarConteosComponent implements OnInit {
             next: (usuarios) => {
               this.usuariosPorConteo[conteo.id] = usuarios;
             },
-            error
-
-              : (err) => {
-                console.error(`Error al obtener usuarios del conteo ${conteo.id}`, err);
-              },
+            error: (err) => {
+              console.error(`Error al obtener usuarios del conteo ${conteo.id}`, err);
+            },
           });
         }
       },
@@ -187,6 +186,7 @@ export class GestionarConteosComponent implements OnInit {
       const cat = this.categoryCache.get(prod.categoriaId);
       const reg: RegistroConteo = {
         productoId: cp.productoId,
+        codigoProducto: prod.codigoProducto,
         nombre: prod.nombre,
         cantidadEsperada: cp.cantidadEsperada,
         cantidadContada: cp.cantidadContada,
@@ -199,7 +199,7 @@ export class GestionarConteosComponent implements OnInit {
     }
   }
 
-  get productosNoContados(): { id: number; nombre: string; codigosBarra: string[]; categoriaNombre: string }[] {
+  get productosNoContados(): { id: number; codigoProducto: string; nombre: string; codigosBarra: string[]; categoriaNombre: string }[] {
     return this.productosConteo
       .filter(p => p.cantidadContada === null)
       .map(p => {
@@ -207,6 +207,7 @@ export class GestionarConteosComponent implements OnInit {
         const categoria = producto ? this.categoryCache.get(producto.categoriaId) : null;
         return {
           id: p.productoId,
+          codigoProducto: producto?.codigoProducto || 'Desconocido',
           nombre: producto?.nombre || 'Desconocido',
           codigosBarra: producto?.codigosBarra || [],
           categoriaNombre: categoria?.nombre || 'Sin Categoría'
@@ -452,11 +453,12 @@ export class GestionarConteosComponent implements OnInit {
           const categoria = this.categoryCache.get(prod.categoriaId);
           return {
             id: prod.id,
+            codigoProducto: prod.codigoProducto,
             nombre: prod.nombre,
             categoriaNombre: categoria?.nombre || 'Sin Categoría'
           };
         })
-        .sort((a, b) => a.categoriaNombre.localeCompare(b.categoriaNombre) || a.nombre.localeCompare(b.nombre));
+        .sort((a, b) => a.id - b.id); // Changed to sort by id
 
       // Añadir productos no contados a la lista de productosConteo con cantidadContada = null
       for (const prod of productosNoContados) {
@@ -514,7 +516,7 @@ export class GestionarConteosComponent implements OnInit {
         const tablaProductos = productosNoContados
           .map(p => `
             <tr>
-              <td>${p.id}</td>
+              <td>${p.codigoProducto}</td>
               <td>${p.nombre}</td>
             </tr>
           `)
@@ -557,7 +559,7 @@ export class GestionarConteosComponent implements OnInit {
               <table>
                 <thead>
                   <tr>
-                    <th>ID</th>
+                    <th>Código Producto</th>
                     <th>Nombre</th>
                   </tr>
                 </thead>
@@ -592,7 +594,8 @@ export class GestionarConteosComponent implements OnInit {
                 this.productosConteo.push(item!);
                 const reg: RegistroConteo = {
                   productoId: prod.id,
-                  nombre: prod.nombre, // Corrección: Usar prod.nombre directamente
+                  codigoProducto: prod.codigoProducto,
+                  nombre: prod.nombre,
                   cantidadEsperada: nuevo.cantidadEsperada!,
                   cantidadContada: 0,
                   usuario: this.nombreUsuarioLogueado,
@@ -668,14 +671,14 @@ export class GestionarConteosComponent implements OnInit {
                 showConfirmButton: false
               });
               this.clearStorage();
-              this.cargarConteos(); // Corrección: cargarConnteos -> cargarConteos
+              this.cargarConteos();
             },
             error: (err) => {
               if (err.status === 403) {
                 Swal.fire({
                   icon: 'error',
                   title: 'Permiso denegado',
-                  text: '使No tienes permisos para finalizar este conteo. Contacta al administrador.'
+                  text: 'No tienes permisos para finalizar este conteo. Contacta al administrador.'
                 });
               } else {
                 Swal.fire('Error', 'No se pudo finalizar el conteo.', 'error');
@@ -689,7 +692,7 @@ export class GestionarConteosComponent implements OnInit {
         .map(p => `
           <tr>
             <td>${p.categoriaNombre}</td>
-            <td>${p.id}</td>
+            <td>${p.codigoProducto}</td>
             <td>${p.nombre}</td>
           </tr>
         `)
@@ -734,7 +737,7 @@ export class GestionarConteosComponent implements OnInit {
               <thead>
                 <tr>
                   <th>Categoría</th>
-                  <th>ID</th>
+                  <th>Código Producto</th>
                   <th>Nombre</th>
                 </tr>
               </thead>
@@ -742,9 +745,9 @@ export class GestionarConteosComponent implements OnInit {
                 ${tablaProductos}
               </tbody>
             </table>
-          </div>
-          <p>¿Estás seguro de finalizar el conteo?</p>
-        `,
+            </div>
+            <p>¿Estás seguro de finalizar el conteo?</p>
+          `,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
@@ -861,12 +864,10 @@ export class GestionarConteosComponent implements OnInit {
         const fechaFormateada = cont.fechaHora
           ? formatDate(cont.fechaHora, 'dd/MM/yyyy', 'en-US')
           : '';
-        const nombreUsuario = this.getNombreUsuarioPorId(cont.usuarioId).toLowerCase(); // Corrección: cont.idUsuarioId -> cont.usuarioId
         const tipoConteo = this.getTipoConteoDisplay(cont.tipoConteo).toLowerCase();
         return (
-          nombreUsuario.includes(filtroLower) ||
           fechaFormateada.toLowerCase().includes(filtroLower) ||
-          tipoConteo.toLowerCase().includes(filtroLower)
+          tipoConteo.includes(filtroLower)
         );
       })
       .sort((a, b) => new Date(b.fechaHora).getTime() - new Date(a.fechaHora).getTime());

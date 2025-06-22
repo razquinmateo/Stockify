@@ -17,6 +17,7 @@ import { WsService, ConteoMensaje, ConteoProductoMensaje } from '../../services/
 
 interface RegistroConteo {
   productoId: number;
+  codigoProducto: string;
   nombre: string;
   cantidadEsperada: number;
   cantidadContada: number | null;
@@ -143,7 +144,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
     }
     this.productoService.obtenerProductosActivosPorSucursal(sucursalId).subscribe({
       next: prods => {
-        this.allProductos = prods.sort((a, b) => a.id - b.id);
+        this.allProductos = prods.sort((a, b) => a.codigoProducto.localeCompare(b.codigoProducto));
         this.cdr.detectChanges();
       },
       error: () => Swal.fire('Error', 'No se pudo cargar el catálogo de productos activos de la sucursal', 'error')
@@ -159,6 +160,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
             const existente = this.registros.find(r => r.productoId === msg.productoId);
             const reg: RegistroConteo = {
               productoId: msg.productoId,
+              codigoProducto: prod.codigoProducto,
               nombre: prod.nombre,
               cantidadEsperada: msg.cantidadEsperada,
               cantidadContada: msg.cantidadContada ?? 0,
@@ -335,7 +337,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
       return;
     }
     const prod = this.allProductos.find(p =>
-      p.codigosBarra.includes(codigo) || p.id.toString() === codigo
+      p.codigosBarra.includes(codigo) || p.codigoProducto.toLowerCase() === codigo.toLowerCase() || p.nombre.toLowerCase().includes(codigo.toLowerCase())
     );
     if (!prod) {
       await Swal.fire({
@@ -399,6 +401,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
           const existente = this.registros.find(r => r.productoId === item!.productoId);
           const reg: RegistroConteo = {
             productoId: item!.productoId,
+            codigoProducto: prod.codigoProducto,
             nombre: prod.nombre,
             cantidadEsperada: item!.cantidadEsperada,
             cantidadContada: updated.cantidadContada,
@@ -428,19 +431,22 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
   }
 
   get registrosFiltrados(): RegistroConteo[] {
-    const term = this.filtro.trim().toLowerCase();
-    return term
-      ? this.registros.filter(r =>
-        r.productoId.toString().includes(term) ||
+  const term = this.filtro.trim().toLowerCase();
+  const filtered = term
+    ? this.registros.filter(r =>
+        r.codigoProducto.toLowerCase().includes(term) ||
         r.nombre.toLowerCase().includes(term) ||
         r.codigosBarra.some(c => c.toLowerCase().includes(term))
       )
-      : this.registros;
-  }
+    : this.registros;
+  return filtered.sort((a, b) => a.productoId - b.productoId);
+}
 
   get productosNoContados(): Producto[] {
     const contadosIds = this.productosConteo.map(p => p.productoId);
-    return this.allProductos.filter(p => !contadosIds.includes(p.id));
+    return this.allProductos
+      .filter(p => !contadosIds.includes(p.id))
+      .sort((a, b) => a.id - b.id);
   }
 
   get estadisticas() {
@@ -516,7 +522,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
       const tablaProductos = productosNoContados
         .map(p => `
         <tr>
-          <td>${p.id}</td>
+          <td>${p.codigoProducto}</td>
           <td>${p.nombre}</td>
         </tr>
       `)
@@ -557,7 +563,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
           <table>
             <thead>
               <tr>
-                <th>ID</th>
+                <th>Código Producto</th>
                 <th>Nombre</th>
               </tr>
             </thead>
@@ -594,6 +600,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
               // Update registros
               const reg: RegistroConteo = {
                 productoId: prod.id,
+                codigoProducto: prod.codigoProducto,
                 nombre: prod.nombre,
                 cantidadEsperada: prod.cantidadStock,
                 cantidadContada: 0,

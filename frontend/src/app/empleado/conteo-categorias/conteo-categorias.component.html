@@ -49,7 +49,7 @@
       </div>
       <div class="card-body">
         <h5 class="card-title mb-3">{{ currentProduct.nombre }}</h5>
-        <p class="mb-2"><strong>ID:</strong> {{ currentProduct.id }}</p>
+        <p class="mb-2"><strong>Código Producto:</strong> {{ currentProduct.codigoProducto }}</p>
         <p class="mb-2"><strong>Códigos de Barras:</strong> {{ currentProduct.codigosBarra.length ? currentProduct.codigosBarra.join(', ') : 'N/A' }}</p>
         <p class="mb-2"><strong>Cantidad Esperada:</strong> {{ cantidadEsperada }}</p>
         <button class="btn btn-success btn-lg" (click)="countProduct(currentProduct)">Ingresar Cantidad</button>

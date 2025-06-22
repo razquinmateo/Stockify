@@ -18,6 +18,7 @@ import { WsService, ConteoMensaje, ConteoProductoMensaje } from '../../services/
 
 interface RegistroConteo {
     productoId: number;
+    codigoProducto: string;
     nombre: string;
     cantidadEsperada: number;
     cantidadContada: number | null;
@@ -337,7 +338,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
                     }
                 }
 
-                this.allProductos.sort((a, b) => a.id - b.id);
+                this.allProductos.sort((a, b) => a.codigoProducto.localeCompare(b.codigoProducto));
                 this.updateRegistros();
                 this.updateCategories();
                 this.restoreProductPosition();
@@ -361,6 +362,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
             const cat = this.categoryCache.get(prod.categoriaId);
             const reg: RegistroConteo = {
                 productoId: cp.productoId,
+                codigoProducto: prod.codigoProducto,
                 nombre: prod.nombre,
                 cantidadEsperada: cp.cantidadEsperada,
                 cantidadContada: cp.cantidadContada,
@@ -372,6 +374,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
             };
             this.registros.push(reg);
         }
+        this.registros.sort((a, b) => a.codigoProducto.localeCompare(b.codigoProducto));
         this.saveState();
     }
 
@@ -424,6 +427,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
 
     private showFullyCountedCategoryModal(categoryId: number): void {
         const categoryRegistros = this.registros.filter(r => r.categoriaId === categoryId);
+        categoryRegistros.sort((a, b) => a.codigoProducto.localeCompare(b.codigoProducto));
         const category = this.categoryCache.get(categoryId);
         Swal.fire({
             title: `Categoría Completada: ${category?.nombre || 'Sin Categoría'}`,
@@ -470,7 +474,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
                 <table class="table table-bordered">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th>Código Producto</th>
                             <th>Nombre</th>
                             <th>Esperada</th>
                             <th>Contada</th>
@@ -479,7 +483,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
                     <tbody>
                         ${categoryRegistros.map(r => `
                             <tr>
-                                <td>${r.productoId}</td>
+                                <td>${r.codigoProducto}</td>
                                 <td>${r.nombre}</td>
                                 <td>${r.cantidadEsperada}</td>
                                 <td><input type="number" id="contada-${r.productoId}" value="${r.cantidadContada != null ? r.cantidadContada : ''}" min="0" class="form-control form-control-sm"></td>
@@ -518,9 +522,12 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
         });
     }
 
-
     private getNextUncountedProductId(categoryId: number): number | null {
-        const conteoProductos = this.conteoProductosByCategory.get(categoryId) || [];
+        const conteoProductos = (this.conteoProductosByCategory.get(categoryId) || []).sort((a, b) => {
+            const prodA = this.productCache.get(a.productoId);
+            const prodB = this.productCache.get(b.productoId);
+            return (prodA?.codigoProducto || '').localeCompare(prodB?.codigoProducto || '');
+        });
         const uncounted = conteoProductos.find(cp => !this.countedProducts.has(cp.productoId));
         return uncounted ? uncounted.productoId : null;
     }
@@ -557,6 +564,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
                 const cat = this.categoryCache.get(prod.categoriaId);
                 const reg: RegistroConteo = {
                     productoId: item.productoId,
+                    codigoProducto: prod.codigoProducto,
                     nombre: prod.nombre,
                     cantidadEsperada: item.cantidadEsperada,
                     cantidadContada: updated.cantidadContada,
@@ -571,6 +579,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
                 } else {
                     this.registros.push(reg);
                 }
+                this.registros.sort((a, b) => a.codigoProducto.localeCompare(b.codigoProducto));
                 this.updateRegistros();
                 this.updateCategories();
                 this.saveState();
@@ -593,6 +602,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
 
     private showCategoryCompletedModal(): void {
         const categoryRegistros = this.registros.filter(r => r.categoriaId === this.currentCategoryId);
+        categoryRegistros.sort((a, b) => a.codigoProducto.localeCompare(b.codigoProducto));
         const category = this.categoryCache.get(this.currentCategoryId!);
         Swal.fire({
             title: `Categoría Completada: ${category?.nombre || 'Sin Categoría'}`,
@@ -638,7 +648,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
                 <table class="table table-bordered">
                     <thead>
                         <tr>
-                            <th>ID</th>
+                            <th>Código Producto</th>
                             <th>Nombre</th>
                             <th>Esperada</th>
                             <th>Contada</th>
@@ -647,7 +657,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
                     <tbody>
                         ${categoryRegistros.map(r => `
                             <tr>
-                                <td>${r.productoId}</td>
+                                <td>${r.codigoProducto}</td>
                                 <td>${r.nombre}</td>
                                 <td>${r.cantidadEsperada}</td>
                                 <td><input type="number" id="contada-${r.productoId}" value="${r.cantidadContada != null ? r.cantidadContada : ''}" min="0" class="form-control form-control-sm"></td>
@@ -711,6 +721,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
                     const reg = this.registros.find(r => r.productoId === productoId);
                     if (reg) {
                         reg.cantidadContada = updated.cantidadContada;
+                        this.registros.sort((a, b) => a.codigoProducto.localeCompare(b.codigoProducto));
                         this.updateRegistros();
                         this.updateCategories();
                         this.saveState();
@@ -765,7 +776,11 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
 
     get currentProductIndex(): number {
         if (!this.currentCategoryId || !this.currentProductId) return 0;
-        const conteoProductos = this.conteoProductosByCategory.get(this.currentCategoryId) || [];
+        const conteoProductos = (this.conteoProductosByCategory.get(this.currentCategoryId) || []).sort((a, b) => {
+            const prodA = this.productCache.get(a.productoId);
+            const prodB = this.productCache.get(b.productoId);
+            return (prodA?.codigoProducto || '').localeCompare(prodB?.codigoProducto || '');
+        });
         const index = conteoProductos.findIndex(cp => cp.productoId === this.currentProductId);
         return index >= 0 ? index + 1 : 0;
     }

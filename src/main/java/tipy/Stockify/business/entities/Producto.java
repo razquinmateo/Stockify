@@ -19,6 +19,9 @@ public class Producto {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "CODIGO_PRODUCTO", nullable = false)
+    private String codigoProducto;
+
     @OneToMany(mappedBy = "producto", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<CodigoBarra> codigosBarra = new ArrayList<>();
 

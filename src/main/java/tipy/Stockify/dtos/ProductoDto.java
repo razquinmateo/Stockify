@@ -12,6 +12,9 @@ public class ProductoDto {
     @JsonProperty("id")
     private Long id;
 
+    @JsonProperty("codigoProducto")
+    private String codigoProducto;
+
     @JsonProperty("codigosBarra")
     private List<String> codigosBarra = new ArrayList<>();
 

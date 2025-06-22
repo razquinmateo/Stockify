@@ -47,6 +47,15 @@ public class ProductoController {
                 : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
+    @GetMapping("/codigo/{codigoProducto}")
+    @Operation(description = "Obtiene un producto activo por su código de producto.")
+    public ResponseEntity<ProductoDto> getProductoByCodigoProducto(@PathVariable String codigoProducto) {
+        ProductoDto producto = productoService.getByCodigoProducto(codigoProducto);
+        return producto != null
+                ? new ResponseEntity<>(producto, HttpStatus.OK)
+                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
     @PostMapping
     @Operation(description = "Crea un nuevo producto.")
     public ResponseEntity<ProductoDto> createProducto(@RequestBody ProductoDto productoDto) {

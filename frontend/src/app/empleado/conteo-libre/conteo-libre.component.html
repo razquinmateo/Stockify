@@ -52,7 +52,7 @@
   <div class="row justify-content-center mb-4">
     <div class="col-12 col-md-6">
       <div class="input-group">
-        <input type="text" class="form-control" placeholder="Ingrese código de barras o ID"
+        <input type="text" class="form-control" placeholder="Ingrese código de barras, código producto o nombre"
           [(ngModel)]="codigoIngresado" (keyup.enter)="scanCodigo()" />
         <button class="btn btn-primary" (click)="scanCodigo()">
           <i class="bi bi-upc-scan"></i> Escanear
@@ -75,7 +75,7 @@
       <table class="table table-striped">
         <thead class="table-dark">
           <tr>
-            <th>ID Producto</th>
+            <th>Código Producto</th>
             <th>Producto</th>
             <th>Esperado</th>
             <th>Contado</th>
@@ -83,13 +83,13 @@
         </thead>
         <tbody>
           <tr *ngFor="let r of registrosFiltrados">
-            <td>{{ r.productoId }}</td>
+            <td>{{ r.codigoProducto }}</td>
             <td>{{ r.nombre }}</td>
             <td>{{ r.cantidadEsperada }}</td>
             <td>{{ r.cantidadContada }}</td>
           </tr>
           <tr *ngIf="registrosFiltrados.length === 0">
-            <td colspan="6" class="text-center text-muted py-3">
+            <td colspan="4" class="text-center text-muted py-3">
               Aún no se ha contado ningún producto
             </td>
           </tr>

@@ -49,7 +49,8 @@
     <!-- Buscador -->
     <div class="w-50">
       <label class="form-label d-block">Buscar producto:</label>
-      <input type="text" class="form-control" placeholder="Buscar por nombre, código o detalle..." [(ngModel)]="filtro"
+      <input type="text" class="form-control"
+        placeholder="Buscar por código producto, nombre, código de barra o detalle..." [(ngModel)]="filtro"
         (ngModelChange)="filtrarProductos()" />
     </div>
 
@@ -72,6 +73,7 @@
       *ngIf="filtrarProductos().length > 0; else sinProductos">
       <thead class="table-dark">
         <tr>
+          <th>Código Producto</th>
           <th>Imagen</th>
           <th>Nombre</th>
           <th>Códigos de Barra</th>
@@ -86,6 +88,7 @@
       </thead>
       <tbody>
         <tr *ngFor="let prod of obtenerProductosPaginados(); let i = index">
+          <td>{{ prod.codigoProducto }}</td>
           <td>
             <img [src]="prod.imagen ? prod.imagen : 'assets/placeholder.png'" alt="Imagen de {{ prod.nombre }}"
               class="img-thumbnail" />
@@ -206,12 +209,18 @@
                 </div>
               </div>
             </div>
-            <!-- Nombre -->
             <div class="col-md-6">
+              <!-- Código Producto -->
+              <label class="form-label">
+                Código Producto <span class="text-danger">*</span>
+              </label>
+              <input type="text" class="form-control" [(ngModel)]="productoSeleccionado.codigoProducto"
+                name="codigoProducto" required />
+              <!-- Nombre -->
               <label class="form-label">
                 Nombre <span class="text-danger">*</span>
               </label>
-              <input type="text" class="form-control" [(ngModel)]="productoSeleccionado.nombre" name="nombre"
+              <input type="text" class="form-control mb-3" [(ngModel)]="productoSeleccionado.nombre" name="nombre"
                 required />
             </div>
             <!-- Códigos de Barra -->
@@ -220,7 +229,8 @@
                 Códigos de Barra <span class="text-danger">*</span>
               </label>
               <textarea class="form-control" [(ngModel)]="codigosBarraInput" name="codigosBarra"
-                placeholder="Ingrese códigos de barra (separados por comas, espacios o líneas)" rows="4" required></textarea>
+                placeholder="Ingrese códigos de barra (separados por comas, espacios o líneas)" rows="4"
+                required></textarea>
               <small class="form-text text-muted">Ejemplo: 123456789, 987654321 o ingrese uno por línea</small>
             </div>
             <!-- Precio -->
