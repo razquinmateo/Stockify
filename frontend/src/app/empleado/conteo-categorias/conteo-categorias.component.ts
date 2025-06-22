@@ -338,6 +338,14 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
                     }
                 }
 
+                // Ordenar productos dentro de cada categoría por productoId
+                for (const [categoriaId, productos] of this.conteoProductosByCategory) {
+                    this.conteoProductosByCategory.set(
+                        categoriaId,
+                        productos.sort((a, b) => a.productoId - b.productoId)
+                    );
+                }
+
                 this.allProductos.sort((a, b) => a.codigoProducto.localeCompare(b.codigoProducto));
                 this.updateRegistros();
                 this.updateCategories();
@@ -523,11 +531,8 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
     }
 
     private getNextUncountedProductId(categoryId: number): number | null {
-        const conteoProductos = (this.conteoProductosByCategory.get(categoryId) || []).sort((a, b) => {
-            const prodA = this.productCache.get(a.productoId);
-            const prodB = this.productCache.get(b.productoId);
-            return (prodA?.codigoProducto || '').localeCompare(prodB?.codigoProducto || '');
-        });
+        const conteoProductos = (this.conteoProductosByCategory.get(categoryId) || [])
+            .sort((a, b) => a.productoId - b.productoId); // Ordenar por productoId
         const uncounted = conteoProductos.find(cp => !this.countedProducts.has(cp.productoId));
         return uncounted ? uncounted.productoId : null;
     }
@@ -776,11 +781,8 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
 
     get currentProductIndex(): number {
         if (!this.currentCategoryId || !this.currentProductId) return 0;
-        const conteoProductos = (this.conteoProductosByCategory.get(this.currentCategoryId) || []).sort((a, b) => {
-            const prodA = this.productCache.get(a.productoId);
-            const prodB = this.productCache.get(b.productoId);
-            return (prodA?.codigoProducto || '').localeCompare(prodB?.codigoProducto || '');
-        });
+        const conteoProductos = (this.conteoProductosByCategory.get(this.currentCategoryId) || [])
+            .sort((a, b) => a.productoId - b.productoId); // Ordenar por productoId
         const index = conteoProductos.findIndex(cp => cp.productoId === this.currentProductId);
         return index >= 0 ? index + 1 : 0;
     }

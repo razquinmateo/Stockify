@@ -79,7 +79,6 @@
     </div>
   </div>
 
-
   <!-- Totales Generales -->
   <div class="mb-4 d-flex justify-content-center gap-4">
     <div class="card text-center" style="width: 200px;">
@@ -103,7 +102,7 @@
       <table class="table table-bordered text-center align-middle">
         <thead class="table-dark">
           <tr>
-            <th>ID</th>
+            <th>Código Producto</th>
             <th>Producto</th>
             <th>Concepto</th>
             <th>Stock</th>
@@ -113,7 +112,7 @@
         </thead>
         <tbody>
           <tr *ngFor="let item of reporteItems">
-            <td>{{ item.id }}</td>
+            <td>{{ item.codigoProducto }}</td>
             <td>{{ item.producto }}</td>
             <td>
               <span class="badge" [ngClass]="{
@@ -141,7 +140,7 @@
         <table class="table table-bordered text-center align-middle">
           <thead class="table-dark">
             <tr>
-              <th>ID</th>
+              <th>Código Producto</th>
               <th>Producto</th>
               <th>Concepto</th>
               <th>Stock</th>
@@ -151,7 +150,7 @@
           </thead>
           <tbody>
             <tr *ngFor="let item of categoria.items">
-              <td>{{ item.id }}</td>
+              <td>{{ item.codigoProducto }}</td>
               <td>{{ item.producto }}</td>
               <td>
                 <span class="badge" [ngClass]="{

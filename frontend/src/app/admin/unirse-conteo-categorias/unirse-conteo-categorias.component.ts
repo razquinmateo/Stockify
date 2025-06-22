@@ -305,82 +305,90 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
     }
 
     private async loadConteoProductos(): Promise<void> {
-        if (!this.conteoId) return;
+    if (!this.conteoId) return;
 
-        this.conteoProdService.getConteoProductosByConteoId1(this.conteoId).subscribe({
-            next: async (productos) => {
-                console.log(`Loaded ${productos.length} conteo_productos for conteoId: ${this.conteoId}`, productos.map(p => ({
-                    productoId: p.productoId,
-                    cantidadContada: p.cantidadContada
-                })));
-                this.productosConteo = productos;
-                this.conteoProductosByCategory.clear();
+    this.conteoProdService.getConteoProductosByConteoId1(this.conteoId).subscribe({
+        next: async (productos) => {
+            console.log(`Loaded ${productos.length} conteo_productos for conteoId: ${this.conteoId}`, productos.map(p => ({
+                productoId: p.productoId,
+                cantidadContada: p.cantidadContada
+            })));
+            this.productosConteo = productos;
+            this.conteoProductosByCategory.clear();
 
-                this.countedProducts.clear();
-                for (const cp of productos) {
-                    if (cp.cantidadContada != null) {
-                        this.countedProducts.add(cp.productoId);
-                    }
+            this.countedProducts.clear();
+            for (const cp of productos) {
+                if (cp.cantidadContada != null) {
+                    this.countedProducts.add(cp.productoId);
+                }
 
-                    let producto: Producto;
-                    const cached = this.productCache.get(cp.productoId);
-                    if (cached) {
-                        producto = cached;
-                    } else {
-                        try {
-                            const fetched = await lastValueFrom(this.productoService.obtenerProductoPorId(cp.productoId));
-                            if (!fetched) {
-                                console.warn(`Producto ${cp.productoId} no encontrado tras fetch`);
-                                continue;
-                            }
-                            producto = fetched;
-                            this.productCache.set(cp.productoId, producto);
-                            if (!this.allProductos.some(p => p.id === producto.id)) {
-                                this.allProductos.push(producto);
-                            }
-                        } catch (err) {
-                            console.warn(`Failed to load product ${cp.productoId}:`, err);
+                let producto: Producto;
+                const cached = this.productCache.get(cp.productoId);
+                if (cached) {
+                    producto = cached;
+                } else {
+                    try {
+                        const fetched = await lastValueFrom(this.productoService.obtenerProductoPorId(cp.productoId));
+                        if (!fetched) {
+                            console.warn(`Producto ${cp.productoId} no encontrado tras fetch`);
                             continue;
                         }
-                    }
-
-                    const categoriaId = producto.categoriaId;
-                    if (!this.conteoProductosByCategory.has(categoriaId)) {
-                        this.conteoProductosByCategory.set(categoriaId, []);
-                    }
-                    this.conteoProductosByCategory.get(categoriaId)!.push(cp);
-
-                    if (!this.categoryCache.has(categoriaId)) {
-                        try {
-                            const categoria = await lastValueFrom(this.productoService.obtenerCategoriaPorId(categoriaId));
-                            if (!categoria) {
-                                console.warn(`Categoría ${categoriaId} no encontrada tras fetch`);
-                                continue;
-                            }
-                            this.categoryCache.set(categoriaId, categoria);
-                            if (!this.allCategorias.some(c => c.id === categoria.id)) {
-                                this.allCategorias.push(categoria);
-                            }
-                        } catch (err) {
-                            console.warn(`Failed to load category ${categoriaId}:`, err);
+                        producto = fetched;
+                        this.productCache.set(cp.productoId, producto);
+                        if (!this.allProductos.some(p => p.id === producto.id)) {
+                            this.allProductos.push(producto);
                         }
+                    } catch (err) {
+                        console.warn(`Failed to load product ${cp.productoId}:`, err);
+                        continue;
                     }
                 }
 
-                this.allProductos.sort((a, b) => a.codigoProducto.localeCompare(b.codigoProducto));
-                this.updateRegistros();
-                this.updateCategories();
-                this.restoreProductPosition();
-                this.saveState();
-                this.cdr.detectChanges();
-            },
-            error: (err) => {
-                console.error('Error loading conteoProductos:', err);
-                Swal.fire('Error', 'No se pudieron cargar los productos del conteo', 'error');
-                this.router.navigate(['/admin/dashboard']);
+                const categoriaId = producto.categoriaId;
+                if (!this.conteoProductosByCategory.has(categoriaId)) {
+                    this.conteoProductosByCategory.set(categoriaId, []);
+                }
+                this.conteoProductosByCategory.get(categoriaId)!.push(cp);
+
+                if (!this.categoryCache.has(categoriaId)) {
+                    try {
+                        const categoria = await lastValueFrom(this.productoService.obtenerCategoriaPorId(categoriaId));
+                        if (!categoria) {
+                            console.warn(`Categoría ${categoriaId} no encontrada tras fetch`);
+                            continue;
+                        }
+                        this.categoryCache.set(categoriaId, categoria);
+                        if (!this.allCategorias.some(c => c.id === categoria.id)) {
+                            this.allCategorias.push(categoria);
+                        }
+                    } catch (err) {
+                        console.warn(`Failed to load category ${categoriaId}:`, err);
+                    }
+                }
             }
-        });
-    }
+
+            // Ordenar productos dentro de cada categoría por productoId
+            for (const [categoriaId, productos] of this.conteoProductosByCategory) {
+                this.conteoProductosByCategory.set(
+                    categoriaId,
+                    productos.sort((a, b) => a.productoId - b.productoId)
+                );
+            }
+
+            this.allProductos.sort((a, b) => a.codigoProducto.localeCompare(b.codigoProducto));
+            this.updateRegistros();
+            this.updateCategories();
+            this.restoreProductPosition();
+            this.saveState();
+            this.cdr.detectChanges();
+        },
+        error: (err) => {
+            console.error('Error loading conteoProductos:', err);
+            Swal.fire('Error', 'No se pudieron cargar los productos del conteo', 'error');
+            this.router.navigate(['/admin/dashboard']);
+        }
+    });
+}
 
     private updateRegistros(): void {
         this.registros = [];
@@ -551,11 +559,7 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
 
     private getNextUncountedProductId(categoryId: number): number | null {
         const conteoProductos = (this.conteoProductosByCategory.get(categoryId) || [])
-            .sort((a, b) => {
-                const prodA = this.productCache.get(a.productoId);
-                const prodB = this.productCache.get(b.productoId);
-                return (prodA?.codigoProducto || '').localeCompare(prodB?.codigoProducto || '');
-            });
+            .sort((a, b) => a.productoId - b.productoId); // Ordenar por productoId
         const uncounted = conteoProductos.find(cp => !this.countedProducts.has(cp.productoId));
         return uncounted ? uncounted.productoId : null;
     }
@@ -1029,11 +1033,7 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
     get currentProductIndex(): number {
         if (!this.currentCategoryId || !this.currentProductId) return 0;
         const conteoProductos = (this.conteoProductosByCategory.get(this.currentCategoryId) || [])
-            .sort((a, b) => {
-                const prodA = this.productCache.get(a.productoId);
-                const prodB = this.productCache.get(b.productoId);
-                return (prodA?.codigoProducto || '').localeCompare(prodB?.codigoProducto || '');
-            });
+            .sort((a, b) => a.productoId - b.productoId); // Ordenar por productoId
         const index = conteoProductos.findIndex(cp => cp.productoId === this.currentProductId);
         return index >= 0 ? index + 1 : 0;
     }

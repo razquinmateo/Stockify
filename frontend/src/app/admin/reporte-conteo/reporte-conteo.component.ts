@@ -13,7 +13,8 @@ import { formatDate } from '@angular/common';
 import * as XLSX from 'xlsx';
 
 interface ReporteItem {
-  id: number;
+  productoId: number; // Added for sorting
+  codigoProducto: string;
   producto: string;
   concepto: string;
   stock: number;
@@ -47,7 +48,6 @@ export class ReporteConteoComponent implements OnInit {
   nombreUsuarioLogueado: string = '';
   conteoFecha: string = '';
   mostrarModalExportar: boolean = false;
-
 
   constructor(
     private route: ActivatedRoute,
@@ -89,7 +89,6 @@ export class ReporteConteoComponent implements OnInit {
   abrirModalExportar() {
     this.mostrarModalExportar = true;
   }
-
 
   cargarReporte(): void {
     this.conteoProductoService.getConteoProductosByConteoId(this.conteoId).subscribe({
@@ -136,7 +135,8 @@ export class ReporteConteoComponent implements OnInit {
                   }
 
                   return {
-                    id: cp.productoId,
+                    productoId: cp.productoId, // Added for sorting
+                    codigoProducto: producto ? producto.codigoProducto : 'N/A',
                     producto: producto ? producto.nombre : 'Desconocido',
                     concepto,
                     stock: cp.cantidadEsperada,
@@ -146,12 +146,19 @@ export class ReporteConteoComponent implements OnInit {
                   };
                 });
 
+                // Sort reporteItems for LIBRE by productoId
+                if (this.tipoConteo === 'LIBRE') {
+                  this.reporteItems.sort((a, b) => a.productoId - b.productoId);
+                }
+
                 if (this.tipoConteo === 'CATEGORIAS') {
                   this.categoriasReporte = categorias
                     .map(c => ({
                       id: c.id,
                       nombre: c.nombre,
-                      items: this.reporteItems.filter(item => item.categoriaId === c.id),
+                      items: this.reporteItems
+                        .filter(item => item.categoriaId === c.id)
+                        .sort((a, b) => a.productoId - b.productoId), // Sort items by productoId
                       ingresos: 0,
                       egresos: 0
                     }))
@@ -167,6 +174,7 @@ export class ReporteConteoComponent implements OnInit {
                     });
                   });
 
+                  // Sort categoriasReporte by nombre (already done, kept for clarity)
                   this.categoriasReporte.sort((a, b) => a.nombre.localeCompare(b.nombre));
                 }
               },
@@ -246,9 +254,9 @@ export class ReporteConteoComponent implements OnInit {
       // Tabla única para LIBRE
       autoTable(doc, {
         startY: finalY,
-        head: [['ID', 'Producto', 'Concepto', 'Stock', 'Cant. Contada', 'Diferencia']],
+        head: [['Código Producto', 'Producto', 'Concepto', 'Stock', 'Cant. Contada', 'Diferencia']],
         body: this.reporteItems.map(item => [
-          item.id.toString(),
+          item.codigoProducto,
           item.producto,
           item.concepto,
           item.stock.toString(),
@@ -271,7 +279,7 @@ export class ReporteConteoComponent implements OnInit {
           fillColor: [245, 245, 245]
         },
         columnStyles: {
-          0: { cellWidth: 20, halign: 'center' },
+          0: { cellWidth: 30, halign: 'center' },
           1: { cellWidth: 60 },
           2: { cellWidth: 30, halign: 'center' },
           3: { cellWidth: 25, halign: 'center' },
@@ -284,7 +292,7 @@ export class ReporteConteoComponent implements OnInit {
           lineWidth: 0.2
         },
         didDrawPage: (data) => {
-          finalY = data.cursor?.y ?? finalY; // Fallback to current finalY if cursor is null
+          finalY = data.cursor?.y ?? finalY;
         }
       });
       finalY = (doc as any).lastAutoTable.finalY || finalY;
@@ -302,9 +310,9 @@ export class ReporteConteoComponent implements OnInit {
           // Tabla de la categoría
           autoTable(doc, {
             startY: finalY,
-            head: [['ID', 'Producto', 'Concepto', 'Stock', 'Cant. Contada', 'Diferencia']],
+            head: [['Código Producto', 'Producto', 'Concepto', 'Stock', 'Cant. Contada', 'Diferencia']],
             body: categoria.items.map(item => [
-              item.id.toString(),
+              item.codigoProducto,
               item.producto,
               item.concepto,
               item.stock.toString(),
@@ -327,7 +335,7 @@ export class ReporteConteoComponent implements OnInit {
               fillColor: [245, 245, 245]
             },
             columnStyles: {
-              0: { cellWidth: 20, halign: 'center' },
+              0: { cellWidth: 30, halign: 'center' },
               1: { cellWidth: 60 },
               2: { cellWidth: 30, halign: 'center' },
               3: { cellWidth: 25, halign: 'center' },
@@ -340,7 +348,7 @@ export class ReporteConteoComponent implements OnInit {
               lineWidth: 0.2
             },
             didDrawPage: (data) => {
-              finalY = data.cursor?.y ?? finalY; // Fallback to current finalY if cursor is null
+              finalY = data.cursor?.y ?? finalY;
             }
           });
 
@@ -389,19 +397,13 @@ export class ReporteConteoComponent implements OnInit {
 
     // Guardar PDF
     doc.save(`reporte-conteo-${this.conteoId}.pdf`);
-
-    // Cerrar modal
-    const modal = document.getElementById('exportModal');
-    if (modal) {
-      const bootstrapModal = (window as any).bootstrap.Modal.getOrCreateInstance(modal);
-      bootstrapModal.hide();
-    }
+    this.cerrarModalExportar();
   }
 
   descargarXLS(): void {
     // Preparar datos para XLS
     const data = this.reporteItems.map(item => ({
-      ID: item.id,
+      'Código Producto': item.codigoProducto,
       Producto: item.producto,
       'Cantidad Contada': item.cantidadContada ?? 0
     }));
@@ -413,13 +415,7 @@ export class ReporteConteoComponent implements OnInit {
 
     // Guardar archivo
     XLSX.writeFile(wb, `reporte-conteo-${this.conteoId}.xlsx`);
-
-    // Cerrar modal
-    const modal = document.getElementById('exportModal');
-    if (modal) {
-      const bootstrapModal = (window as any).bootstrap.Modal.getOrCreateInstance(modal);
-      bootstrapModal.hide();
-    }
+    this.cerrarModalExportar();
   }
 
   private addFooter(doc: jsPDF, pageNumber: number, totalPages: number): void {

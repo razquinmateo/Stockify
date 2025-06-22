@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Chart } from 'chart.js/auto';
 import { EstadisticasService } from '../../services/estadisticas.service';
+import { ProductoService } from '../../services/producto.service';
 import { AuthService } from '../../auth.service';
 import { Router, RouterModule } from '@angular/router';
 import {
@@ -15,6 +16,8 @@ import {
 } from '../../models/estadisticas.model';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { forkJoin, Observable } from 'rxjs';
+import { Producto } from '../../services/producto.service';
 
 @Component({
     standalone: true,
@@ -49,6 +52,7 @@ export class EstadisticasComponent implements OnInit {
 
     constructor(
         private estadisticasService: EstadisticasService,
+        private productoService: ProductoService,
         public authService: AuthService,
         private router: Router
     ) { }
@@ -268,6 +272,12 @@ export class EstadisticasComponent implements OnInit {
             yPosition += 10;
 
             if (this.masFaltaron.length > 0) {
+                // Fetch productos for masFaltaron
+                const productosFaltantesObs: Observable<Producto>[] = this.masFaltaron.map(item =>
+                    this.productoService.obtenerProductoPorId(item.productoId)
+                );
+                const productosFaltantes = await forkJoin(productosFaltantesObs).toPromise();
+
                 doc.setFontSize(14);
                 doc.setFont('helvetica', 'bold');
                 doc.text('Productos con Mayor Faltante', 14, yPosition);
@@ -275,8 +285,12 @@ export class EstadisticasComponent implements OnInit {
 
                 autoTable(doc, {
                     startY: yPosition,
-                    head: [['ID', 'Producto', 'Cantidad Faltante']],
-                    body: this.masFaltaron.map(item => [item.productoId, item.nombreProducto, item.cantidadFaltante]),
+                    head: [['Código Producto', 'Producto', 'Cantidad Faltante']],
+                    body: this.masFaltaron.map((item, index) => [
+                        productosFaltantes && productosFaltantes[index]?.codigoProducto || 'N/A',
+                        item.nombreProducto,
+                        item.cantidadFaltante
+                    ]),
                     theme: 'grid',
                     headStyles: {
                         fillColor: [60, 60, 60],
@@ -293,7 +307,7 @@ export class EstadisticasComponent implements OnInit {
                         fillColor: [240, 240, 240]
                     },
                     columnStyles: {
-                        0: { cellWidth: 20, halign: 'center' },
+                        0: { cellWidth: 40, halign: 'center' },
                         1: { cellWidth: 'auto' },
                         2: { cellWidth: 40, halign: 'right' }
                     },
@@ -307,6 +321,12 @@ export class EstadisticasComponent implements OnInit {
             }
 
             if (this.masSobrantes.length > 0) {
+                // Fetch productos for masSobrantes
+                const productosSobrantesObs: Observable<Producto>[] = this.masSobrantes.map(item =>
+                    this.productoService.obtenerProductoPorId(item.productoId)
+                );
+                const productosSobrantes = await forkJoin(productosSobrantesObs).toPromise();
+
                 doc.setFontSize(14);
                 doc.setFont('helvetica', 'bold');
                 doc.text('Productos con Mayor Sobrante', 14, yPosition);
@@ -314,8 +334,12 @@ export class EstadisticasComponent implements OnInit {
 
                 autoTable(doc, {
                     startY: yPosition,
-                    head: [['ID', 'Producto', 'Cantidad Sobrante']],
-                    body: this.masSobrantes.map(item => [item.productoId, item.nombreProducto, item.cantidadSobrante]),
+                    head: [['Código Producto', 'Producto', 'Cantidad Sobrante']],
+                    body: this.masSobrantes.map((item, index) => [
+                        productosSobrantes && productosSobrantes[index]?.codigoProducto || 'N/A',
+                        item.nombreProducto,
+                        item.cantidadSobrante
+                    ]),
                     theme: 'grid',
                     headStyles: {
                         fillColor: [60, 60, 60],
@@ -332,7 +356,7 @@ export class EstadisticasComponent implements OnInit {
                         fillColor: [240, 240, 240]
                     },
                     columnStyles: {
-                        0: { cellWidth: 20, halign: 'center' },
+                        0: { cellWidth: 40, halign: 'center' },
                         1: { cellWidth: 'auto' },
                         2: { cellWidth: 40, halign: 'right' }
                     },

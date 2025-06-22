@@ -133,9 +133,9 @@ export class GestionarProductosComponent implements OnInit {
                 prod.categoriaNombre = categoriaResponses[index].nombre;
                 prod.proveedorNombres = prod.proveedorIds
                   ? prod.proveedorIds.map(id => {
-                      const proveedor = this.proveedores.find(p => p.id === id);
-                      return proveedor ? proveedor.nombre : 'Desconocido';
-                    })
+                    const proveedor = this.proveedores.find(p => p.id === id);
+                    return proveedor ? proveedor.nombre : 'Desconocido';
+                  })
                   : [];
                 if (prod.imagen && !this.isValidBase64Image(prod.imagen)) {
                   console.warn(`Invalid imagen for product ${prod.codigoProducto}: ${prod.imagen}`);
@@ -298,84 +298,83 @@ export class GestionarProductosComponent implements OnInit {
   }
 
   guardarProducto(): void {
-  const modal = bootstrap.Modal.getInstance(document.getElementById('productoModal'));
-  // Parsear los códigos de barra desde el textarea
-  const codigos = this.codigosBarraInput
-    .split(/[\n\s,]+/)
-    .map(c => c.trim())
-    .filter(c => c.length > 0);
-  
-  if (!this.productoSeleccionado.codigoProducto ||
+    const modal = bootstrap.Modal.getInstance(document.getElementById('productoModal'));
+    const codigos = this.codigosBarraInput
+      .split(/[\n\s,]+/)
+      .map(c => c.trim())
+      .filter(c => c.length > 0);
+
+    if (!this.productoSeleccionado.codigoProducto ||
       !this.productoSeleccionado.nombre ||
       codigos.length === 0 ||
       this.productoSeleccionado.categoriaId === 0 ||
       this.productoSeleccionado.precio < 0 ||
       this.productoSeleccionado.cantidadStock < 0) {
-    Swal.fire('Error', 'Por favor completa todos los campos requeridos correctamente', 'error');
-    return;
-  }
-  if (this.productoSeleccionado.imagen) {
-    if (!this.isValidBase64Image(this.productoSeleccionado.imagen)) {
-      Swal.fire('Error', 'El formato de la imagen no es válido o los datos base64 son incorrectos', 'error');
+      Swal.fire('Error', 'Por favor completa todos los campos requeridos correctamente', 'error');
       return;
     }
-    try {
-      const base64Data = this.productoSeleccionado.imagen.split(',')[1];
-      const imgSizeBytes = atob(base64Data).length;
-      if (imgSizeBytes > 1_000_000) {
-        Swal.fire('Error', 'La imagen no debe exceder 1MB', 'error');
+    if (this.productoSeleccionado.imagen) {
+      if (!this.isValidBase64Image(this.productoSeleccionado.imagen)) {
+        Swal.fire('Error', 'El formato de la imagen no es válido o los datos base64 son incorrectos', 'error');
         return;
       }
-    } catch (e) {
-      Swal.fire('Error', 'No se pudo procesar la imagen: formato base64 inválido', 'error');
-      return;
-    }
-  }
-
-  const productoToSave = { ...this.productoSeleccionado, codigosBarra: codigos };
-  const observable = this.esEditar
-    ? this.productoService.actualizarProducto(productoToSave)
-    : this.productoService.agregarProducto(productoToSave);
-
-  observable.subscribe({
-    next: () => {
-      modal.hide();
-      Swal.fire(
-        this.esEditar ? 'Actualizado' : 'Agregado',
-        `El producto ha sido ${this.esEditar ? 'actualizado' : 'agregado'}`,
-        'success'
-      );
-      this.cargarDatosIniciales();
-      this.cerrarCamara();
-    },
-    error: (err: HttpErrorResponse) => {
-      console.log('Error del servidor:', err.status, err.error); // Para depuración
-      let errorMessage = 'No se pudo ' + (this.esEditar ? 'actualizar' : 'agregar') + ' el producto';
-      if (err.status === 400) {
-        // Intentar parsear el error como texto o JSON
-        try {
-          const errorObj = JSON.parse(err.error);
-          errorMessage = errorObj.error || err.error || 'Error en los datos proporcionados';
-        } catch (e) {
-          errorMessage = err.error || 'Error en los datos proporcionados';
+      try {
+        const base64Data = this.productoSeleccionado.imagen.split(',')[1];
+        const imgSizeBytes = atob(base64Data).length;
+        if (imgSizeBytes > 1_000_000) {
+          Swal.fire('Error', 'La imagen no debe exceder 1MB', 'error');
+          return;
         }
-        // Resaltar el campo de código de producto si el error es relevante
-        if (errorMessage.includes('código de producto')) {
-          const inputElement = document.querySelector('input[ngModel="[productoSeleccionado.codigoProducto]"]') as HTMLInputElement;
-          if (inputElement) {
-            inputElement.classList.add('is-invalid');
-            setTimeout(() => inputElement.classList.remove('is-invalid'), 3000);
-          }
-        }
-      } else if (err.status === 404) {
-        errorMessage = 'Recurso no encontrado';
-      } else {
-        errorMessage = err.error?.message || 'Algo salió mal. Por favor, revisa los datos e intenta de nuevo';
+      } catch (e) {
+        Swal.fire('Error', 'No se pudo procesar la imagen: formato base64 inválido', 'error');
+        return;
       }
-      Swal.fire('Error', errorMessage, 'error');
     }
-  });
-}
+
+    const productoToSave = { ...this.productoSeleccionado, codigosBarra: codigos };
+    const observable = this.esEditar
+      ? this.productoService.actualizarProducto(productoToSave)
+      : this.productoService.agregarProducto(productoToSave);
+
+    observable.subscribe({
+      next: () => {
+        modal.hide();
+        Swal.fire(
+          this.esEditar ? 'Actualizado' : 'Agregado',
+          `El producto ha sido ${this.esEditar ? 'actualizado' : 'agregado'}`,
+          'success'
+        );
+        this.cargarDatosIniciales();
+        this.cerrarCamara();
+      },
+      error: (err: HttpErrorResponse) => {
+        console.log('Error del servidor:', err.status, err.error); // Para depuración
+        let errorMessage = 'No se pudo ' + (this.esEditar ? 'actualizar' : 'agregar') + ' el producto';
+
+        if (err.status === 400) {
+          // Manejar errores de validación (como código de producto duplicado)
+          errorMessage = typeof err.error === 'string' ? err.error : err.error?.message || 'Error en los datos proporcionados';
+          if (errorMessage.includes('código de producto') || errorMessage.includes('ya está asignado')) {
+            const inputElement = document.querySelector('input[ngModel="[productoSeleccionado.codigoProducto]"]') as HTMLInputElement;
+            if (inputElement) {
+              inputElement.classList.add('is-invalid');
+              inputElement.focus();
+              setTimeout(() => inputElement.classList.remove('is-invalid'), 3000);
+            }
+          }
+        } else if (err.status === 403) {
+          // Manejar error de acceso denegado sin cerrar sesión automáticamente
+          errorMessage = 'Algo salió mal. Por favor, revisa los datos e intenta de nuevo.';
+        } else if (err.status === 404) {
+          errorMessage = 'Recurso no encontrado';
+        } else {
+          errorMessage = err.error?.message || 'Algo salió mal. Por favor, revisa los datos e intenta de nuevo';
+        }
+
+        Swal.fire('Error', errorMessage, 'error');
+      }
+    });
+  }
 
   agregarCodigoBarra(): void {
     this.codigosBarraInput += '\n';
@@ -425,16 +424,16 @@ export class GestionarProductosComponent implements OnInit {
   }
 
   filtrarProductos(): Producto[] {
-  return this.productos
-    .filter(prod =>
-      prod.codigoProducto.toLowerCase().includes(this.filtro.toLowerCase()) ||
-      prod.nombre.toLowerCase().includes(this.filtro.toLowerCase()) ||
-      prod.detalle.toLowerCase().includes(this.filtro.toLowerCase()) ||
-      prod.codigosBarra.some(c => c.includes(this.filtro)) ||
-      (prod.categoriaNombre && prod.categoriaNombre.toLowerCase().includes(this.filtro.toLowerCase())) ||
-      (prod.proveedorNombres && prod.proveedorNombres.some(nombre => nombre.toLowerCase().includes(this.filtro.toLowerCase())))
-    )
-    .sort((a, b) => a.id - b.id);
+    return this.productos
+      .filter(prod =>
+        prod.codigoProducto.toLowerCase().includes(this.filtro.toLowerCase()) ||
+        prod.nombre.toLowerCase().includes(this.filtro.toLowerCase()) ||
+        prod.detalle.toLowerCase().includes(this.filtro.toLowerCase()) ||
+        prod.codigosBarra.some(c => c.includes(this.filtro)) ||
+        (prod.categoriaNombre && prod.categoriaNombre.toLowerCase().includes(this.filtro.toLowerCase())) ||
+        (prod.proveedorNombres && prod.proveedorNombres.some(nombre => nombre.toLowerCase().includes(this.filtro.toLowerCase())))
+      )
+      .sort((a, b) => a.id - b.id);
   }
 
   obtenerProductosPaginados(): Producto[] {
