@@ -49,7 +49,7 @@ export class GestionarProductosComponent implements OnInit {
     private loteService: LoteService,
     private authService: AuthService,
     private router: Router
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.productoSeleccionado = this.resetProducto();
@@ -57,6 +57,7 @@ export class GestionarProductosComponent implements OnInit {
     this.cargarDatosIniciales();
   }
 
+  // === onArchivoSeleccionado ===
   onArchivoSeleccionado(event: any): void {
     const archivo = event.target.files[0];
     if (!archivo) return;
@@ -64,96 +65,112 @@ export class GestionarProductosComponent implements OnInit {
     const lector = new FileReader();
     lector.onload = (e: any) => {
       const data = new Uint8Array(e.target.result);
-      const workbook = XLSX.read(data, { type: 'array' });
-      const hoja = workbook.Sheets[workbook.SheetNames[0]];
-      const productosExcelRaw = XLSX.utils.sheet_to_json(hoja);
+      const wb = XLSX.read(data, { type: 'array' });
+      const sheet = wb.Sheets[wb.SheetNames[0]];
+      const raw: any[] = XLSX.utils.sheet_to_json(sheet, { defval: null });
 
-      let detectoErrorFecha = false;
+      // 1) Normalizamos las filas del Excel
+      const rows = raw.map(r => ({
+        codigoProducto: r['CODIGO_PRODUCTO']?.toString().trim(),
+        nombreProducto: r['NOMBRE_PRODUCTO']?.toString().trim(),
+        idCat: r['ID_CAT']?.toString().trim(),              // string con ceros
+        nombreCategoria: r['NOMBRE_CATEGORIA']?.toString().trim(),
+        activoCategoria: r['ACTIVO']?.toString().toLowerCase().trim() === 'activo',
+        activoProducto: r['ACTIVO']?.toString().toLowerCase().trim() === 'activo',
+        precio: parseFloat(r['PRECIO']?.toString().replace(/[^0-9\.]/g, '')) || 0
+      }));
 
-      // Normalizar claves y limpiar datos
-      this.productosExcel = productosExcelRaw.map((prod: any) => {
-        const productoNormalizado: any = {};
-
-        for (const clave in prod) {
-          const valor = prod[clave];
-          const claveLower = clave.toLowerCase().trim();
-
-          if (
-            ['codigo', 'código', 'código de barras', 'codigo de barras', 'barcode'].includes(claveLower)
-          ) {
-            productoNormalizado.codigoBarra = String(valor).trim();
-          } else if (
-            ['precio', 'precio unitario'].includes(claveLower)
-          ) {
-            if (typeof valor === 'number' && valor > 40000) {
-              detectoErrorFecha = true;
-              productoNormalizado.precio = null;
-            } else {
-              const textoPrecio = String(valor).replace(',', '.');
-              productoNormalizado.precio = parseFloat(textoPrecio);
-            }
-          } else if (
-            ['stock', 'cantidad', 'cantidad stock', 'existencia'].includes(claveLower)
-          ) {
-            productoNormalizado.cantidadStock = typeof valor === 'number'
-              ? valor
-              : parseInt(valor, 10);
-          } else if (
-            ['nombre', 'producto', 'descripcion'].includes(claveLower)
-          ) {
-            productoNormalizado.nombre = String(valor).trim();
-          } else {
-            productoNormalizado[clave] = valor;
-          }
-        }
-
-        return productoNormalizado;
-      });
-
-      // ✅ Validar productos válidos
-      const productosValidos = this.productosExcel.filter(
-        (p) =>
-          p.codigoBarra &&
-          (typeof p.precio === 'number' || typeof p.cantidadStock === 'number')
-      );
-
-      // ✅ Mostrar alertas según corresponda
-      if (detectoErrorFecha) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Posible error en el archivo Excel',
-          html: `
-            <p>El archivo contiene valores que parecen <b>fechas</b> en la columna de <b>precios</b>.</p>
-            <p><u>Estos precios serán ignorados.</u></p>
-            <hr />
-            <p><b>Solución:</b> Abre el archivo Excel, selecciona la columna de precios y cámbiala al formato <b>Texto</b>.</p>
-          `,
-          confirmButtonText: 'Entendido',
-        }).then(() => {
-          if (productosValidos.length > 0) {
-            this.actualizarProductosDesdeExcel(productosValidos);
-          } else {
-            Swal.fire(
-              'Archivo inválido',
-              'No se encontraron productos válidos para actualizar.',
-              'warning'
-            );
-          }
-        });
-      } else {
-        if (productosValidos.length > 0) {
-          this.actualizarProductosDesdeExcel(productosValidos);
-        } else {
-          Swal.fire(
-            'Archivo inválido',
-            'No se encontraron productos válidos para actualizar.',
-            'warning'
-          );
-        }
-      }
+      this.handleExcel(rows);
     };
-
     lector.readAsArrayBuffer(archivo);
+  }
+
+
+  // === handleExcel ===
+  private handleExcel(rows: any[]) {
+    const sucursalId = this.authService.getSucursalId()!;
+
+    // 2) Extraer categorías únicas del Excel
+    const excelCats = Array.from(
+      new Map(rows.map(r => [r.idCat, r.nombreCategoria])).entries()
+    ).map(([id_categoria, nombre]) => ({ id_categoria, nombre }));
+
+    // 3) Detectar cuáles no existen aún
+    const faltantes = excelCats.filter(ec =>
+      !this.categorias.some(c => c.idCategoria === ec.id_categoria)
+    );
+
+    if (faltantes.length) {
+      const lista = faltantes.map(c => `${c.id_categoria} – ${c.nombre}`).join('<br>');
+      Swal.fire({
+        title: 'Categorías nuevas detectadas',
+        html: `Las siguientes no existen en BD:<br>${lista}`,
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Crear categorías'
+      }).then(res => {
+        if (!res.isConfirmed) return;
+        // 4) Crear categorías nuevas
+        const calls = faltantes.map(c => {
+          const dto = {
+            id_categoria: c.id_categoria!,
+            nombre: c.nombre,
+            descripcion: '',
+            sucursalId,
+            activo: true
+          };
+          console.log('Creando categoría:', dto);
+          return this.categoriaService.agregarCategoria(dto);
+        });
+        forkJoin(calls).subscribe({
+          next: () => this._afterCategorias(rows),
+          error: () => Swal.fire('Error', 'No se pudieron crear las categorías', 'error')
+        });
+      });
+    } else {
+      // Si no hay faltantes, seguimos
+      this._afterCategorias(rows);
+    }
+  }
+
+
+  // === _afterCategorias: insertar productos ===
+  private _afterCategorias(rows: any[]) {
+    // recargamos categorías para tener id_categoria actualizado
+    const sucursalId = this.authService.getSucursalId()!;
+    this.categoriaService.obtenerTodasLasCategorias().subscribe(allCats => {
+      this.categorias = allCats.filter(c => c.sucursalId === sucursalId);
+
+      // 5) Preparamos los productos nuevos
+      const nuevos = rows.map(r => ({
+        codigoProducto: r.codigoProducto,
+        nombre: r.nombreProducto,
+        codigosBarra: [r.codigoProducto],
+        categoriaId: +r.idCat,
+        activo: r.activo,
+        precio: r.precio,
+        cantidadStock: 0,      // cero, no null
+        detalle: '',     // string vacío
+        imagen: '',     // string vacío
+        sucursalId
+      }))
+      // y opcionalmente filtrar duplicados con this.productos existentes…
+
+      console.log('Productos a crear:', nuevos);
+
+      // 6) Llamada al servicio
+      this.productoService.crearProductosSimples(nuevos, sucursalId).subscribe({
+        next: res => {
+          console.log('Creados:', res);
+          Swal.fire('Hecho', `Se crearon ${res.creados.length} productos.`, 'success');
+          this.cargarDatosIniciales();
+        },
+        error: err => {
+          console.error(err);
+          Swal.fire('Error', 'No se pudieron crear los productos', 'error');
+        }
+      });
+    });
   }
 
   parsearPrecio(valor: any): number | null {
@@ -374,11 +391,11 @@ export class GestionarProductosComponent implements OnInit {
                 prod.categoriaNombre = categoriaResponses[index].nombre;
                 prod.proveedorNombres = prod.proveedorIds
                   ? prod.proveedorIds.map((id) => {
-                      const proveedor = this.proveedores.find(
-                        (p) => p.id === id
-                      );
-                      return proveedor ? proveedor.nombre : 'Desconocido';
-                    })
+                    const proveedor = this.proveedores.find(
+                      (p) => p.id === id
+                    );
+                    return proveedor ? proveedor.nombre : 'Desconocido';
+                  })
                   : [];
                 // Sanitize imagen to prevent invalid base64
                 if (prod.imagen && !this.isValidBase64Image(prod.imagen)) {

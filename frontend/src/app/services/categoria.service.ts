@@ -5,6 +5,7 @@ import { environment } from '../../environments/environment';
 
 export interface Categoria {
   id: number;
+  idCategoria?: string;
   nombre: string;
   descripcion: string;
   sucursalId: number;
@@ -17,13 +18,13 @@ export interface Categoria {
 export class CategoriaService {
   private apiUrl = `${environment.apiUrl}/categorias`;
 
-  constructor(private http: HttpClient) {}
+  constructor(private http: HttpClient) { }
 
   obtenerTodasLasCategorias(): Observable<Categoria[]> {
     return this.http.get<Categoria[]>(`${this.apiUrl}/all`);
   }
 
-  agregarCategoria(categoria: Categoria): Observable<Categoria> {
+  agregarCategoria(categoria: Partial<Categoria>): Observable<Categoria> {
     return this.http.post<Categoria>(`${this.apiUrl}`, categoria);
   }
 
