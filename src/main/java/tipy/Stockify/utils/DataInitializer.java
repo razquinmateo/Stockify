@@ -350,7 +350,6 @@ public class DataInitializer implements CommandLineRunner {
         // 6. Producto
         // Sucursal 1: San Pedro Centro (Expanded)
         Producto producto1 = new Producto();
-        producto1.setCodigoBarra("7801234567890");
         producto1.setImagen(defaultImage);
         producto1.setNombre("Leche Entera Colún");
         producto1.setDetalle("Leche entera pasteurizada, envase 1 litro");
@@ -363,7 +362,6 @@ public class DataInitializer implements CommandLineRunner {
         productoRepository.save(producto1);
 
         Producto producto2 = new Producto();
-        producto2.setCodigoBarra("7801234567891");
         producto2.setImagen(defaultImage);
         producto2.setNombre("Detergente Omo Matic");
         producto2.setDetalle("Detergente en polvo para ropa, bolsa 800 g");
@@ -376,7 +374,6 @@ public class DataInitializer implements CommandLineRunner {
         productoRepository.save(producto2);
 
         Producto producto7 = new Producto();
-        producto7.setCodigoBarra("7801234567892");
         producto7.setImagen(defaultImage);
         producto7.setNombre("Pollo Entero Congelado");
         producto7.setDetalle("Pollo entero congelado, peso aprox. 2 kg");
@@ -389,7 +386,6 @@ public class DataInitializer implements CommandLineRunner {
         productoRepository.save(producto7);
 
         Producto producto8 = new Producto();
-        producto8.setCodigoBarra("7801234567893");
         producto8.setImagen(defaultImage);
         producto8.setNombre("Manzanas Fuji");
         producto8.setDetalle("Manzanas fuji frescas, bolsa 1 kg");
@@ -402,7 +398,6 @@ public class DataInitializer implements CommandLineRunner {
         productoRepository.save(producto8);
 
         Producto producto9 = new Producto();
-        producto9.setCodigoBarra("7801234567894");
         producto9.setImagen(defaultImage);
         producto9.setNombre("Papas Fritas Congeladas");
         producto9.setDetalle("Papas fritas precocidas, bolsa 1 kg");
@@ -415,7 +410,6 @@ public class DataInitializer implements CommandLineRunner {
         productoRepository.save(producto9);
 
         Producto producto10 = new Producto();
-        producto10.setCodigoBarra("7801234567895");
         producto10.setImagen(defaultImage);
         producto10.setNombre("Yogurt Natural Colún");
         producto10.setDetalle("Yogurt natural sin azúcar, envase 1 litro");
@@ -429,7 +423,6 @@ public class DataInitializer implements CommandLineRunner {
 
         // New Products for Sucursal 1
         Producto producto11 = new Producto();
-        producto11.setCodigoBarra("7801234567900");
         producto11.setImagen(defaultImage);
         producto11.setNombre("Jugo Naranja Watt's");
         producto11.setDetalle("Jugo de naranja natural, envase 1 litro");
@@ -442,7 +435,6 @@ public class DataInitializer implements CommandLineRunner {
         productoRepository.save(producto11);
 
         Producto producto12 = new Producto();
-        producto12.setCodigoBarra("7801234567901");
         producto12.setImagen(defaultImage);
         producto12.setNombre("Papas Fritas Lay's Clásicas");
         producto12.setDetalle("Papas fritas crujientes, bolsa 200 g");
@@ -455,7 +447,6 @@ public class DataInitializer implements CommandLineRunner {
         productoRepository.save(producto12);
 
         Producto producto13 = new Producto();
-        producto13.setCodigoBarra("7801234567902");
         producto13.setImagen(defaultImage);
         producto13.setNombre("Queso Mantecoso Colún");
         producto13.setDetalle("Queso mantecoso, envase 500 g");
@@ -468,7 +459,6 @@ public class DataInitializer implements CommandLineRunner {
         productoRepository.save(producto13);
 
         Producto producto14 = new Producto();
-        producto14.setCodigoBarra("7801234567903");
         producto14.setImagen(defaultImage);
         producto14.setNombre("Zanahorias Frescas");
         producto14.setDetalle("Zanahorias frescas, bolsa 1 kg");
@@ -481,7 +471,6 @@ public class DataInitializer implements CommandLineRunner {
         productoRepository.save(producto14);
 
         Producto producto15 = new Producto();
-        producto15.setCodigoBarra("7801234567904");
         producto15.setImagen(defaultImage);
         producto15.setNombre("Helado Savory");
         producto15.setDetalle("Helado de vainilla, envase 1 litro");
@@ -495,7 +484,6 @@ public class DataInitializer implements CommandLineRunner {
 
         // Sucursal 2: La Familiar Villa Sur
         Producto producto3 = new Producto();
-        producto3.setCodigoBarra("7801234567896");
         producto3.setImagen(defaultImage);
         producto3.setNombre("Arroz Grado 1 Tücape");
         producto3.setDetalle("Arroz blanco grado 1, bolsa 1 kg");
@@ -508,7 +496,6 @@ public class DataInitializer implements CommandLineRunner {
         productoRepository.save(producto3);
 
         Producto producto4 = new Producto();
-        producto4.setCodigoBarra("7801234567897");
         producto4.setImagen(defaultImage);
         producto4.setNombre("Pan Integral Ideal");
         producto4.setDetalle("Pan integral, paquete 600 g");
@@ -522,7 +509,6 @@ public class DataInitializer implements CommandLineRunner {
 
         // Sucursal 3: San Pedro Norte
         Producto producto5 = new Producto();
-        producto5.setCodigoBarra("7801234567898");
         producto5.setImagen(defaultImage);
         producto5.setNombre("Coca-Cola Original");
         producto5.setDetalle("Bebida gaseosa, botella 1.5 litros");
@@ -535,7 +521,6 @@ public class DataInitializer implements CommandLineRunner {
         productoRepository.save(producto5);
 
         Producto producto6 = new Producto();
-        producto6.setCodigoBarra("7801234567899");
         producto6.setImagen(defaultImage);
         producto6.setNombre("Agua Mineral Vital");
         producto6.setDetalle("Agua sin gas, botella 1 litro");

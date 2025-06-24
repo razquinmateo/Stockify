@@ -10,6 +10,9 @@ public class CategoriaDto {
     @JsonProperty("id")
     private Long id;
 
+    @JsonProperty("id_categoria")
+    private String idCategoria;
+
     @JsonProperty("nombre")
     private String nombre;
 

@@ -41,11 +41,24 @@ public class CategoriaService {
                 .orElse(null);
     }
 
-    public CategoriaDto create(CategoriaDto categoriaDto) {
-        Categoria categoria = mapToEntity(categoriaDto);
-        // Asegurar que activo sea true para nuevas categorías, incluso si no se especifica
-        categoria.setActivo(true);
-        return mapToDto(categoriaRepository.save(categoria));
+    public CategoriaDto create(CategoriaDto dto) {
+        // 3) Log antes de mapear
+        System.out.println("----> create() recibe dto.idCategoria = " + dto.getIdCategoria());
+
+        Categoria entidad = mapToEntity(dto);
+
+        // 4) Log justo después de mapear a entidad
+        System.out.println("----> entidad.idCategoria = " + entidad.getIdCategoria());
+
+        entidad.setActivo(true);
+        Categoria guardada = categoriaRepository.save(entidad);
+
+        CategoriaDto salida = mapToDto(guardada);
+
+        // 5) Log tras el save y mapeo
+        System.out.println("----> saved.idCategoria = " + salida.getIdCategoria());
+
+        return salida;
     }
 
     public CategoriaDto update(Long id, CategoriaDto categoriaDto) {
@@ -91,12 +104,14 @@ public class CategoriaService {
             categoria.setSucursal(sucursal);
         }
         //activo se establece explícitamente en los métodos create/update
+        categoria.setIdCategoria(categoriaDto.getIdCategoria());
         return categoria;
     }
 
     public CategoriaDto mapToDto(Categoria categoria) {
         CategoriaDto categoriaDto = new CategoriaDto();
         categoriaDto.setId(categoria.getId());
+        categoriaDto.setIdCategoria(categoria.getIdCategoria());
         categoriaDto.setNombre(categoria.getNombre());
         categoriaDto.setDescripcion(categoria.getDescripcion());
         categoriaDto.setSucursalId(categoria.getSucursal() != null ? categoria.getSucursal().getId() : null);

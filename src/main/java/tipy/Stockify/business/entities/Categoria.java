@@ -2,10 +2,12 @@ package tipy.Stockify.business.entities;
 
 import jakarta.persistence.*;
 import lombok.Data;
+import org.hibernate.annotations.DynamicInsert;
 
 import java.util.List;
 
 @Entity
+@DynamicInsert(false)
 @Data
 @Table(name = "CATEGORIA")
 public class Categoria {
@@ -14,6 +16,9 @@ public class Categoria {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     @Column(name = "ID")
     private Long id;
+
+    @Column(name = "id_categoria", nullable = true)
+    private String idCategoria;
 
     @Column(name = "NOMBRE")
     private String nombre;

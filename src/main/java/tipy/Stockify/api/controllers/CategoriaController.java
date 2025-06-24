@@ -42,8 +42,20 @@ public class CategoriaController {
 
     @PostMapping
     @Operation(description = "Crea una nueva categoría.")
-    public ResponseEntity<CategoriaDto> createCategoria(@RequestBody CategoriaDto categoriaDto) {
-        return new ResponseEntity<>(categoriaService.create(categoriaDto), HttpStatus.CREATED);
+    public ResponseEntity<CategoriaDto> createCategoria(@RequestBody CategoriaDto dto) {
+        // 1) Log al recibir
+        System.out.println("▶▶▶ createCategoria recibe DTO → "
+                + "id_categoria: " + dto.getIdCategoria()
+                + ", nombre: " + dto.getNombre()
+                + ", sucursalId: " + dto.getSucursalId()
+                + ", activo: " + dto.getActivo());
+        CategoriaDto creado = categoriaService.create(dto);
+        // 2) Log al devolver
+        System.out.println("▶▶▶ createCategoria devuelve DTO → "
+                + "id: " + creado.getId()
+                + ", id_categoria: " + creado.getIdCategoria()
+                + ", nombre: " + creado.getNombre());
+        return new ResponseEntity<>(creado, HttpStatus.CREATED);
     }
 
     @PutMapping("/{id}")
