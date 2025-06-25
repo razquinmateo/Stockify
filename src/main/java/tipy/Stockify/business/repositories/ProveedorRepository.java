@@ -47,4 +47,12 @@ public interface ProveedorRepository extends JpaRepository<Proveedor, Long> {
             "JOIN prov.productos prod " +
             "WHERE prod.sucursal.id = :sucursalId")
     List<Proveedor> findByProductosSucursalId(Long sucursalId);
+
+    /**
+     * Encuentra un proveedor por su nombre (case-insensitive), solo si activo = true.
+     *
+     * @param nombre Nombre del proveedor.
+     * @return Optional con el proveedor activo, o vacío si no existe o está inactivo.
+     */
+    Optional<Proveedor> findByNombreIgnoreCaseAndActivoTrue(String nombre);
 }

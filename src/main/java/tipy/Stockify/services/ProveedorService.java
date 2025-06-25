@@ -58,6 +58,12 @@ public class ProveedorService {
                 .orElse(null);
     }
 
+    public ProveedorDto getByNombre(String nombre) {
+        return proveedorRepository.findByNombreIgnoreCaseAndActivoTrue(nombre)
+                .map(proveedorUtils::mapToDto)
+                .orElse(null);
+    }
+
     public ProveedorDto create(ProveedorDto proveedorDto) {
         proveedorUtils.validateProveedorDto(proveedorDto);
         Proveedor proveedor = proveedorUtils.mapToEntity(proveedorDto);

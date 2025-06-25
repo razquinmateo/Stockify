@@ -17,6 +17,7 @@ export interface Producto {
   sucursalId: number;
   categoriaId: number;
   codigoCategoria?: string;
+  nombreProveedor?: string;
   categoriaNombre?: string;
   activo: boolean;
   proveedorIds?: number[];
@@ -88,6 +89,10 @@ export class ProductoService {
 
   obtenerCategoriaPorCodigoYSucursal(codigoCategoria: string, sucursalId: number): Observable<Categoria> {
     return this.categoriaService.obtenerCategoriaPorCodigoYSucursal(codigoCategoria, sucursalId);
+  }
+
+  obtenerProveedorPorNombre(nombre: string): Observable<Proveedor> {
+    return this.http.get<Proveedor>(`${this.proveedorUrl}/nombre/${nombre}`);
   }
 
   obtenerProveedoresActivosPorSucursal(sucursalId: number): Observable<Proveedor[]> {

@@ -331,6 +331,9 @@ public class ProductoService {
                 // Asignar códigos de barra
                 assignCodigosBarra(producto, dto.getCodigosBarra());
 
+                // Asignar proveedores
+                assignProveedores(producto, dto.getProveedorIds());
+
                 productoRepository.save(producto);
                 creados.add(producto.getCodigoProducto());
             } catch (Exception e) {

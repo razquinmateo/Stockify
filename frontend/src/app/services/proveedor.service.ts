@@ -59,4 +59,8 @@ export class ProveedorService {
   getById(proveedorId: number): Observable<Proveedor> {
     return this.http.get<Proveedor>(`${this.apiUrl}/${proveedorId}`);
   }
+
+  getByNombre(nombre: string): Observable<Proveedor> {
+    return this.http.get<Proveedor>(`${this.apiUrl}/nombre/${nombre}`);
+  }
 }

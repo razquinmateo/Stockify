@@ -52,6 +52,15 @@ public class ProveedorController {
                 : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
+    @GetMapping("/nombre/{nombre}")
+    @Operation(description = "Obtiene un proveedor activo por su nombre.")
+    public ResponseEntity<ProveedorDto> getProveedorByNombre(@PathVariable String nombre) {
+        ProveedorDto proveedor = proveedorService.getByNombre(nombre);
+        return proveedor != null
+                ? new ResponseEntity<>(proveedor, HttpStatus.OK)
+                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
     @PostMapping
     @Operation(description = "Crea un nuevo proveedor.")
     public ResponseEntity<ProveedorDto> createProveedor(@RequestBody ProveedorDto proveedorDto) {

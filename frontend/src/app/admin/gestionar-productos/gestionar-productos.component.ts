@@ -99,6 +99,8 @@ export class GestionarProductosComponent implements OnInit {
               .filter((c: string) => c.length > 0);
           } else if (['categoria', 'idcategoria', 'categoría', 'id categoría', 'codigocategoria', 'código categoría', 'category code'].includes(claveLower)) {
             productoNormalizado.codigoCategoria = String(valor).trim();
+          } else if (['proveedor', 'nombre proveedor', 'nombre del proveedor', 'supplier', 'supplier name'].includes(claveLower)) {
+            productoNormalizado.nombreProveedor = String(valor).trim();
           } else {
             productoNormalizado[claveLower] = valor;
           }
@@ -159,21 +161,35 @@ export class GestionarProductosComponent implements OnInit {
       return;
     }
 
-    // Fetch categoriaId for each product with a codigoCategoria
-    const categoriaRequests = productosValidos.map(prod => {
-      if (prod.codigoCategoria) {
-        return this.productoService.obtenerCategoriaPorCodigoYSucursal(prod.codigoCategoria, sucursalId).pipe(
-          map(categoria => ({ ...prod, categoriaId: categoria.id })),
-          catchError(() => of({ ...prod, categoriaId: null })) // Fallback to null if category not found
-        );
-      }
-      return of({ ...prod, categoriaId: null });
+    // Fetch categoriaId and proveedorId for each product
+    const requests = productosValidos.map(prod => {
+      const categoriaRequest = prod.codigoCategoria
+        ? this.productoService.obtenerCategoriaPorCodigoYSucursal(prod.codigoCategoria, sucursalId).pipe(
+          map(categoria => ({ categoriaId: categoria.id })),
+          catchError(() => of({ categoriaId: null }))
+        )
+        : of({ categoriaId: null });
+
+      const proveedorRequest = prod.nombreProveedor
+        ? this.productoService.obtenerProveedorPorNombre(prod.nombreProveedor).pipe(
+          map(proveedor => ({ proveedorId: proveedor.id })),
+          catchError(() => of({ proveedorId: null }))
+        )
+        : of({ proveedorId: null });
+
+      return forkJoin([categoriaRequest, proveedorRequest]).pipe(
+        map(([categoria, proveedor]) => ({
+          ...prod,
+          categoriaId: categoria.categoriaId,
+          proveedorId: proveedor.proveedorId
+        }))
+      );
     });
 
-    forkJoin(categoriaRequests).subscribe({
-      next: (productosConCategoria) => {
+    forkJoin(requests).subscribe({
+      next: (productosConIds) => {
         // Mapear productos al formato esperado por el backend
-        const productosParaActualizar = productosConCategoria.map((p) => ({
+        const productosParaActualizar = productosConIds.map((p) => ({
           codigoProducto: p.codigoProducto,
           precio: p.precio,
           cantidadStock: p.cantidadStock,
@@ -181,7 +197,8 @@ export class GestionarProductosComponent implements OnInit {
           codigosBarra: p.codigosBarra ?? [],
           imagen: p.imagen ?? null,
           detalle: p.detalle ?? null,
-          categoriaId: p.categoriaId, // Include categoriaId if found
+          categoriaId: p.categoriaId,
+          proveedorIds: p.proveedorId ? [p.proveedorId] : [], // Include proveedorId if found
         }));
 
         this.productoService.actualizarMasivoProductos(productosParaActualizar, sucursalId).subscribe({
@@ -220,7 +237,7 @@ export class GestionarProductosComponent implements OnInit {
                   const codigosNoEncontradosSet = new Set(noEncontrados.map((c: string) => c.toString().trim()));
 
                   // Detectar productos con precio inválido
-                  const productosExcluidosPorPrecioInvalido = productosConCategoria.filter((p) =>
+                  const productosExcluidosPorPrecioInvalido = productosConIds.filter((p) =>
                     codigosNoEncontradosSet.has(p.codigoProducto.toString().trim()) &&
                     (p.precio === null || typeof p.precio !== 'number' || isNaN(p.precio) || p.precio < 0)
                   );
@@ -247,7 +264,7 @@ export class GestionarProductosComponent implements OnInit {
                   }
 
                   // Filtrar productos válidos para agregar
-                  const productosFiltrados = productosConCategoria.filter((p) => {
+                  const productosFiltrados = productosConIds.filter((p) => {
                     const codigoNoEncontrado = codigosNoEncontradosSet.has(p.codigoProducto.toString().trim());
                     const tieneNombre = typeof p.nombre === 'string' && p.nombre.trim().length > 0;
                     const tieneCodigo = p.codigoProducto && p.codigoProducto.trim().length > 0;
@@ -265,7 +282,8 @@ export class GestionarProductosComponent implements OnInit {
                     imagen: p.imagen ?? null,
                     detalle: p.detalle ?? null,
                     codigoProducto: p.codigoProducto,
-                    categoriaId: p.categoriaId, // Include categoriaId if found
+                    categoriaId: p.categoriaId,
+                    proveedorIds: p.proveedorId ? [p.proveedorId] : [], // Include proveedorId if found
                   }));
 
                   if (productosParaAgregar.length === 0) {
@@ -313,8 +331,8 @@ export class GestionarProductosComponent implements OnInit {
         });
       },
       error: (err) => {
-        console.error('Error al obtener categorías:', err);
-        Swal.fire('Error', 'No se pudieron obtener las categorías para los productos.', 'error');
+        console.error('Error al obtener categorías o proveedores:', err);
+        Swal.fire('Error', 'No se pudieron obtener las categorías o proveedores para los productos.', 'error');
       }
     });
   }
