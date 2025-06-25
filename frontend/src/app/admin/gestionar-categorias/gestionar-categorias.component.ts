@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, OnInit, ViewChild, ElementRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -6,6 +6,9 @@ import { CategoriaService, Categoria } from '../../services/categoria.service';
 import { AuthService } from '../../auth.service';
 import { Router } from '@angular/router';
 import Swal from 'sweetalert2';
+import * as XLSX from 'xlsx';
+import { forkJoin, of } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 
 declare var bootstrap: any;
 
@@ -17,6 +20,7 @@ declare var bootstrap: any;
   styleUrls: ['./gestionar-categorias.component.css']
 })
 export class GestionarCategoriasComponent implements OnInit {
+  @ViewChild('fileInputCat') fileInputCat!: ElementRef<HTMLInputElement>;
   categorias: Categoria[] = [];
   categoriaSeleccionada!: Categoria;
   esEditar: boolean = false;
@@ -27,12 +31,22 @@ export class GestionarCategoriasComponent implements OnInit {
   maxPaginasMostradas: number = 5;
   nombreUsuarioLogueado: string = '';
 
-  constructor(private categoriaService: CategoriaService, private authService: AuthService, private router: Router) {}
+  categoriasExcel: { codigoCategoria: string; nombre: string }[] = [];
+
+  constructor(private categoriaService: CategoriaService, private authService: AuthService, private router: Router) { }
 
   ngOnInit(): void {
     this.categoriaSeleccionada = this.resetCategoria();
     this.obtenerCategorias();
     this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
+  }
+
+  ngAfterViewInit(): void {
+    // Inicializa todos los tooltips de la página
+    const tooltipTriggerList = Array.from(
+      document.querySelectorAll('[data-bs-toggle="tooltip"]')
+    );
+    tooltipTriggerList.forEach(el => new bootstrap.Tooltip(el));
   }
 
   obtenerCategorias(): void {
@@ -51,6 +65,136 @@ export class GestionarCategoriasComponent implements OnInit {
       this.categorias = [];
       Swal.fire('Error', 'No se pudo determinar la sucursal.', 'error');
     }
+  }
+
+  onArchivoSeleccionado(event: any): void {
+    const archivo = event.target.files[0];
+    if (!archivo) return;
+
+    const lector = new FileReader();
+    lector.onload = (e: any) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const hoja = workbook.Sheets[workbook.SheetNames[0]];
+      const raw: any[] = XLSX.utils.sheet_to_json(hoja, { defval: null });
+
+      // Normalizar claves y limpiar datos para categorías
+      this.categoriasExcel = raw
+        .map((row: any) => {
+          const cat: any = {};
+
+          for (const clave in row) {
+            const valor = row[clave];
+            const claveLower = clave.toLowerCase().trim();
+
+            // Variantes para el código de categoría
+            if ([, 'id_categoria', 'codigo', 'código', 'codigo_categoria', 'código_categoria', 'código categoria', 'codigo categoria'].includes(claveLower)) {
+              cat.codigoCategoria = String(valor ?? '').trim();
+            }
+            // Variantes para el nombre de categoría
+            else if (['nombre', 'categoria', 'categoría', 'nombre_categoria', 'nombre categoría'].includes(claveLower)) {
+              cat.nombre = String(valor ?? '').trim();
+            }
+            // Otros campos (si los necesitas algún día)
+            else {
+              // cat[claveLower] = valor;
+            }
+          }
+
+          return cat;
+        })
+        // Filtrar sólo filas con ambos valores
+        .filter(c => c.codigoCategoria && c.nombre);
+
+      // Ahora llama tu manejador
+      this._handleExcelCategorias();
+      this.fileInputCat.nativeElement.value = '';
+    };
+
+    lector.readAsArrayBuffer(archivo);
+  }
+
+
+  private _handleExcelCategorias() {
+    const sucursalId = this.authService.getSucursalId();
+    if (sucursalId == null) {
+      Swal.fire('Error', 'No se pudo determinar la sucursal.', 'error');
+      return;
+    }
+
+    // Detectar códigos que aún no existen
+    const faltantes = this.categoriasExcel.filter(ec =>
+      !this.categorias.some(c => c.codigoCategoria === ec.codigoCategoria)
+    );
+
+    if (!faltantes.length) {
+      Swal.fire('Info', 'Todas las categorías ya existen.', 'info');
+      return;
+    }
+
+    const listaHtml = faltantes
+      .map(c => `<li>${c.codigoCategoria} – ${c.nombre}</li>`)
+      .join('');
+
+    Swal.fire({
+      title: 'Categorías nuevas detectadas',
+      html: `
+        <p>Se encontraron ${faltantes.length} categorías nuevas:</p>
+        <ul style="text-align:left">${listaHtml}</ul>
+      `,
+      icon: 'warning',
+      showCancelButton: true,
+      confirmButtonText: 'Crear categorías'
+    }).then(res => {
+      if (!res.isConfirmed) return;
+
+      // Llamadas al servicio
+      const calls = faltantes.map(c => {
+        const dto: Categoria = {
+          id: 0,                       // incluir el campo id para que compile
+          codigoCategoria: c.codigoCategoria,
+          nombre: c.nombre,
+          descripcion: '',
+          sucursalId: sucursalId,
+          activo: true
+        };
+        return this.categoriaService.agregarCategoria(dto)
+          .pipe(catchError(err => {
+            console.error('Error creando categoría', dto, err);
+            return of(null);
+          }));
+      });
+
+      forkJoin(calls).subscribe(created => {
+        const exitosas = created.filter((c: any) => c != null).length;
+        Swal.fire('Hecho', `Se crearon ${exitosas} categorías.`, 'success');
+        this.obtenerCategorias();
+      });
+    });
+  }
+
+  downloadPlantilla(): void {
+    // Creamos un libro nuevo
+    const wb = XLSX.utils.book_new();
+    // Definimos la hoja con sólo una fila de encabezados
+    const ws = XLSX.utils.aoa_to_sheet([
+      ['codigo_categoria', 'nombre']
+    ]);
+    XLSX.utils.book_append_sheet(wb, ws, 'Plantilla');
+    (ws['!cols'] as any) = [
+      { wch: 15 },  // ancho para codigo_categoria
+      { wch: 25 }   // ancho para nombre
+    ];
+    // Generamos el binario
+    const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.ms-excel' });
+    // Forzamos la descarga
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'plantilla_categorias.xls';
+    a.click();
+    window.URL.revokeObjectURL(url);
   }
 
   buscarPorCodigoCategoria(codigoCategoria: string): void {
