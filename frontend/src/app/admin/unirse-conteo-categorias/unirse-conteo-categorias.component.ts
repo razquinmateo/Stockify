@@ -305,90 +305,90 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
     }
 
     private async loadConteoProductos(): Promise<void> {
-    if (!this.conteoId) return;
+        if (!this.conteoId) return;
 
-    this.conteoProdService.getConteoProductosByConteoId1(this.conteoId).subscribe({
-        next: async (productos) => {
-            console.log(`Loaded ${productos.length} conteo_productos for conteoId: ${this.conteoId}`, productos.map(p => ({
-                productoId: p.productoId,
-                cantidadContada: p.cantidadContada
-            })));
-            this.productosConteo = productos;
-            this.conteoProductosByCategory.clear();
+        this.conteoProdService.getConteoProductosByConteoId1(this.conteoId).subscribe({
+            next: async (productos) => {
+                console.log(`Loaded ${productos.length} conteo_productos for conteoId: ${this.conteoId}`, productos.map(p => ({
+                    productoId: p.productoId,
+                    cantidadContada: p.cantidadContada
+                })));
+                this.productosConteo = productos;
+                this.conteoProductosByCategory.clear();
 
-            this.countedProducts.clear();
-            for (const cp of productos) {
-                if (cp.cantidadContada != null) {
-                    this.countedProducts.add(cp.productoId);
-                }
+                this.countedProducts.clear();
+                for (const cp of productos) {
+                    if (cp.cantidadContada != null) {
+                        this.countedProducts.add(cp.productoId);
+                    }
 
-                let producto: Producto;
-                const cached = this.productCache.get(cp.productoId);
-                if (cached) {
-                    producto = cached;
-                } else {
-                    try {
-                        const fetched = await lastValueFrom(this.productoService.obtenerProductoPorId(cp.productoId));
-                        if (!fetched) {
-                            console.warn(`Producto ${cp.productoId} no encontrado tras fetch`);
+                    let producto: Producto;
+                    const cached = this.productCache.get(cp.productoId);
+                    if (cached) {
+                        producto = cached;
+                    } else {
+                        try {
+                            const fetched = await lastValueFrom(this.productoService.obtenerProductoPorId(cp.productoId));
+                            if (!fetched) {
+                                console.warn(`Producto ${cp.productoId} no encontrado tras fetch`);
+                                continue;
+                            }
+                            producto = fetched;
+                            this.productCache.set(cp.productoId, producto);
+                            if (!this.allProductos.some(p => p.id === producto.id)) {
+                                this.allProductos.push(producto);
+                            }
+                        } catch (err) {
+                            console.warn(`Failed to load product ${cp.productoId}:`, err);
                             continue;
                         }
-                        producto = fetched;
-                        this.productCache.set(cp.productoId, producto);
-                        if (!this.allProductos.some(p => p.id === producto.id)) {
-                            this.allProductos.push(producto);
+                    }
+
+                    const categoriaId = producto.categoriaId;
+                    if (!this.conteoProductosByCategory.has(categoriaId)) {
+                        this.conteoProductosByCategory.set(categoriaId, []);
+                    }
+                    this.conteoProductosByCategory.get(categoriaId)!.push(cp);
+
+                    if (!this.categoryCache.has(categoriaId)) {
+                        try {
+                            const categoria = await lastValueFrom(this.productoService.obtenerCategoriaPorId(categoriaId));
+                            if (!categoria) {
+                                console.warn(`Categoría ${categoriaId} no encontrada tras fetch`);
+                                continue;
+                            }
+                            this.categoryCache.set(categoriaId, categoria);
+                            if (!this.allCategorias.some(c => c.id === categoria.id)) {
+                                this.allCategorias.push(categoria);
+                            }
+                        } catch (err) {
+                            console.warn(`Failed to load category ${categoriaId}:`, err);
                         }
-                    } catch (err) {
-                        console.warn(`Failed to load product ${cp.productoId}:`, err);
-                        continue;
                     }
                 }
 
-                const categoriaId = producto.categoriaId;
-                if (!this.conteoProductosByCategory.has(categoriaId)) {
-                    this.conteoProductosByCategory.set(categoriaId, []);
+                // Ordenar productos dentro de cada categoría por productoId
+                for (const [categoriaId, productos] of this.conteoProductosByCategory) {
+                    this.conteoProductosByCategory.set(
+                        categoriaId,
+                        productos.sort((a, b) => a.productoId - b.productoId)
+                    );
                 }
-                this.conteoProductosByCategory.get(categoriaId)!.push(cp);
 
-                if (!this.categoryCache.has(categoriaId)) {
-                    try {
-                        const categoria = await lastValueFrom(this.productoService.obtenerCategoriaPorId(categoriaId));
-                        if (!categoria) {
-                            console.warn(`Categoría ${categoriaId} no encontrada tras fetch`);
-                            continue;
-                        }
-                        this.categoryCache.set(categoriaId, categoria);
-                        if (!this.allCategorias.some(c => c.id === categoria.id)) {
-                            this.allCategorias.push(categoria);
-                        }
-                    } catch (err) {
-                        console.warn(`Failed to load category ${categoriaId}:`, err);
-                    }
-                }
+                this.allProductos.sort((a, b) => a.codigoProducto.localeCompare(b.codigoProducto));
+                this.updateRegistros();
+                this.updateCategories();
+                this.restoreProductPosition();
+                this.saveState();
+                this.cdr.detectChanges();
+            },
+            error: (err) => {
+                console.error('Error loading conteoProductos:', err);
+                Swal.fire('Error', 'No se pudieron cargar los productos del conteo', 'error');
+                this.router.navigate(['/admin/dashboard']);
             }
-
-            // Ordenar productos dentro de cada categoría por productoId
-            for (const [categoriaId, productos] of this.conteoProductosByCategory) {
-                this.conteoProductosByCategory.set(
-                    categoriaId,
-                    productos.sort((a, b) => a.productoId - b.productoId)
-                );
-            }
-
-            this.allProductos.sort((a, b) => a.codigoProducto.localeCompare(b.codigoProducto));
-            this.updateRegistros();
-            this.updateCategories();
-            this.restoreProductPosition();
-            this.saveState();
-            this.cdr.detectChanges();
-        },
-        error: (err) => {
-            console.error('Error loading conteoProductos:', err);
-            Swal.fire('Error', 'No se pudieron cargar los productos del conteo', 'error');
-            this.router.navigate(['/admin/dashboard']);
-        }
-    });
-}
+        });
+    }
 
     private updateRegistros(): void {
         this.registros = [];
@@ -567,13 +567,13 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
     async countProduct(prod: Producto): Promise<void> {
         const item = this.productosConteo.find(p => p.productoId === prod.id);
         if (!item) {
-            Swal.fire('Error', 'Producto no registrado en este conteo', 'error');
+            console.error('Producto no registrado en este conteo:', prod.nombre);
             return;
         }
         const { value, isConfirmed } = await Swal.fire<number>({
-            title: `Ingresar cantidad (esperada: ${item.cantidadEsperada})`,
+            title: prod.nombre,
             input: 'number',
-            inputLabel: prod.nombre,
+            inputLabel: `Ingresar cantidad (Esperada: ${item.cantidadEsperada})`,
             inputValue: item.cantidadContada != null ? item.cantidadContada : '',
             showCancelButton: true,
             inputValidator: (value) => {
@@ -589,7 +589,7 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
         const nuevaCant = Number(value);
         this.conteoProdService.update(item.id, { cantidadContada: nuevaCant }).pipe(retry(2), delay(500)).subscribe({
             next: (updated) => {
-                console.log(`Updated productoId: ${item.productoId}, cantidadContada: ${updated.cantidadContada}`);
+                console.log(`Éxito: Cantidad actualizada para ${prod.nombre} (productoId: ${item.productoId}, cantidadContada: ${updated.cantidadContada})`);
                 item.cantidadContada = updated.cantidadContada;
                 this.countedProducts.add(item.productoId);
                 const existente = this.registros.find(r => r.productoId === item.productoId);
@@ -614,9 +614,9 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
                 this.updateRegistros();
                 this.updateCategories();
                 this.saveState();
-                Swal.fire('Éxito', `Cantidad actualizada para ${prod.nombre}`, 'success');
                 const nextProductId = this.getNextUncountedProductId(this.currentCategoryId!);
                 if (nextProductId === null) {
+                    console.log(`Categoría completada: ${cat?.nombre || 'Sin Categoría'}`);
                     this.showCategoryCompletedModal();
                 } else {
                     this.currentProductId = nextProductId;
@@ -625,12 +625,11 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
                 }
             },
             error: (err) => {
-                console.error('Error updating conteo:', err);
-                Swal.fire('Error', 'No se pudo actualizar la cantidad en la base de datos', 'error');
+                console.error('Error al actualizar la cantidad en la base de datos:', err);
             }
         });
     }
-
+    
     private showCategoryCompletedModal(): void {
         const categoryRegistros = this.registros.filter(r => r.categoriaId === this.currentCategoryId);
         const category = this.categoryCache.get(this.currentCategoryId!);

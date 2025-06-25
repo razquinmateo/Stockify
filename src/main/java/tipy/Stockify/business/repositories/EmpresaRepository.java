@@ -24,4 +24,6 @@ public interface EmpresaRepository extends JpaRepository<Empresa, Long> {
      * @return Optional con la empresa activa, o vacío si no existe o está inactiva.
      */
     Optional<Empresa> findByIdAndActivoTrue(Long id);
+
+    Optional<Empresa> findByNombreIgnoreCase(String nombre);
 }

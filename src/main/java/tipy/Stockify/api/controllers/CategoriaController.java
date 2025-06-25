@@ -41,6 +41,25 @@ public class CategoriaController {
                 : new ResponseEntity<>(HttpStatus.NOT_FOUND);
     }
 
+    @GetMapping("/codigo/{codigoCategoria}")
+    @Operation(description = "Obtiene una categoría activa por su código de categoría.")
+    public ResponseEntity<CategoriaDto> getCategoriaByCodigoCategoria(@PathVariable String codigoCategoria) {
+        CategoriaDto categoria = categoriaService.getByCodigoCategoria(codigoCategoria);
+        return categoria != null
+                ? new ResponseEntity<>(categoria, HttpStatus.OK)
+                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
+    @GetMapping("/codigo/{codigoCategoria}/sucursal/{sucursalId}")
+    @Operation(description = "Obtiene una categoría activa por su código de categoría y sucursal.")
+    public ResponseEntity<CategoriaDto> getCategoriaByCodigoCategoriaAndSucursal(
+            @PathVariable String codigoCategoria, @PathVariable Long sucursalId) {
+        CategoriaDto categoria = categoriaService.getByCodigoCategoriaAndSucursal(codigoCategoria, sucursalId);
+        return categoria != null
+                ? new ResponseEntity<>(categoria, HttpStatus.OK)
+                : new ResponseEntity<>(HttpStatus.NOT_FOUND);
+    }
+
     @PostMapping
     @Operation(description = "Crea una nueva categoría.")
     public ResponseEntity<CategoriaDto> createCategoria(@RequestBody CategoriaDto categoriaDto) {
@@ -68,7 +87,7 @@ public class CategoriaController {
     public ResponseEntity<List<CategoriaDto>> getCategoriasBySucursal(@PathVariable Long sucursalId) {
         return new ResponseEntity<>(
                 categoriaService.getAllActive().stream()
-                        .filter(c -> c.getSucursalId().equals(sucursalId))
+                        .filter(c -> c.getSucursalId() != null && c.getSucursalId().equals(sucursalId))
                         .collect(Collectors.toList()),
                 HttpStatus.OK
         );

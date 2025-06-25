@@ -95,17 +95,42 @@
     <!-- Paginación -->
     <nav *ngIf="totalPaginas() > 1">
         <ul class="pagination justify-content-center mt-4">
+            <!-- Botón Anterior -->
             <li class="page-item" [class.disabled]="paginaActual === 1">
-                <button class="page-link" (click)="paginaActual = paginaActual - 1" [disabled]="paginaActual === 1">
+                <button class="page-link" (click)="cambiarPagina(paginaActual - 1)" [disabled]="paginaActual === 1">
                     Anterior
                 </button>
             </li>
-            <li class="page-item" *ngFor="let page of [].constructor(totalPaginas()); let i = index"
-                [class.active]="paginaActual === i + 1">
-                <button class="page-link" (click)="paginaActual = i + 1">{{ i + 1 }}</button>
+
+            <!-- Primera página -->
+            <li class="page-item" [class.active]="paginaActual === 1">
+                <button class="page-link" (click)="cambiarPagina(1)">1</button>
             </li>
+
+            <!-- Puntos suspensivos si hay un salto desde la primera página -->
+            <li class="page-item disabled" *ngIf="paginasMostradas()[0] > 2">
+                <span class="page-link">...</span>
+            </li>
+
+            <!-- Páginas intermedias -->
+            <li class="page-item" *ngFor="let page of paginasMostradas()" [class.active]="paginaActual === page">
+                <button class="page-link" (click)="cambiarPagina(page)">{{ page }}</button>
+            </li>
+
+            <!-- Puntos suspensivos si hay un salto hasta la última página -->
+            <li class="page-item disabled"
+                *ngIf="paginasMostradas()[paginasMostradas().length - 1] < totalPaginas() - 1">
+                <span class="page-link">...</span>
+            </li>
+
+            <!-- Última página -->
+            <li class="page-item" [class.active]="paginaActual === totalPaginas()" *ngIf="totalPaginas() > 1">
+                <button class="page-link" (click)="cambiarPagina(totalPaginas())">{{ totalPaginas() }}</button>
+            </li>
+
+            <!-- Botón Siguiente -->
             <li class="page-item" [class.disabled]="paginaActual === totalPaginas()">
-                <button class="page-link" (click)="paginaActual = paginaActual + 1"
+                <button class="page-link" (click)="cambiarPagina(paginaActual + 1)"
                     [disabled]="paginaActual === totalPaginas()">
                     Siguiente
                 </button>
@@ -127,45 +152,37 @@
                     aria-label="Cerrar"></button>
             </div>
             <div class="modal-body">
-    <form>
-        <div class="row g-3">
-            <div class="col-md-12">
-                <label class="form-label">Número de Lote <span class="text-danger">*</span></label>
-                <input type="text" class="form-control" [(ngModel)]="loteSeleccionado.numeroLote"
-                    name="numeroLote" required>
+                <form>
+                    <div class="row g-3">
+                        <div class="col-md-12">
+                            <label class="form-label">Número de Lote <span class="text-danger">*</span></label>
+                            <input type="text" class="form-control" [(ngModel)]="loteSeleccionado.numeroLote"
+                                name="numeroLote" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de Ingreso <span class="text-danger">*</span></label>
+                            <input type="date" class="form-control" [(ngModel)]="loteSeleccionado.fechaIngreso"
+                                name="fechaIngreso" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Fecha de Vencimiento</label>
+                            <input type="date" class="form-control" [(ngModel)]="loteSeleccionado.fechaVencimiento"
+                                name="fechaVencimiento">
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Cantidad de Stock <span class="text-danger">*</span></label>
+                            <input type="number" class="form-control" [(ngModel)]="loteSeleccionado.cantidadStock"
+                                name="cantidadStockPurple" min="0" required>
+                        </div>
+                        <div class="col-md-12">
+                            <label class="form-label">Producto <span class="text-danger">*</span></label>
+                            <ng-select [items]="productos" bindLabel="nombre" bindValue="id"
+                                [(ngModel)]="loteSeleccionado.productoId" name="productoId" [multiple]="false"
+                                [closeOnSelect]="true" placeholder="Seleccione un producto" required></ng-select>
+                        </div>
+                    </div>
+                </form>
             </div>
-            <div class="col-md-6">
-                <label class="form-label">Fecha de Ingreso <span class="text-danger">*</span></label>
-                <input type="date" class="form-control" [(ngModel)]="loteSeleccionado.fechaIngreso"
-                    name="fechaIngreso" required>
-            </div>
-            <div class="col-md-6">
-                <label class="form-label">Fecha de Vencimiento</label>
-                <input type="date" class="form-control" [(ngModel)]="loteSeleccionado.fechaVencimiento"
-                    name="fechaVencimiento">
-            </div>
-            <div class="col-md-12">
-                <label class="form-label">Cantidad de Stock <span class="text-danger">*</span></label>
-                <input type="number" class="form-control" [(ngModel)]="loteSeleccionado.cantidadStock"
-                    name="cantidadStockPurple" min="0" required>
-            </div>
-            <div class="col-md-12">
-                <label class="form-label">Producto <span class="text-danger">*</span></label>
-                <ng-select
-                    [items]="productos"
-                    bindLabel="nombre"
-                    bindValue="id"
-                    [(ngModel)]="loteSeleccionado.productoId"
-                    name="productoId"
-                    [multiple]="false"
-                    [closeOnSelect]="true"
-                    placeholder="Seleccione un producto"
-                    required
-                ></ng-select>
-            </div>
-        </div>
-    </form>
-</div>
             <div class="modal-footer bg-light">
                 <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
                 <button type="button" class="btn btn-success" (click)="guardarLote()">

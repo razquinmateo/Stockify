@@ -23,7 +23,8 @@ export class GestionarCategoriasComponent implements OnInit {
 
   filtro: string = '';
   paginaActual: number = 1;
-  elementosPorPagina: number = 5;
+  elementosPorPagina: number = 10;
+  maxPaginasMostradas: number = 5;
   nombreUsuarioLogueado: string = '';
 
   constructor(private categoriaService: CategoriaService, private authService: AuthService, private router: Router) {}
@@ -34,13 +35,12 @@ export class GestionarCategoriasComponent implements OnInit {
     this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
   }
 
-
   obtenerCategorias(): void {
     const sucursalId = this.authService.getSucursalId();
     if (sucursalId !== null) {
-      this.categoriaService.obtenerTodasLasCategorias().subscribe({
+      this.categoriaService.obtenerCategoriasPorSucursal(sucursalId).subscribe({
         next: (data) => {
-          this.categorias = data.filter(cat => cat.sucursalId === sucursalId);
+          this.categorias = data;
         },
         error: (err) => {
           console.error('Error al obtener categorías:', err);
@@ -51,6 +51,24 @@ export class GestionarCategoriasComponent implements OnInit {
       this.categorias = [];
       Swal.fire('Error', 'No se pudo determinar la sucursal.', 'error');
     }
+  }
+
+  buscarPorCodigoCategoria(codigoCategoria: string): void {
+    const sucursalId = this.authService.getSucursalId();
+    if (!codigoCategoria || sucursalId === null) {
+      this.obtenerCategorias();
+      return;
+    }
+    this.categoriaService.obtenerCategoriaPorCodigoYSucursal(codigoCategoria, sucursalId).subscribe({
+      next: (categoria) => {
+        this.categorias = categoria ? [categoria] : [];
+      },
+      error: (err) => {
+        console.error('Error al buscar por código:', err);
+        this.categorias = [];
+        Swal.fire('Error', 'No se encontró ninguna categoría con ese código.', 'error');
+      }
+    });
   }
 
   abrirModalAgregar(): void {
@@ -148,6 +166,7 @@ export class GestionarCategoriasComponent implements OnInit {
       id: 0,
       nombre: '',
       descripcion: '',
+      codigoCategoria: '',
       sucursalId: this.authService.getSucursalId() || 0,
       activo: true
     };
@@ -156,7 +175,8 @@ export class GestionarCategoriasComponent implements OnInit {
   filtrarCategorias(): Categoria[] {
     return this.categorias.filter(cat =>
       cat.nombre.toLowerCase().includes(this.filtro.toLowerCase()) ||
-      cat.descripcion.toLowerCase().includes(this.filtro.toLowerCase())
+      cat.descripcion.toLowerCase().includes(this.filtro.toLowerCase()) ||
+      cat.codigoCategoria.toLowerCase().includes(this.filtro.toLowerCase())
     ).sort((a, b) => a.id - b.id);
   }
 
@@ -172,5 +192,34 @@ export class GestionarCategoriasComponent implements OnInit {
   cerrarSesion(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
+  }
+
+  cambiarPagina(pagina: number): void {
+    if (pagina >= 1 && pagina <= this.totalPaginas()) {
+      this.paginaActual = pagina;
+    }
+  }
+
+  paginasMostradas(): number[] {
+    const total = this.totalPaginas();
+    const paginas: number[] = [];
+    const rango = Math.floor(this.maxPaginasMostradas / 2);
+
+    let inicio = Math.max(2, this.paginaActual - rango);
+    let fin = Math.min(total - 1, this.paginaActual + rango);
+
+    if (fin - inicio + 1 < this.maxPaginasMostradas) {
+      if (this.paginaActual < total / 2) {
+        fin = Math.min(total - 1, inicio + this.maxPaginasMostradas - 1);
+      } else {
+        inicio = Math.max(2, fin - this.maxPaginasMostradas + 2);
+      }
+    }
+
+    for (let i = inicio; i <= fin; i++) {
+      paginas.push(i);
+    }
+
+    return paginas;
   }
 }

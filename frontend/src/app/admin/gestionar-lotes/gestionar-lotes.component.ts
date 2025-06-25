@@ -5,7 +5,7 @@ import { AuthService } from '../../auth.service';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import { RouterModule, Router } from '@angular/router';
-import { NgSelectModule } from '@ng-select/ng-select'; // Agregar importación
+import { NgSelectModule } from '@ng-select/ng-select';
 import { Modal } from 'bootstrap';
 import Swal from 'sweetalert2';
 import { HttpErrorResponse } from '@angular/common/http';
@@ -13,7 +13,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 @Component({
   selector: 'app-gestionar-lotes',
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule], // Agregar NgSelectModule
+  imports: [CommonModule, FormsModule, RouterModule, NgSelectModule],
   templateUrl: './gestionar-lotes.component.html',
   styleUrls: ['./gestionar-lotes.component.css']
 })
@@ -32,7 +32,8 @@ export class GestionarLotesComponent implements OnInit {
   };
   filtro: string = '';
   paginaActual: number = 1;
-  elementosPorPagina: number = 5;
+  elementosPorPagina: number = 10;
+  maxPaginasMostradas: number = 5;
   esEditar: boolean = false;
   nombreUsuarioLogueado: string = '';
   sucursalId: number | null = null;
@@ -398,5 +399,37 @@ export class GestionarLotesComponent implements OnInit {
   logout(): void {
     this.authService.logout();
     this.router.navigate(['/login']);
+  }
+
+  // Método para cambiar de página
+  cambiarPagina(pagina: number): void {
+    if (pagina >= 1 && pagina <= this.totalPaginas()) {
+      this.paginaActual = pagina;
+    }
+  }
+
+  // Método para calcular las páginas intermedias a mostrar
+  paginasMostradas(): number[] {
+    const total = this.totalPaginas();
+    const paginas: number[] = [];
+    const rango = Math.floor(this.maxPaginasMostradas / 2);
+
+    let inicio = Math.max(2, this.paginaActual - rango);
+    let fin = Math.min(total - 1, this.paginaActual + rango);
+
+    // Ajustar el rango para mantener un número fijo de páginas visibles
+    if (fin - inicio + 1 < this.maxPaginasMostradas) {
+      if (this.paginaActual < total / 2) {
+        fin = Math.min(total - 1, inicio + this.maxPaginasMostradas - 1);
+      } else {
+        inicio = Math.max(2, fin - this.maxPaginasMostradas + 2);
+      }
+    }
+
+    for (let i = inicio; i <= fin; i++) {
+      paginas.push(i);
+    }
+
+    return paginas;
   }
 }

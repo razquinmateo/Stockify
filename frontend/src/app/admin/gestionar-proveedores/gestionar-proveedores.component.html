@@ -36,8 +36,8 @@
 
   <!-- Buscador -->
   <div class="mb-4">
-    <input type="text" class="form-control" placeholder="Buscar por nombre, RUT, dirección o vendedor..." [(ngModel)]="filtro"
-      (ngModelChange)="filtrarProveedores()" />
+    <input type="text" class="form-control" placeholder="Buscar por nombre, RUT, dirección o vendedor..."
+      [(ngModel)]="filtro" (ngModelChange)="filtrarProveedores()" />
   </div>
 
   <!-- Tabla -->
@@ -78,7 +78,8 @@
               <i class="bi bi-pencil-square"></i>
             </button>
             <button class="btn btn-sm" [ngClass]="prov.activo ? 'btn-danger' : 'btn-success'"
-              (click)="toggleEstadoProveedor(prov)" [title]="prov.activo ? 'Desactivar proveedor' : 'Activar proveedor'">
+              (click)="toggleEstadoProveedor(prov)"
+              [title]="prov.activo ? 'Desactivar proveedor' : 'Activar proveedor'">
               <i [ngClass]="prov.activo ? 'bi bi-slash-circle' : 'bi bi-check-circle-fill'"></i>
             </button>
           </td>
@@ -95,19 +96,41 @@
   <!-- Paginación -->
   <nav *ngIf="totalPaginas() > 1">
     <ul class="pagination justify-content-center mt-4">
+      <!-- Botón Anterior -->
       <li class="page-item" [class.disabled]="paginaActual === 1">
-        <button class="page-link" (click)="paginaActual = paginaActual - 1" [disabled]="paginaActual === 1">
+        <button class="page-link" (click)="cambiarPagina(paginaActual - 1)" [disabled]="paginaActual === 1">
           Anterior
         </button>
       </li>
-      <li class="page-item" *ngFor="let page of [].constructor(totalPaginas()); let i = index"
-        [class.active]="paginaActual === i + 1">
-        <button class="page-link" (click)="paginaActual = i + 1">
-          {{ i + 1 }}
-        </button>
+
+      <!-- Primera página -->
+      <li class="page-item" [class.active]="paginaActual === 1">
+        <button class="page-link" (click)="cambiarPagina(1)">1</button>
       </li>
+
+      <!-- Puntos suspensivos si hay un salto desde la primera página -->
+      <li class="page-item disabled" *ngIf="paginasMostradas()[0] > 2">
+        <span class="page-link">...</span>
+      </li>
+
+      <!-- Páginas intermedias -->
+      <li class="page-item" *ngFor="let page of paginasMostradas()" [class.active]="paginaActual === page">
+        <button class="page-link" (click)="cambiarPagina(page)">{{ page }}</button>
+      </li>
+
+      <!-- Puntos suspensivos si hay un salto hasta la última página -->
+      <li class="page-item disabled" *ngIf="paginasMostradas()[paginasMostradas().length - 1] < totalPaginas() - 1">
+        <span class="page-link">...</span>
+      </li>
+
+      <!-- Última página -->
+      <li class="page-item" [class.active]="paginaActual === totalPaginas()" *ngIf="totalPaginas() > 1">
+        <button class="page-link" (click)="cambiarPagina(totalPaginas())">{{ totalPaginas() }}</button>
+      </li>
+
+      <!-- Botón Siguiente -->
       <li class="page-item" [class.disabled]="paginaActual === totalPaginas()">
-        <button class="page-link" (click)="paginaActual = paginaActual + 1"
+        <button class="page-link" (click)="cambiarPagina(paginaActual + 1)"
           [disabled]="paginaActual === totalPaginas()">
           Siguiente
         </button>
@@ -143,8 +166,7 @@
               <label class="form-label">
                 RUT <span class="text-danger">*</span>
               </label>
-              <input type="text" class="form-control" [(ngModel)]="proveedorSeleccionado.rut" name="rut"
-                required />
+              <input type="text" class="form-control" [(ngModel)]="proveedorSeleccionado.rut" name="rut" required />
             </div>
             <!-- Dirección -->
             <div class="col-md-6">
@@ -169,16 +191,9 @@
             <!-- Productos Suministrados -->
             <div class="col-12">
               <label class="form-label">Productos Suministrados</label>
-              <ng-select
-                [items]="productos"
-                bindLabel="nombre"
-                bindValue="id"
-                [(ngModel)]="proveedorSeleccionado.productoIds"
-                name="productoIds"
-                [multiple]="true"
-                [closeOnSelect]="false"
-                placeholder="Seleccione uno o más productos"
-              ></ng-select>
+              <ng-select [items]="productos" bindLabel="nombre" bindValue="id"
+                [(ngModel)]="proveedorSeleccionado.productoIds" name="productoIds" [multiple]="true"
+                [closeOnSelect]="false" placeholder="Seleccione uno o más productos"></ng-select>
             </div>
           </div>
         </form>
@@ -196,7 +211,8 @@
 </div>
 
 <!-- Modal para Productos -->
-<div class="modal fade" id="productosModal" tabindex="-1" aria-labelledby="productosModalLabel" aria-hidden="true" (click)="cerrarModalProductosFuera($event)">
+<div class="modal fade" id="productosModal" tabindex="-1" aria-labelledby="productosModalLabel" aria-hidden="true"
+  (click)="cerrarModalProductosFuera($event)">
   <div class="modal-dialog modal-lg modal-dialog-centered">
     <div class="modal-content border-0 shadow" (click)="$event.stopPropagation()">
       <div class="modal-header bg-dark text-white">

@@ -41,6 +41,18 @@ public class CategoriaService {
                 .orElse(null);
     }
 
+    public CategoriaDto getByCodigoCategoria(String codigoCategoria) {
+        return categoriaRepository.findByCodigoCategoriaAndActivoTrue(codigoCategoria)
+                .map(this::mapToDto)
+                .orElse(null);
+    }
+
+    public CategoriaDto getByCodigoCategoriaAndSucursal(String codigoCategoria, Long sucursalId) {
+        return categoriaRepository.findByCodigoCategoriaAndSucursalIdAndActivoTrue(codigoCategoria, sucursalId)
+                .map(this::mapToDto)
+                .orElse(null);
+    }
+
     public CategoriaDto create(CategoriaDto categoriaDto) {
         Categoria categoria = mapToEntity(categoriaDto);
         // Asegurar que activo sea true para nuevas categorías, incluso si no se especifica
@@ -71,6 +83,9 @@ public class CategoriaService {
         if (categoriaDto.getDescripcion() != null) {
             categoria.setDescripcion(categoriaDto.getDescripcion());
         }
+        if (categoriaDto.getCodigoCategoria() != null) {
+            categoria.setCodigoCategoria(categoriaDto.getCodigoCategoria());
+        }
         if (categoriaDto.getSucursalId() != null) {
             Sucursal sucursal = sucursalRepository.findById(categoriaDto.getSucursalId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sucursal no encontrada con id: " + categoriaDto.getSucursalId()));
@@ -85,12 +100,12 @@ public class CategoriaService {
         Categoria categoria = new Categoria();
         categoria.setNombre(categoriaDto.getNombre());
         categoria.setDescripcion(categoriaDto.getDescripcion());
+        categoria.setCodigoCategoria(categoriaDto.getCodigoCategoria() != null ? categoriaDto.getCodigoCategoria() : String.valueOf(categoriaDto.getId()));
         if (categoriaDto.getSucursalId() != null) {
             Sucursal sucursal = sucursalRepository.findById(categoriaDto.getSucursalId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sucursal no encontrada con id: " + categoriaDto.getSucursalId()));
             categoria.setSucursal(sucursal);
         }
-        //activo se establece explícitamente en los métodos create/update
         return categoria;
     }
 
@@ -99,6 +114,7 @@ public class CategoriaService {
         categoriaDto.setId(categoria.getId());
         categoriaDto.setNombre(categoria.getNombre());
         categoriaDto.setDescripcion(categoria.getDescripcion());
+        categoriaDto.setCodigoCategoria(categoria.getCodigoCategoria());
         categoriaDto.setSucursalId(categoria.getSucursal() != null ? categoria.getSucursal().getId() : null);
         categoriaDto.setActivo(categoria.isActivo());
         return categoriaDto;

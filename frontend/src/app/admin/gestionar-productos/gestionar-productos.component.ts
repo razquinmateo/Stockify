@@ -9,8 +9,8 @@ import { LoteService, Lote } from '../../services/lote.service';
 import { AuthService } from '../../auth.service';
 import { Router } from '@angular/router';
 import Swal from 'sweetalert2';
-import { Observable, of } from 'rxjs';
-import { forkJoin } from 'rxjs';
+import { Observable, of, forkJoin } from 'rxjs';
+import { catchError, map } from 'rxjs/operators';
 import { HttpErrorResponse } from '@angular/common/http';
 import * as XLSX from 'xlsx';
 
@@ -32,12 +32,14 @@ export class GestionarProductosComponent implements OnInit {
   esEditar: boolean = false;
   filtro: string = '';
   paginaActual: number = 1;
-  elementosPorPagina: number = 5;
+  elementosPorPagina: number = 10;
+  maxPaginasMostradas: number = 5;
   nombreUsuarioLogueado: string = '';
   mostrarCamara: boolean = false;
   videoElement: HTMLVideoElement | null = null;
   canvas: HTMLCanvasElement = document.createElement('canvas');
   codigosBarraInput: string = '';
+  productosExcel: any[] = [];
 
   constructor(
     private productoService: ProductoService,
@@ -64,34 +66,86 @@ export class GestionarProductosComponent implements OnInit {
       const hoja = workbook.Sheets[workbook.SheetNames[0]];
       const productosExcelRaw = XLSX.utils.sheet_to_json(hoja);
 
-      const productosExcel = productosExcelRaw.map((prod: any) => {
+      let detectoErrorFecha = false;
+
+      // Normalizar claves y limpiar datos
+      this.productosExcel = productosExcelRaw.map((prod: any) => {
         const productoNormalizado: any = {};
+
         for (const clave in prod) {
           const valor = prod[clave];
           const claveLower = clave.toLowerCase().trim();
 
-          if (["codigo", "código", "códigos", "códigos de barras", "codigos de barras", "barcode", "barcodes"].includes(claveLower)) {
-            productoNormalizado.codigosBarra = typeof valor === 'string' ? valor.split(',').map((s: string) => s.trim()) : [valor];
-          } else if (["precio", "precio unitario", "coste"].includes(claveLower)) {
-            productoNormalizado.precio = valor;
-          } else if (["stock", "cantidad", "cantidad stock", "existencia"].includes(claveLower)) {
-            productoNormalizado.cantidadStock = valor;
+          if (['codigoproducto', 'código producto', 'codigo producto', 'product code'].includes(claveLower)) {
+            productoNormalizado.codigoProducto = String(valor).trim();
+          } else if (['precio', 'precio unitario'].includes(claveLower)) {
+            if (typeof valor === 'number' && valor > 40000) {
+              detectoErrorFecha = true;
+              productoNormalizado.precio = null;
+            } else {
+              const textoPrecio = String(valor).replace(',', '.');
+              productoNormalizado.precio = parseFloat(textoPrecio);
+            }
+          } else if (['stock', 'cantidad', 'cantidad stock', 'existencia'].includes(claveLower)) {
+            productoNormalizado.cantidadStock = typeof valor === 'number' ? valor : parseInt(valor, 10);
+          } else if (['nombre', 'producto', 'descripcion'].includes(claveLower)) {
+            productoNormalizado.nombre = String(valor).trim();
+          } else if (['detalle', 'detalles', 'observaciones'].includes(claveLower)) {
+            productoNormalizado.detalle = String(valor).trim();
+          } else if (['codigo', 'código', 'código de barras', 'codigo de barras', 'barcode'].includes(claveLower)) {
+            productoNormalizado.codigosBarra = String(valor)
+              .split(',')
+              .map((c: string) => c.trim())
+              .filter((c: string) => c.length > 0);
+          } else if (['categoria', 'idcategoria', 'categoría', 'id categoría', 'codigocategoria', 'código categoría', 'category code'].includes(claveLower)) {
+            productoNormalizado.codigoCategoria = String(valor).trim();
           } else {
-            productoNormalizado[clave] = valor;
+            productoNormalizado[claveLower] = valor;
           }
         }
+
         return productoNormalizado;
       });
 
-      this.actualizarProductosDesdeExcel(productosExcel);
+      // Validar productos válidos
+      const productosValidos = this.productosExcel.filter(
+        (p) => p.codigoProducto && (typeof p.precio === 'number' || typeof p.cantidadStock === 'number')
+      );
+
+      // Mostrar alertas según corresponda
+      if (detectoErrorFecha) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Posible error en el archivo Excel',
+          html: `
+            <p>El archivo contiene valores que parecen <b>fechas</b> en la columna de <b>precios</b>.</p>
+            <p><u>Estos precios serán ignorados.</u></p>
+            <hr />
+            <p><b>Solución:</b> Abre el archivo Excel, selecciona la columna de precios y cámbiala al formato <b>Texto</b>.</p>
+          `,
+          confirmButtonText: 'Entendido',
+        }).then(() => {
+          if (productosValidos.length > 0) {
+            this.actualizarProductosDesdeExcel(productosValidos);
+          } else {
+            Swal.fire('Archivo inválido', 'No se encontraron productos válidos para actualizar.', 'warning');
+          }
+        });
+      } else {
+        if (productosValidos.length > 0) {
+          this.actualizarProductosDesdeExcel(productosValidos);
+        } else {
+          Swal.fire('Archivo inválido', 'No se encontraron productos válidos para actualizar.', 'warning');
+        }
+      }
     };
+
     lector.readAsArrayBuffer(archivo);
   }
 
   actualizarProductosDesdeExcel(productos: any[]): void {
-    const productosValidos = productos.filter(p =>
-      p.codigosBarra && Array.isArray(p.codigosBarra) && p.codigosBarra.length > 0 &&
-      (typeof p.precio === 'number' || typeof p.cantidadStock === 'number')
+    const productosValidos = productos.filter(
+      (p) => p.codigoProducto && (typeof p.precio === 'number' || typeof p.cantidadStock === 'number')
     );
 
     if (productosValidos.length === 0) {
@@ -99,14 +153,168 @@ export class GestionarProductosComponent implements OnInit {
       return;
     }
 
-    this.productoService.actualizarMasivoProductos(productosValidos).subscribe({
-      next: () => {
-        Swal.fire('Actualización exitosa', 'Se actualizaron los productos correctamente.', 'success');
-        this.cargarDatosIniciales();
+    const sucursalId = this.authService.getSucursalId();
+    if (sucursalId === null) {
+      Swal.fire('Error', 'No se pudo obtener la sucursal del usuario.', 'error');
+      return;
+    }
+
+    // Fetch categoriaId for each product with a codigoCategoria
+    const categoriaRequests = productosValidos.map(prod => {
+      if (prod.codigoCategoria) {
+        return this.productoService.obtenerCategoriaPorCodigoYSucursal(prod.codigoCategoria, sucursalId).pipe(
+          map(categoria => ({ ...prod, categoriaId: categoria.id })),
+          catchError(() => of({ ...prod, categoriaId: null })) // Fallback to null if category not found
+        );
+      }
+      return of({ ...prod, categoriaId: null });
+    });
+
+    forkJoin(categoriaRequests).subscribe({
+      next: (productosConCategoria) => {
+        // Mapear productos al formato esperado por el backend
+        const productosParaActualizar = productosConCategoria.map((p) => ({
+          codigoProducto: p.codigoProducto,
+          precio: p.precio,
+          cantidadStock: p.cantidadStock,
+          nombre: p.nombre ?? 'Producto sin nombre',
+          codigosBarra: p.codigosBarra ?? [],
+          imagen: p.imagen ?? null,
+          detalle: p.detalle ?? null,
+          categoriaId: p.categoriaId, // Include categoriaId if found
+        }));
+
+        this.productoService.actualizarMasivoProductos(productosParaActualizar, sucursalId).subscribe({
+          next: async (respuesta) => {
+            const noEncontrados = respuesta.noEncontrados || [];
+            const actualizados = respuesta.actualizados || [];
+
+            if (actualizados.length > 0) {
+              await Swal.fire('Actualización exitosa', `Se actualizaron ${actualizados.length} producto(s) correctamente.`, 'success');
+            }
+
+            if (noEncontrados.length > 0) {
+              const mensaje =
+                noEncontrados.length === 1
+                  ? 'No se encontró el siguiente código de producto en la base de datos:'
+                  : `No se encontraron los siguientes ${noEncontrados.length} códigos de producto en la base de datos:`;
+
+              Swal.fire({
+                icon: 'warning',
+                title: 'Productos no encontrados',
+                html: `
+                  <p>${mensaje}</p>
+                  <div style="max-height: 200px; overflow-y: auto; text-align: left;">
+                    <ul>
+                      ${noEncontrados.map((c: string) => `<li>${c}</li>`).join('')}
+                    </ul>
+                  </div>
+                  <hr/>
+                  <p>¿Querés agregar automáticamente estos productos nuevos?</p>
+                `,
+                showCancelButton: true,
+                confirmButtonText: 'Agregar productos',
+                cancelButtonText: 'Ignorar',
+              }).then(async (result) => {
+                if (result.isConfirmed) {
+                  const codigosNoEncontradosSet = new Set(noEncontrados.map((c: string) => c.toString().trim()));
+
+                  // Detectar productos con precio inválido
+                  const productosExcluidosPorPrecioInvalido = productosConCategoria.filter((p) =>
+                    codigosNoEncontradosSet.has(p.codigoProducto.toString().trim()) &&
+                    (p.precio === null || typeof p.precio !== 'number' || isNaN(p.precio) || p.precio < 0)
+                  );
+
+                  if (productosExcluidosPorPrecioInvalido.length > 0) {
+                    const listaCodigos = productosExcluidosPorPrecioInvalido
+                      .map((p) => `<li>${p.codigoProducto}</li>`)
+                      .join('');
+
+                    await Swal.fire({
+                      icon: 'warning',
+                      title: 'Productos ignorados por precio inválido',
+                      html: `
+                        <p>Se ignoraron ${productosExcluidosPorPrecioInvalido.length} producto(s) porque su precio tenía un formato inválido (probablemente una fecha).</p>
+                        <p><b>Códigos de producto afectados:</b></p>
+                        <ul style="text-align:left; max-height: 200px; overflow-y: auto;">
+                          ${listaCodigos}
+                        </ul>
+                        <hr>
+                        <p><b>Solución:</b> Verificá el archivo Excel y asegurate de que la columna de precios esté en formato <b>numérico</b>.</p>
+                      `,
+                      confirmButtonText: 'Entendido',
+                    });
+                  }
+
+                  // Filtrar productos válidos para agregar
+                  const productosFiltrados = productosConCategoria.filter((p) => {
+                    const codigoNoEncontrado = codigosNoEncontradosSet.has(p.codigoProducto.toString().trim());
+                    const tieneNombre = typeof p.nombre === 'string' && p.nombre.trim().length > 0;
+                    const tieneCodigo = p.codigoProducto && p.codigoProducto.trim().length > 0;
+                    const tienePrecio = p.precio !== null && typeof p.precio === 'number' && !isNaN(p.precio) && p.precio >= 0;
+                    const tieneStock = typeof p.cantidadStock === 'number' && !isNaN(p.cantidadStock) && p.cantidadStock >= 0;
+
+                    return codigoNoEncontrado && tieneNombre && tieneCodigo && tienePrecio && tieneStock;
+                  });
+
+                  const productosParaAgregar = productosFiltrados.map((p) => ({
+                    nombre: p.nombre.trim(),
+                    codigosBarra: p.codigosBarra ?? [],
+                    precio: p.precio,
+                    cantidadStock: p.cantidadStock,
+                    imagen: p.imagen ?? null,
+                    detalle: p.detalle ?? null,
+                    codigoProducto: p.codigoProducto,
+                    categoriaId: p.categoriaId, // Include categoriaId if found
+                  }));
+
+                  if (productosParaAgregar.length === 0) {
+                    Swal.fire(
+                      'Datos insuficientes',
+                      'Ninguno de los productos no encontrados tiene todos los datos necesarios (nombre, código, precio y stock).',
+                      'warning'
+                    );
+                    return;
+                  }
+
+                  this.productoService.crearProductosSimples(productosParaAgregar, sucursalId).subscribe({
+                    next: (r) => {
+                      const { creados, errores } = r;
+                      let mensaje = `Se agregaron ${creados.length} producto(s) correctamente.`;
+                      if (errores.length > 0) {
+                        mensaje += `<br><br>Hubo ${errores.length} error(es):<ul>`;
+                        mensaje += errores.map((e: string) => `<li>${e}</li>`).join('');
+                        mensaje += '</ul>';
+                      }
+
+                      Swal.fire({
+                        icon: 'info',
+                        title: 'Resultado de la carga',
+                        html: mensaje,
+                      });
+
+                      this.cargarDatosIniciales();
+                    },
+                    error: (err) => {
+                      console.error('Error al agregar productos:', err);
+                      Swal.fire('Error', 'Ocurrió un error al agregar productos nuevos.', 'error');
+                    },
+                  });
+                }
+              });
+            }
+
+            this.cargarDatosIniciales();
+          },
+          error: (err) => {
+            console.error('Error del backend:', err);
+            Swal.fire('Error', 'Ocurrió un error al actualizar productos.', 'error');
+          },
+        });
       },
       error: (err) => {
-        console.error('Error del backend:', err);
-        Swal.fire('Error', 'Ocurrió un error al actualizar productos.', 'error');
+        console.error('Error al obtener categorías:', err);
+        Swal.fire('Error', 'No se pudieron obtener las categorías para los productos.', 'error');
       }
     });
   }
@@ -352,7 +560,7 @@ export class GestionarProductosComponent implements OnInit {
         let errorMessage = 'No se pudo ' + (this.esEditar ? 'actualizar' : 'agregar') + ' el producto';
 
         if (err.status === 400) {
-          // Manejar errores de validación (como código de producto duplicado)
+          // manejamos errores
           errorMessage = typeof err.error === 'string' ? err.error : err.error?.message || 'Error en los datos proporcionados';
           if (errorMessage.includes('código de producto') || errorMessage.includes('ya está asignado')) {
             const inputElement = document.querySelector('input[ngModel="[productoSeleccionado.codigoProducto]"]') as HTMLInputElement;
@@ -363,7 +571,6 @@ export class GestionarProductosComponent implements OnInit {
             }
           }
         } else if (err.status === 403) {
-          // Manejar error de acceso denegado sin cerrar sesión automáticamente
           errorMessage = 'Algo salió mal. Por favor, revisa los datos e intenta de nuevo.';
         } else if (err.status === 404) {
           errorMessage = 'Recurso no encontrado';
@@ -398,7 +605,7 @@ export class GestionarProductosComponent implements OnInit {
     return {
       id: 0,
       codigoProducto: '',
-      codigosBarra: [''],
+      codigosBarra: [],
       imagen: null,
       nombre: '',
       detalle: '',
@@ -406,8 +613,9 @@ export class GestionarProductosComponent implements OnInit {
       cantidadStock: 0,
       sucursalId: this.authService.getSucursalId() || 0,
       categoriaId: 0,
+      codigoCategoria: '',
       activo: true,
-      proveedorIds: []
+      proveedorIds: [],
     };
   }
 
@@ -530,5 +738,34 @@ export class GestionarProductosComponent implements OnInit {
       this.videoElement.srcObject = null;
     }
     this.mostrarCamara = false;
+  }
+
+  cambiarPagina(pagina: number): void {
+    if (pagina >= 1 && pagina <= this.totalPaginas()) {
+      this.paginaActual = pagina;
+    }
+  }
+
+  paginasMostradas(): number[] {
+    const total = this.totalPaginas();
+    const paginas: number[] = [];
+    const rango = Math.floor(this.maxPaginasMostradas / 2);
+
+    let inicio = Math.max(2, this.paginaActual - rango);
+    let fin = Math.min(total - 1, this.paginaActual + rango);
+
+    if (fin - inicio + 1 < this.maxPaginasMostradas) {
+      if (this.paginaActual < total / 2) {
+        fin = Math.min(total - 1, inicio + this.maxPaginasMostradas - 1);
+      } else {
+        inicio = Math.max(2, fin - this.maxPaginasMostradas + 2);
+      }
+    }
+
+    for (let i = inicio; i <= fin; i++) {
+      paginas.push(i);
+    }
+
+    return paginas;
   }
 }

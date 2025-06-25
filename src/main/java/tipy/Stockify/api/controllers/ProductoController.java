@@ -7,6 +7,8 @@ import org.springframework.web.bind.annotation.*;
 import tipy.Stockify.dtos.ProductoDto;
 import tipy.Stockify.services.ProductoService;
 
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -79,13 +81,44 @@ public class ProductoController {
     }
 
     @PostMapping("/actualizar-masivo")
-    @Operation(description = "Actualiza masivamente productos por código de barra (precio y stock).")
-    public ResponseEntity<Map<String, String>> actualizarMasivo(@RequestBody List<ProductoDto> productos) {
+    @Operation(description = "Actualiza productos solo de la sucursal del usuario, utilizando su código de producto.")
+    public ResponseEntity<Map<String, Object>> actualizarMasivo(
+            @RequestBody List<ProductoDto> productos,
+            @RequestParam Long sucursalId
+    ) {
+        List<String> actualizados = new ArrayList<>();
+        List<String> noEncontrados = new ArrayList<>();
+
         for (ProductoDto dto : productos) {
-            if (dto.getCodigosBarra() != null && !dto.getCodigosBarra().isEmpty()) {
-                productoService.actualizarStockYPrecioPorCodigoBarra(dto.getCodigosBarra().get(0), dto.getPrecio(), dto.getCantidadStock());
+            // Validar que el DTO tenga un código de producto
+            if (dto.getCodigoProducto() == null || dto.getCodigoProducto().trim().isEmpty()) {
+                noEncontrados.add("Producto sin código de producto");
+                continue;
             }
+
+            productoService.actualizarStockYPrecioPorCodigoProductoSiExiste(
+                    dto.getCodigoProducto(),
+                    dto.getPrecio(),
+                    dto.getCantidadStock(),
+                    sucursalId,
+                    noEncontrados,
+                    actualizados
+            );
         }
-        return ResponseEntity.ok(Map.of("mensaje", "Productos actualizados correctamente."));
+
+        Map<String, Object> resultado = new HashMap<>();
+        resultado.put("mensaje", "Actualización completada.");
+        resultado.put("actualizados", actualizados);
+        resultado.put("noEncontrados", noEncontrados);
+
+        return ResponseEntity.ok(resultado);
+    }
+
+    @PostMapping("/crear-simples")
+    @Operation(description = "Crea productos sin categoría, sucursal ni proveedores obligatorios.")
+    public ResponseEntity<Map<String, Object>> crearProductosSimples(
+            @RequestBody List<ProductoDto> productos,
+            @RequestParam Long sucursalId) {
+        return ResponseEntity.ok(productoService.crearProductosSimples(productos, sucursalId));
     }
 }

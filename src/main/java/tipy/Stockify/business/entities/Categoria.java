@@ -6,8 +6,8 @@ import lombok.Data;
 import java.util.List;
 
 @Entity
-@Data
 @Table(name = "CATEGORIA")
+@Data
 public class Categoria {
 
     @Id
@@ -20,6 +20,9 @@ public class Categoria {
 
     @Column(name = "DESCRIPCION")
     private String descripcion;
+
+    @Column(name = "CODIGO_CATEGORIA")
+    private String codigoCategoria;
 
     @ManyToOne
     @JoinColumn(name = "SUCURSAL_ID")

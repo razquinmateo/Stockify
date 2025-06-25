@@ -47,7 +47,8 @@ export class GestionarConteosComponent implements OnInit {
   esEditar: boolean = false;
   filtro: string = "";
   paginaActual: number = 1;
-  conteosPorPagina: number = 5;
+  conteosPorPagina: number = 15;
+  maxPaginasMostradas: number = 5;
   nombreUsuarioLogueado: string = "";
   usuarioId: number | null = null;
   conteoActual: Conteo | null = null;
@@ -59,6 +60,9 @@ export class GestionarConteosComponent implements OnInit {
   private readonly REGISTROS_KEY: string;
   private productCache: Map<number, Producto> = new Map();
   private categoryCache: Map<number, Categoria> = new Map();
+  filtroCategorias: string = '';
+  categoriasFiltradas: Categoria[] = [];
+  seleccionarTodo: boolean = false;
 
   constructor(
     private conteoService: ConteoService,
@@ -75,7 +79,6 @@ export class GestionarConteosComponent implements OnInit {
 
   ngOnInit(): void {
     this.conteoSeleccionado = this.resetConteo();
-    // Obtener el ID del usuario logueado para asignación automática
     this.authService.getUsuarioIdDesdeToken().subscribe({
       next: (id) => {
         this.usuarioId = id;
@@ -113,6 +116,7 @@ export class GestionarConteosComponent implements OnInit {
     this.categoriaService.obtenerCategoriasPorSucursal(sucursalId).subscribe({
       next: (categorias) => {
         this.allCategorias = categorias;
+        this.categoriasFiltradas = [...categorias]; // Inicializar categorías filtradas
         categorias.forEach(cat => this.categoryCache.set(cat.id, cat));
       },
       error: (err) => {
@@ -268,6 +272,9 @@ export class GestionarConteosComponent implements OnInit {
     this.cerrarModalTipoConteo();
     this.mostrarModalCategorias = true;
     this.categoriasSeleccionadas = {};
+    this.filtroCategorias = ''; // Resetear filtro
+    this.seleccionarTodo = false; // Resetear seleccionar todo
+    this.filtrarCategorias(); // Inicializar categorías filtradas
     this.conteoSeleccionado = this.resetConteo();
     this.conteoSeleccionado.tipoConteo = 'CATEGORIAS';
   }
@@ -275,10 +282,37 @@ export class GestionarConteosComponent implements OnInit {
   cerrarModalCategorias(): void {
     this.mostrarModalCategorias = false;
     this.categoriasSeleccionadas = {};
+    this.filtroCategorias = '';
+    this.seleccionarTodo = false;
   }
 
   categoriasSeleccionadasValidas(): boolean {
     return Object.values(this.categoriasSeleccionadas).some(selected => selected);
+  }
+
+  // Nuevos métodos para buscador y seleccionar todo
+  filtrarCategorias(): void {
+    if (!this.filtroCategorias) {
+      this.categoriasFiltradas = [...this.allCategorias];
+    } else {
+      this.categoriasFiltradas = this.allCategorias.filter(categoria =>
+        categoria.nombre.toLowerCase().includes(this.filtroCategorias.toLowerCase())
+      );
+    }
+    this.actualizarSeleccionarTodo();
+  }
+
+  toggleSeleccionarTodo(): void {
+    this.categoriasFiltradas.forEach(categoria => {
+      this.categoriasSeleccionadas[categoria.id] = this.seleccionarTodo;
+    });
+  }
+
+  actualizarSeleccionarTodo(): void {
+    const categoriasVisibles = this.categoriasFiltradas;
+    const todasSeleccionadas = categoriasVisibles.every(categoria => this.categoriasSeleccionadas[categoria.id]);
+    const algunaSeleccionada = categoriasVisibles.some(categoria => this.categoriasSeleccionadas[categoria.id]);
+    this.seleccionarTodo = todasSeleccionadas && algunaSeleccionada;
   }
 
   crearConteoLibre(): void {
@@ -437,15 +471,10 @@ export class GestionarConteosComponent implements OnInit {
     }
 
     try {
-      // Cargar productos del conteo
       await this.loadConteoProductos(conteo.id);
-
-      // Obtener todos los productos activos de la sucursal
       const productosSucursal = await lastValueFrom(
         this.productoService.obtenerProductosActivosPorSucursal(sucursalId)
       );
-
-      // Identificar productos no contados comparando con los productos del conteo
       const productosConteoIds = new Set(this.productosConteo.map(p => p.productoId));
       const productosNoContados = productosSucursal
         .filter(prod => !productosConteoIds.has(prod.id))
@@ -458,9 +487,8 @@ export class GestionarConteosComponent implements OnInit {
             categoriaNombre: categoria?.nombre || 'Sin Categoría'
           };
         })
-        .sort((a, b) => a.id - b.id); // Changed to sort by id
+        .sort((a, b) => a.id - b.id);
 
-      // Añadir productos no contados a la lista de productosConteo con cantidadContada = null
       for (const prod of productosNoContados) {
         const nuevo: Partial<ConteoProducto> = {
           conteoId: conteo.id,
@@ -473,7 +501,6 @@ export class GestionarConteosComponent implements OnInit {
         this.productosConteo.push(nuevo as ConteoProducto);
       }
 
-      // Verificar si hay productos sin contar
       if (productosNoContados.length === 0) {
         Swal.fire({
           title: '¿Finalizar conteo?',
@@ -580,7 +607,6 @@ export class GestionarConteosComponent implements OnInit {
         }).then(async (result) => {
           if (result.isConfirmed) {
             try {
-              // Crear registros para los productos no contados con cantidad 0
               for (const prod of productosNoContados) {
                 const nuevo: Partial<ConteoProducto> = {
                   conteoId: this.conteoActual!.id,
@@ -607,7 +633,6 @@ export class GestionarConteosComponent implements OnInit {
               }
               localStorage.setItem(this.REGISTROS_KEY, JSON.stringify(this.registros));
 
-              // Finalizar el conteo
               this.conteoService.update(this.conteoActual!.id, { conteoFinalizado: true }).subscribe({
                 next: () => {
                   Swal.fire({
@@ -757,7 +782,6 @@ export class GestionarConteosComponent implements OnInit {
         width: '80%'
       }).then(async (result) => {
         if (result.isConfirmed) {
-          // Mostrar modal de carga
           Swal.fire({
             title: 'Actualizando productos...',
             html: 'Por favor, espera mientras se actualizan los productos no contados.',
@@ -770,7 +794,7 @@ export class GestionarConteosComponent implements OnInit {
 
           try {
             await this.updateUncountedProductsToZero();
-            Swal.close(); // Cerrar el modal de carga
+            Swal.close();
 
             this.conteoService.update(this.conteoActual!.id, { conteoFinalizado: true }).subscribe({
               next: () => {
@@ -821,7 +845,6 @@ export class GestionarConteosComponent implements OnInit {
       );
       console.log(`Updated ${updated.length} uncounted products to cantidadContada: 0`);
 
-      // Actualizar el estado local
       updated.forEach(updatedItem => {
         const item = this.productosConteo.find(p => p.id === updatedItem.id);
         if (item) {
@@ -855,6 +878,38 @@ export class GestionarConteosComponent implements OnInit {
       return;
     }
     this.router.navigate(['/admin/reporte-conteo', conteo.id]);
+  }
+
+  // Método para cambiar de página
+  cambiarPagina(pagina: number): void {
+    if (pagina >= 1 && pagina <= this.totalPaginas()) {
+      this.paginaActual = pagina;
+    }
+  }
+
+  // Método para calcular las páginas intermedias a mostrar
+  paginasMostradas(): number[] {
+    const total = this.totalPaginas();
+    const paginas: number[] = [];
+    const rango = Math.floor(this.maxPaginasMostradas / 2);
+
+    let inicio = Math.max(2, this.paginaActual - rango);
+    let fin = Math.min(total - 1, this.paginaActual + rango);
+
+    // Ajustar el rango para mantener un número fijo de páginas visibles
+    if (fin - inicio + 1 < this.maxPaginasMostradas) {
+      if (this.paginaActual < total / 2) {
+        fin = Math.min(total - 1, inicio + this.maxPaginasMostradas - 1);
+      } else {
+        inicio = Math.max(2, fin - this.maxPaginasMostradas + 2);
+      }
+    }
+
+    for (let i = inicio; i <= fin; i++) {
+      paginas.push(i);
+    }
+
+    return paginas;
   }
 
   filtrarConteos(): Conteo[] {

@@ -100,19 +100,41 @@
 <!-- Paginación para Conteos -->
 <nav *ngIf="totalPaginas() > 1">
   <ul class="pagination justify-content-center mt-4">
+    <!-- Botón Anterior -->
     <li class="page-item" [class.disabled]="paginaActual === 1">
-      <button class="page-link" (click)="paginaActual = paginaActual - 1" [disabled]="paginaActual === 1">
+      <button class="page-link" (click)="cambiarPagina(paginaActual - 1)" [disabled]="paginaActual === 1">
         Anterior
       </button>
     </li>
-    <li class="page-item" *ngFor="let page of [].constructor(totalPaginas()); let i = index"
-      [class.active]="paginaActual === i + 1">
-      <button class="page-link" (click)="paginaActual = i + 1">
-        {{ i + 1 }}
-      </button>
+
+    <!-- Primera página -->
+    <li class="page-item" [class.active]="paginaActual === 1">
+      <button class="page-link" (click)="cambiarPagina(1)">1</button>
     </li>
+
+    <!-- Puntos suspensivos si hay un salto desde la primera página -->
+    <li class="page-item disabled" *ngIf="paginasMostradas()[0] > 2">
+      <span class="page-link">...</span>
+    </li>
+
+    <!-- Páginas intermedias -->
+    <li class="page-item" *ngFor="let page of paginasMostradas()" [class.active]="paginaActual === page">
+      <button class="page-link" (click)="cambiarPagina(page)">{{ page }}</button>
+    </li>
+
+    <!-- Puntos suspensivos si hay un salto hasta la última página -->
+    <li class="page-item disabled" *ngIf="paginasMostradas()[paginasMostradas().length - 1] < totalPaginas() - 1">
+      <span class="page-link">...</span>
+    </li>
+
+    <!-- Última página -->
+    <li class="page-item" [class.active]="paginaActual === totalPaginas()" *ngIf="totalPaginas() > 1">
+      <button class="page-link" (click)="cambiarPagina(totalPaginas())">{{ totalPaginas() }}</button>
+    </li>
+
+    <!-- Botón Siguiente -->
     <li class="page-item" [class.disabled]="paginaActual === totalPaginas()">
-      <button class="page-link" (click)="paginaActual = paginaActual + 1" [disabled]="paginaActual === totalPaginas()">
+      <button class="page-link" (click)="cambiarPagina(paginaActual + 1)" [disabled]="paginaActual === totalPaginas()">
         Siguiente
       </button>
     </li>
@@ -162,14 +184,39 @@
         <button type="button" class="btn-close btn-close-white" aria-label="Cerrar" (click)="cerrarModalCategorias()"></button>
       </div>
       <div class="modal-body">
-        <p class="mb-3 fw-bold">Selecciona una o más categorías:</p>
-        <div class="row g-3">
-          <div class="col-12 col-sm-6 col-lg-4" *ngFor="let categoria of allCategorias">
-            <label class="categoria-box d-flex align-items-center gap-2">
-              <input class="form-check-input" type="checkbox"
-                [(ngModel)]="categoriasSeleccionadas[categoria.id]" />
-              <span class="ms-1">{{ categoria.nombre }}</span>
-            </label>
+        <!-- Buscador de categorías -->
+        <div class="mb-3">
+          <div class="input-group">
+            <span class="input-group-text">
+              <i class="bi bi-search"></i>
+            </span>
+            <input type="text" class="form-control" placeholder="Buscar categorías..." 
+                   [(ngModel)]="filtroCategorias" (input)="filtrarCategorias()">
+          </div>
+        </div>
+        
+        <!-- Checkbox "Seleccionar todos" -->
+        <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="selectAll" 
+                 [(ngModel)]="seleccionarTodo" (change)="toggleSeleccionarTodo()">
+          <label class="form-check-label fw-bold" for="selectAll">
+            Seleccionar todas las categorías
+          </label>
+        </div>
+        
+        <div class="border rounded p-3" style="max-height: 400px; overflow-y: auto;">
+          <div class="row g-3">
+            <div class="col-12 col-sm-6 col-lg-4" *ngFor="let categoria of categoriasFiltradas">
+              <label class="categoria-box d-flex align-items-center gap-2">
+                <input class="form-check-input" type="checkbox"
+                  [(ngModel)]="categoriasSeleccionadas[categoria.id]" 
+                  (change)="actualizarSeleccionarTodo()"/>
+                <span class="ms-1">{{ categoria.nombre }}</span>
+              </label>
+            </div>
+          </div>
+          <div *ngIf="categoriasFiltradas.length === 0" class="text-center text-muted py-3">
+            No se encontraron categorías que coincidan con la búsqueda
           </div>
         </div>
       </div>

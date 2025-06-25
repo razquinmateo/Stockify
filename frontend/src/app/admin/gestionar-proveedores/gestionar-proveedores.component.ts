@@ -29,7 +29,8 @@ export class GestionarProveedoresComponent implements OnInit {
   filtro: string = '';
   filtroProductos: string = '';
   paginaActual: number = 1;
-  elementosPorPagina: number = 5;
+  elementosPorPagina: number = 10;
+  maxPaginasMostradas: number = 5;
   nombreUsuarioLogueado: string = '';
 
   constructor(
@@ -293,5 +294,37 @@ export class GestionarProveedoresComponent implements OnInit {
         return producto ? producto.nombre : 'Desconocido';
       })
       .join(', ');
+  }
+
+  // Método para cambiar de página
+  cambiarPagina(pagina: number): void {
+    if (pagina >= 1 && pagina <= this.totalPaginas()) {
+      this.paginaActual = pagina;
+    }
+  }
+
+  // Método para calcular las páginas intermedias a mostrar
+  paginasMostradas(): number[] {
+    const total = this.totalPaginas();
+    const paginas: number[] = [];
+    const rango = Math.floor(this.maxPaginasMostradas / 2);
+
+    let inicio = Math.max(2, this.paginaActual - rango);
+    let fin = Math.min(total - 1, this.paginaActual + rango);
+
+    // Ajustar el rango para mantener un número fijo de páginas visibles
+    if (fin - inicio + 1 < this.maxPaginasMostradas) {
+      if (this.paginaActual < total / 2) {
+        fin = Math.min(total - 1, inicio + this.maxPaginasMostradas - 1);
+      } else {
+        inicio = Math.max(2, fin - this.maxPaginasMostradas + 2);
+      }
+    }
+
+    for (let i = inicio; i <= fin; i++) {
+      paginas.push(i);
+    }
+
+    return paginas;
   }
 }

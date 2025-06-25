@@ -540,13 +540,13 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
     async countProduct(prod: Producto): Promise<void> {
         const item = this.productosConteo.find(p => p.productoId === prod.id);
         if (!item) {
-            Swal.fire('Error', 'Producto no registrado en este conteo', 'error');
+            console.error('Producto no registrado en este conteo:', prod.nombre);
             return;
         }
         const { value, isConfirmed } = await Swal.fire<number>({
-            title: `Ingresar cantidad (esperada: ${item.cantidadEsperada})`,
+            title: prod.nombre,
             input: 'number',
-            inputLabel: prod.nombre,
+            inputLabel: `Ingresar cantidad (Esperada: ${item.cantidadEsperada})`,
             inputValue: item.cantidadContada != null ? item.cantidadContada : '',
             showCancelButton: true,
             inputValidator: (value) => {
@@ -562,7 +562,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
         const nuevaCant = Number(value);
         this.conteoProdService.update(item.id, { cantidadContada: nuevaCant }).pipe(retry(2), delay(500)).subscribe({
             next: (updated) => {
-                console.log(`Updated productoId: ${item.productoId}, cantidadContada: ${updated.cantidadContada}`);
+                console.log(`Éxito: Cantidad actualizada para ${prod.nombre} (productoId: ${item.productoId}, cantidadContada: ${updated.cantidadContada})`);
                 item.cantidadContada = updated.cantidadContada;
                 this.countedProducts.add(item.productoId);
                 const existente = this.registros.find(r => r.productoId === item.productoId);
@@ -588,9 +588,9 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
                 this.updateRegistros();
                 this.updateCategories();
                 this.saveState();
-                Swal.fire('Éxito', `Cantidad actualizada para ${prod.nombre}`, 'success');
                 const nextProductId = this.getNextUncountedProductId(this.currentCategoryId!);
                 if (nextProductId === null) {
+                    console.log(`Categoría completada: ${cat?.nombre || 'Sin Categoría'}`);
                     this.showCategoryCompletedModal();
                 } else {
                     this.currentProductId = nextProductId;
@@ -599,8 +599,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
                 }
             },
             error: (err) => {
-                console.error('Error updating conteo:', err);
-                Swal.fire('Error', 'No se pudo actualizar la cantidad en la base de datos', 'error');
+                console.error('Error al actualizar la cantidad en la base de datos:', err);
             }
         });
     }

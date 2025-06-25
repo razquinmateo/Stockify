@@ -3,6 +3,7 @@ package tipy.Stockify.business.repositories;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 import tipy.Stockify.business.entities.Categoria;
+import tipy.Stockify.business.entities.Sucursal;
 
 import java.util.List;
 import java.util.Optional;
@@ -27,4 +28,12 @@ public interface CategoriaRepository extends JpaRepository<Categoria, Long> {
 
     List<Categoria> findBySucursalIdAndActivoTrue(Long sucursalId);
     List<Categoria> findByIdInAndActivoTrueAndSucursalId(List<Long> ids, Long sucursalId);
+
+    Optional<Categoria> findByNombreIgnoreCase(String nombre);
+
+    Optional<Categoria> findByNombreIgnoreCaseAndSucursal(String nombre, Sucursal sucursal);
+
+    Optional<Categoria> findByCodigoCategoriaAndActivoTrue(String codigoCategoria);
+    Optional<Categoria> findByCodigoCategoriaAndSucursalIdAndActivoTrue(String codigoCategoria, Long sucursalId);
+
 }

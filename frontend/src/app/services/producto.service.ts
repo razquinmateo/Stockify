@@ -3,6 +3,7 @@ import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
 import { map } from 'rxjs/operators';
 import { environment } from '../../environments/environment';
+import { CategoriaService, Categoria } from './categoria.service';
 
 export interface Producto {
   id: number;
@@ -15,6 +16,7 @@ export interface Producto {
   cantidadStock: number;
   sucursalId: number;
   categoriaId: number;
+  codigoCategoria?: string;
   categoriaNombre?: string;
   activo: boolean;
   proveedorIds?: number[];
@@ -39,7 +41,10 @@ export class ProductoService {
   private categoriaUrl = `${environment.apiUrl}/categorias`;
   private proveedorUrl = `${environment.apiUrl}/proveedores`;
 
-  constructor(private http: HttpClient) { }
+  constructor(
+    private http: HttpClient,
+    private categoriaService: CategoriaService
+  ) { }
 
   obtenerTodosLosProductos(): Observable<Producto[]> {
     return this.http.get<Producto[]>(`${this.apiUrl}/all`).pipe(
@@ -81,6 +86,10 @@ export class ProductoService {
     return this.http.get<any>(`${this.categoriaUrl}/${categoriaId}`);
   }
 
+  obtenerCategoriaPorCodigoYSucursal(codigoCategoria: string, sucursalId: number): Observable<Categoria> {
+    return this.categoriaService.obtenerCategoriaPorCodigoYSucursal(codigoCategoria, sucursalId);
+  }
+
   obtenerProveedoresActivosPorSucursal(sucursalId: number): Observable<Proveedor[]> {
     return this.http.get<Proveedor[]>(`${this.proveedorUrl}/sucursal/${sucursalId}/activos`);
   }
@@ -93,8 +102,13 @@ export class ProductoService {
     return this.http.put<Producto>(`${this.apiUrl}/${producto.id}`, producto);
   }
 
-  actualizarMasivoProductos(productos: { codigosBarra: string[]; precio: number; cantidadStock: number }[]): Observable<any> {
-    return this.http.post(`${this.apiUrl}/actualizar-masivo`, productos);
+  actualizarMasivoProductos(productos: { codigoProducto: string; precio: number; cantidadStock: number }[], sucursalId: number): Observable<any> {
+    return this.http.post(`${this.apiUrl}/actualizar-masivo?sucursalId=${sucursalId}`, productos);
+  }
+
+  crearProductosSimples(productos: Partial<Producto>[], sucursalId: number): Observable<any> {
+    const url = `${this.apiUrl}/crear-simples?sucursalId=${sucursalId}`;
+    return this.http.post(url, productos);
   }
 
   private sanitizeImagen(imagen: string | null): string | null {

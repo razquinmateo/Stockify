@@ -1,3 +1,4 @@
+/* Estilos existentes */
 .disabled-btn {
   opacity: 0.6;
   cursor: not-allowed;
@@ -24,14 +25,11 @@ button.btn-outline-primary:hover {
   border-bottom: none;
 }
 
-
-/* Mejor scroll en móviles para modales con mucho contenido */
 .modal-body {
   max-height: 70vh;
   overflow-y: auto;
 }
 
-/* Tarjetas para categorías */
 .categoria-box {
   padding: 1rem;
   border: 1px solid #dee2e6;
@@ -47,4 +45,39 @@ button.btn-outline-primary:hover {
 
 .categoria-box input[type="checkbox"] {
   cursor: pointer;
+}
+
+/* Nuevos estilos para el paginador */
+.pagination {
+  margin-top: 1rem;
+  justify-content: center;
+}
+
+.page-item .page-link {
+  padding: 0.5rem 1rem;
+  margin: 0 0.2rem;
+  border-radius: 0.5rem; /* Bordes redondeados para coincidir con el diseño */
+  transition: all 0.2s ease-in-out;
+  cursor: pointer;
+  font-size: 0.9rem;
+  border: 1px solid #dee2e6;
+  color: #0d6efd;
+}
+
+.page-item.active .page-link {
+  background-color: #0d6efd;
+  border-color: #0d6efd;
+  color: white;
+}
+
+.page-item.disabled .page-link {
+  cursor: not-allowed;
+  opacity: 0.6;
+  color: #6c757d;
+  background-color: #f8f9fa;
+}
+
+.page-item .page-link:hover:not(.disabled) {
+  background-color: #e9ecef;
+  border-color: #0d6efd;
 }

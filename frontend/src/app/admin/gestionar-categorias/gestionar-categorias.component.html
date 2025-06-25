@@ -10,12 +10,8 @@
           </a>
         </li>
         <li class="nav-item">
-          <button
-            class="btn btn-link nav-link"
-            (click)="abrirModalAgregar()"
-            type="button"
-            title="Agregar una nueva categoría"
-          >
+          <button class="btn btn-link nav-link" (click)="abrirModalAgregar()" type="button"
+            title="Agregar una nueva categoría">
             <i class="bi bi-plus-circle me-1"></i> Agregar Categoría
           </button>
         </li>
@@ -26,11 +22,7 @@
         <i class="bi bi-person-circle me-1"></i>
         Administrador {{ nombreUsuarioLogueado }}
       </span>
-      <button
-        class="btn btn-outline-light btn-sm"
-        (click)="cerrarSesion()"
-        title="Cerrar sesión"
-      >
+      <button class="btn btn-outline-light btn-sm" (click)="cerrarSesion()" title="Cerrar sesión">
         <i class="bi bi-box-arrow-right me-1"></i>
         Cerrar sesión
       </button>
@@ -44,22 +36,16 @@
 
   <!-- Buscador -->
   <div class="mb-4">
-    <input
-      type="text"
-      class="form-control"
-      placeholder="Buscar por id, nombre o descripción..."
-      [(ngModel)]="filtro"
-    />
+    <input type="text" class="form-control" placeholder="Buscar por id, nombre o descripción..." [(ngModel)]="filtro" />
   </div>
 
   <!-- Tabla -->
   <div class="table-responsive">
-    <table
-      class="table table-bordered text-center align-middle"
-      *ngIf="filtrarCategorias().length > 0; else sinCategorias"
-    >
+    <table class="table table-bordered text-center align-middle"
+      *ngIf="filtrarCategorias().length > 0; else sinCategorias">
       <thead class="table-dark">
         <tr>
+          <th>Código</th>
           <th>Nombre</th>
           <th>Descripción</th>
           <th>Estado</th>
@@ -68,39 +54,27 @@
       </thead>
       <tbody>
         <tr *ngFor="let cat of obtenerCategoriasPaginadas()">
+          <td>{{ cat.codigoCategoria }}</td>
           <td>{{ cat.nombre }}</td>
           <td>{{ cat.descripcion }}</td>
           <td>
-            <span
-              class="badge"
-              [ngClass]="cat.activo ? 'bg-success' : 'bg-danger'"
-            >
+            <span class="badge" [ngClass]="cat.activo ? 'bg-success' : 'bg-danger'">
               {{ cat.activo ? 'Activo' : 'Inactivo' }}
             </span>
           </td>
           <td>
-            <button
-              class="btn btn-sm btn-warning me-2"
-              (click)="editarCategoria(cat)"
-              title="Editar categoría"
-            >
+            <button class="btn btn-sm btn-warning me-2" (click)="editarCategoria(cat)" title="Editar categoría">
               <i class="bi bi-pencil-square"></i>
             </button>
-            <button
-              class="btn btn-sm"
-              [ngClass]="cat.activo ? 'btn-danger' : 'btn-success'"
-              (click)="toggleEstadoCategoria(cat)"
-              [title]="
+            <button class="btn btn-sm" [ngClass]="cat.activo ? 'btn-danger' : 'btn-success'"
+              (click)="toggleEstadoCategoria(cat)" [title]="
                 cat.activo ? 'Desactivar categoría' : 'Activar categoría'
-              "
-            >
-              <i
-                [ngClass]="
+              ">
+              <i [ngClass]="
                   cat.activo
                     ? 'bi bi-slash-circle'
                     : 'bi bi-check-circle-fill'
-                "
-              ></i>
+                "></i>
             </button>
           </td>
         </tr>
@@ -116,33 +90,42 @@
   <!-- Paginación -->
   <nav *ngIf="totalPaginas() > 1">
     <ul class="pagination justify-content-center mt-4">
+      <!-- Botón Anterior -->
       <li class="page-item" [class.disabled]="paginaActual === 1">
-        <button
-          class="page-link"
-          (click)="paginaActual = paginaActual - 1"
-          [disabled]="paginaActual === 1"
-        >
+        <button class="page-link" (click)="cambiarPagina(paginaActual - 1)" [disabled]="paginaActual === 1">
           Anterior
         </button>
       </li>
-      <li
-        class="page-item"
-        *ngFor="let page of [].constructor(totalPaginas()); let i = index"
-        [class.active]="paginaActual === i + 1"
-      >
-        <button class="page-link" (click)="paginaActual = i + 1">
-          {{ i + 1 }}
-        </button>
+
+      <!-- Primera página -->
+      <li class="page-item" [class.active]="paginaActual === 1">
+        <button class="page-link" (click)="cambiarPagina(1)">1</button>
       </li>
-      <li
-        class="page-item"
-        [class.disabled]="paginaActual === totalPaginas()"
-      >
-        <button
-          class="page-link"
-          (click)="paginaActual = paginaActual + 1"
-          [disabled]="paginaActual === totalPaginas()"
-        >
+
+      <!-- Puntos suspensivos si hay un salto desde la primera página -->
+      <li class="page-item disabled" *ngIf="paginasMostradas()[0] > 2">
+        <span class="page-link">...</span>
+      </li>
+
+      <!-- Páginas intermedias -->
+      <li class="page-item" *ngFor="let page of paginasMostradas()" [class.active]="paginaActual === page">
+        <button class="page-link" (click)="cambiarPagina(page)">{{ page }}</button>
+      </li>
+
+      <!-- Puntos suspensivos si hay un salto hasta la última página -->
+      <li class="page-item disabled" *ngIf="paginasMostradas()[paginasMostradas().length - 1] < totalPaginas() - 1">
+        <span class="page-link">...</span>
+      </li>
+
+      <!-- Última página -->
+      <li class="page-item" [class.active]="paginaActual === totalPaginas()" *ngIf="totalPaginas() > 1">
+        <button class="page-link" (click)="cambiarPagina(totalPaginas())">{{ totalPaginas() }}</button>
+      </li>
+
+      <!-- Botón Siguiente -->
+      <li class="page-item" [class.disabled]="paginaActual === totalPaginas()">
+        <button class="page-link" (click)="cambiarPagina(paginaActual + 1)"
+          [disabled]="paginaActual === totalPaginas()">
           Siguiente
         </button>
       </li>
@@ -151,13 +134,7 @@
 </div>
 
 <!-- Modal Mejorado -->
-<div
-  class="modal fade"
-  id="categoriaModal"
-  tabindex="-1"
-  aria-labelledby="categoriaModalLabel"
-  aria-hidden="true"
->
+<div class="modal fade" id="categoriaModal" tabindex="-1" aria-labelledby="categoriaModalLabel" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered">
     <div class="modal-content border-0 shadow">
       <div class="modal-header bg-dark text-white">
@@ -165,58 +142,39 @@
           <i class="bi bi-tags-fill me-2"></i>
           {{ esEditar ? 'Editar Categoría' : 'Agregar Categoría' }}
         </h5>
-        <button
-          type="button"
-          class="btn-close btn-close-white"
-          data-bs-dismiss="modal"
-          aria-label="Cerrar"
-        ></button>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
       </div>
 
       <div class="modal-body">
         <form (ngSubmit)="guardarCategoria()">
           <div class="row g-3">
             <div class="col-12">
-              <label class="form-label"
-                >Nombre <span class="text-danger">*</span></label
-              >
-              <input
-                type="text"
-                class="form-control"
-                [(ngModel)]="categoriaSeleccionada.nombre"
-                name="nombre"
-                required
-              />
+              <label class="form-label">Código <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" [(ngModel)]="categoriaSeleccionada.codigoCategoria" name="codigoCategoria"
+                required />
+            </div>
+            <div class="col-12">
+              <label class="form-label">Nombre <span class="text-danger">*</span></label>
+              <input type="text" class="form-control" [(ngModel)]="categoriaSeleccionada.nombre" name="nombre"
+                required />
             </div>
             <div class="col-12">
               <label class="form-label">Descripción</label>
-              <textarea
-                class="form-control"
-                [(ngModel)]="categoriaSeleccionada.descripcion"
-                name="descripcion"
-                rows="3"
-              ></textarea>
+              <textarea class="form-control" [(ngModel)]="categoriaSeleccionada.descripcion" name="descripcion"
+                rows="3"></textarea>
             </div>
           </div>
         </form>
       </div>
 
       <div class="modal-footer bg-light">
-        <button
-          type="button"
-          class="btn btn-secondary"
-          data-bs-dismiss="modal"
-        >
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
           Cancelar
         </button>
-        <button
-          type="button"
-          class="btn btn-success"
-          (click)="guardarCategoria()"
-        >
+        <button type="button" class="btn btn-success" (click)="guardarCategoria()">
           {{ esEditar ? 'Guardar Cambios' : 'Agregar Categoría' }}
         </button>
       </div>
-    <div>
+    </div>
   </div>
 </div>

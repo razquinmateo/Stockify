@@ -7,6 +7,7 @@ export interface Categoria {
   id: number;
   nombre: string;
   descripcion: string;
+  codigoCategoria: string;
   sucursalId: number;
   activo: boolean;
 }
@@ -25,6 +26,14 @@ export class CategoriaService {
 
   obtenerCategoriasPorSucursal(sucursalId: number): Observable<Categoria[]> {
     return this.http.get<Categoria[]>(`${this.apiUrl}/sucursal/${sucursalId}`);
+  }
+
+  obtenerCategoriaPorCodigo(codigoCategoria: string): Observable<Categoria> {
+    return this.http.get<Categoria>(`${this.apiUrl}/codigo/${codigoCategoria}`);
+  }
+
+  obtenerCategoriaPorCodigoYSucursal(codigoCategoria: string, sucursalId: number): Observable<Categoria> {
+    return this.http.get<Categoria>(`${this.apiUrl}/codigo/${codigoCategoria}/sucursal/${sucursalId}`);
   }
 
   agregarCategoria(categoria: Categoria): Observable<Categoria> {

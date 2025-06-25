@@ -24,4 +24,6 @@ public interface SucursalRepository extends JpaRepository<Sucursal, Long> {
      * @return Optional con la sucursal activa, o vacío si no existe o está inactiva.
      */
     Optional<Sucursal> findByIdAndActivoTrue(Long id);
+
+    Optional<Sucursal> findByNombreIgnoreCase(String nombre);
 }

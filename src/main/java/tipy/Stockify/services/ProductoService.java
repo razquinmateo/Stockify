@@ -3,20 +3,11 @@ package tipy.Stockify.services;
 import org.springframework.stereotype.Service;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.HttpStatus;
-import tipy.Stockify.business.entities.Categoria;
-import tipy.Stockify.business.entities.Sucursal;
-import tipy.Stockify.business.entities.Producto;
-import tipy.Stockify.business.entities.Proveedor;
-import tipy.Stockify.business.entities.CodigoBarra;
-import tipy.Stockify.business.repositories.CategoriaRepository;
-import tipy.Stockify.business.repositories.SucursalRepository;
-import tipy.Stockify.business.repositories.ProductoRepository;
-import tipy.Stockify.business.repositories.ProveedorRepository;
+import tipy.Stockify.business.entities.*;
+import tipy.Stockify.business.repositories.*;
 import tipy.Stockify.dtos.ProductoDto;
 
-import java.util.Base64;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -26,16 +17,19 @@ public class ProductoService {
     private final SucursalRepository sucursalRepository;
     private final CategoriaRepository categoriaRepository;
     private final ProveedorRepository proveedorRepository;
+    private final EmpresaRepository empresaRepository;
 
     public ProductoService(
             ProductoRepository productoRepository,
             SucursalRepository sucursalRepository,
             CategoriaRepository categoriaRepository,
-            ProveedorRepository proveedorRepository) {
+            ProveedorRepository proveedorRepository,
+            EmpresaRepository empresaRepository) {
         this.productoRepository = productoRepository;
         this.sucursalRepository = sucursalRepository;
         this.categoriaRepository = categoriaRepository;
         this.proveedorRepository = proveedorRepository;
+        this.empresaRepository = empresaRepository;
     }
 
     public List<ProductoDto> getAllActive() {
@@ -207,18 +201,148 @@ public class ProductoService {
         }
     }
 
-    public void actualizarStockYPrecioPorCodigoBarra(String codigoBarra, Float precio, Long stock) {
-        Producto producto = productoRepository.findByCodigoBarra(codigoBarra)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Producto no encontrado con código de barra: " + codigoBarra));
+    public void actualizarStockYPrecioPorCodigoProductoSiExiste(String codigoProducto, Float precio, Long stock, Long sucursalId,
+                                                                List<String> noEncontrados, List<String> actualizados) {
+        Optional<Producto> productoOpt = productoRepository.findByCodigoProductoAndSucursalId(codigoProducto, sucursalId);
+
+        if (productoOpt.isEmpty()) {
+            noEncontrados.add(codigoProducto);
+            return;
+        }
+
+        Producto producto = productoOpt.get();
+        boolean seActualizo = false;
 
         if (precio != null && precio >= 0) {
             producto.setPrecio(precio);
-        }
-        if (stock != null && stock >= 0) {
-            producto.setCantidadStock(stock);
+            seActualizo = true;
         }
 
-        productoRepository.save(producto);
+        if (stock != null && stock >= 0) {
+            producto.setCantidadStock(stock);
+            seActualizo = true;
+        }
+
+        if (seActualizo) {
+            productoRepository.save(producto);
+            actualizados.add(codigoProducto);
+        }
+    }
+
+    public Map<String, Object> crearProductosSimples(List<ProductoDto> productos, Long sucursalIdUsuario) {
+        List<String> creados = new ArrayList<>();
+        List<String> errores = new ArrayList<>();
+
+        Sucursal sucursalUsuario = sucursalRepository.findById(sucursalIdUsuario)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sucursal no encontrada con id: " + sucursalIdUsuario));
+
+        Empresa sinEmpresa = empresaRepository.findByNombreIgnoreCase("Sin empresa")
+                .orElseGet(() -> {
+                    Empresa e = new Empresa();
+                    e.setNombre("Sin empresa");
+                    e.setRut("N/D");
+                    e.setDireccion("N/D");
+                    e.setTelefono("N/D");
+                    e.setActivo(true);
+                    return empresaRepository.save(e);
+                });
+
+        Sucursal sinSucursal = sucursalRepository.findByNombreIgnoreCase("Sin sucursal")
+                .orElseGet(() -> {
+                    Sucursal s = new Sucursal();
+                    s.setNombre("Sin sucursal");
+                    s.setDireccion("N/D");
+                    s.setTelefono("N/D");
+                    s.setActivo(true);
+                    s.setEmpresa(sinEmpresa);
+                    return sucursalRepository.save(s);
+                });
+
+        Categoria sinCategoria = categoriaRepository.findByNombreIgnoreCaseAndSucursal("Sin categoría", sucursalUsuario)
+                .orElseGet(() -> {
+                    Categoria c = new Categoria();
+                    c.setNombre("Sin categoría");
+                    c.setDescripcion("Categoría por defecto para productos sin categoría");
+                    c.setSucursal(sucursalUsuario);
+                    c.setActivo(true);
+                    c.setCodigoCategoria("DEFAULT");
+                    return categoriaRepository.save(c);
+                });
+
+        for (ProductoDto dto : productos) {
+            // Validar campos requeridos
+            if (dto.getNombre() == null || dto.getNombre().isEmpty() ||
+                    dto.getCodigosBarra() == null || dto.getCodigosBarra().isEmpty() ||
+                    dto.getPrecio() == null || dto.getPrecio() < 0 ||
+                    dto.getCantidadStock() == null || dto.getCantidadStock() < 0) {
+                errores.add(dto.getCodigoProducto() != null ? dto.getCodigoProducto() : "Producto sin código - Datos faltantes o inválidos");
+                continue;
+            }
+
+            try {
+                // Validar que los códigos de barra no estén asignados a otro producto
+                for (String codigoBarra : dto.getCodigosBarra()) {
+                    if (codigoBarra == null || codigoBarra.trim().isEmpty()) {
+                        errores.add(dto.getCodigoProducto() + " - Código de barras inválido");
+                        continue;
+                    }
+                    Optional<Producto> existingProducto = productoRepository.findByCodigoBarra(codigoBarra);
+                    if (existingProducto.isPresent()) {
+                        errores.add(dto.getCodigoProducto() + " - Código de barras " + codigoBarra + " ya está asignado a otro producto");
+                        continue;
+                    }
+                }
+
+                // Validar código de producto único
+                String codigoProducto = dto.getCodigoProducto();
+                if (codigoProducto == null || codigoProducto.trim().isEmpty()) {
+                    errores.add("Código de producto es obligatorio");
+                    continue;
+                }
+
+                if (productoRepository.findByCodigoProducto(codigoProducto).isPresent()) {
+                    errores.add(codigoProducto + " - Código de producto ya está asignado");
+                    continue;
+                }
+
+                // Determinar categoría
+                Categoria categoria = sinCategoria;
+                if (dto.getCategoriaId() != null) {
+                    categoria = categoriaRepository.findById(dto.getCategoriaId())
+                            .filter(cat -> cat.isActivo() && cat.getSucursal().getId().equals(sucursalIdUsuario))
+                            .orElseGet(() -> {
+                                errores.add(codigoProducto + " - Categoría con ID " + dto.getCategoriaId() + " no encontrada o no pertenece a la sucursal");
+                                return sinCategoria;
+                            });
+                }
+
+                // Crear el producto
+                Producto producto = new Producto();
+                producto.setNombre(dto.getNombre());
+                producto.setCodigoProducto(codigoProducto);
+                producto.setPrecio(dto.getPrecio());
+                producto.setCantidadStock(dto.getCantidadStock());
+                producto.setImagen(dto.getImagen());
+                producto.setDetalle(dto.getDetalle());
+                producto.setActivo(true);
+                producto.setCategoria(categoria);
+                producto.setSucursal(sucursalUsuario);
+
+                // Asignar códigos de barra
+                assignCodigosBarra(producto, dto.getCodigosBarra());
+
+                productoRepository.save(producto);
+                creados.add(producto.getCodigoProducto());
+            } catch (Exception e) {
+                errores.add(dto.getCodigoProducto() != null ? dto.getCodigoProducto() : "Producto sin código - " + e.getMessage());
+            }
+        }
+
+        return Map.of(
+                "mensaje", "Carga finalizada",
+                "creados", creados,
+                "errores", errores
+        );
     }
 
     public Producto mapToEntity(ProductoDto productoDto) {
@@ -238,6 +362,21 @@ public class ProductoService {
             Categoria categoria = categoriaRepository.findById(productoDto.getCategoriaId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoría no encontrada con id: " + productoDto.getCategoriaId()));
             producto.setCategoria(categoria);
+        } else {
+            // Fallback to "Sin categoría" if no categoriaId is provided
+            Sucursal sucursal = sucursalRepository.findById(productoDto.getSucursalId())
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sucursal no encontrada con id: " + productoDto.getSucursalId()));
+            Categoria sinCategoria = categoriaRepository.findByNombreIgnoreCaseAndSucursal("Sin categoría", sucursal)
+                    .orElseGet(() -> {
+                        Categoria c = new Categoria();
+                        c.setNombre("Sin categoría");
+                        c.setDescripcion("Categoría por defecto para productos sin categoría");
+                        c.setSucursal(sucursal);
+                        c.setActivo(true);
+                        c.setCodigoCategoria("DEFAULT");
+                        return categoriaRepository.save(c);
+                    });
+            producto.setCategoria(sinCategoria);
         }
         return producto;
     }
