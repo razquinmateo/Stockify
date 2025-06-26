@@ -43,28 +43,46 @@
 
 <!-- Contenido -->
 <div class="container py-5">
-  <h2 class="mb-5 text-center">Lista de Productos</h2>
+  <h2 class="mb-4 text-center">Lista de Productos</h2>
 
-  <div class="d-flex justify-content-between align-items-start mb-4 gap-3">
-    <!-- Buscador -->
-    <div class="w-50">
-      <label class="form-label d-block">Buscar producto:</label>
+  <!-- Buscador + Subida de Excel -->
+  <div class="d-flex align-items-end mb-4">
+    <!-- Filtro -->
+    <div class="flex-grow-1 me-3">
+      <label class="form-label d-block mb-1">Buscar producto:</label>
       <input type="text" class="form-control"
         placeholder="Buscar por código producto, nombre, código de barra o detalle..." [(ngModel)]="filtro"
         (ngModelChange)="filtrarProductos()" />
     </div>
 
     <!-- Subida de Excel -->
-    <div class="w-50">
-      <label class="form-label d-block text-center">Actualizar productos vía Excel (.xlsx / .xls):</label>
-      <input type="file" accept=".xlsx, .xls" (change)="onArchivoSeleccionado($event)" #fileInput class="d-none">
-      <div class="text-center">
-        <button class="btn btn-success" (click)="fileInput.click()">
-          <i class="bi bi-upload me-2"></i>
-          Subir archivo Excel
-        </button>
-      </div>
+    <div>
+      <label class="form-label d-block mb-1 text-center">
+        Actualizar/Añadir productos vía Excel (.xlsx / .xls):
+      </label>
+      <input type="file" accept=".xlsx, .xls" (change)="onArchivoSeleccionado($event)" #fileInputCat class="d-none" />
+      <button class="btn btn-success" (click)="fileInputCat.click()">
+        <i class="bi bi-upload me-2"></i>
+        Subir archivo Excel
+      </button>
     </div>
+
+    <!-- Descarga de Plantilla -->
+    <div class="text-center">
+      <label class="form-label d-block mb-1">&nbsp;</label>
+
+      <!-- Botón de descarga -->
+      <button class="btn btn-outline-secondary btn-sm" (click)="descargarPlantillaExcel()">
+        <i class="bi bi-download me-1"></i>
+        Plantilla XLS
+      </button>
+
+      <i class="bi bi-info-circle ms-2 text-secondary" tabindex="0" role="button" data-bs-toggle="tooltip"
+        data-bs-placement="top" data-bs-html="true"
+        data-bs-title="La plantilla incluye columnas para: Código Producto, Nombre, Códigos de Barra (separados por comas), Detalles/Observaciones, Precio, Stock, Categoría y Proveedor(es) (nombres separados por comas).<br><br><strong>⚠️ Importante:</strong> Ingrese los datos como <u>Texto</u> para evitar que Excel elimine ceros a la izquierda o convierta números largos a formato científico. Use <em>Formato &gt; Número &gt; Texto Plano</em> en Excel.">
+      </i>
+    </div>
+
   </div>
 
   <!-- Tabla -->

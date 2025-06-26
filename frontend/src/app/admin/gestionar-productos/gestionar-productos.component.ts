@@ -55,6 +55,13 @@ export class GestionarProductosComponent implements OnInit {
     this.cargarDatosIniciales();
   }
 
+  ngAfterViewInit(): void {
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.forEach((tooltipTriggerEl) => {
+      new bootstrap.Tooltip(tooltipTriggerEl);
+    });
+  }
+
   onArchivoSeleccionado(event: any): void {
     const archivo = event.target.files[0];
     if (!archivo) return;
@@ -76,7 +83,7 @@ export class GestionarProductosComponent implements OnInit {
           const valor = prod[clave];
           const claveLower = clave.toLowerCase().trim();
 
-          if (['codigoproducto', 'código producto', 'codigo producto', 'product code'].includes(claveLower)) {
+          if (['codigoproducto', 'código producto', 'Código Producto', 'codigo producto', 'product code'].includes(claveLower)) {
             productoNormalizado.codigoProducto = String(valor).trim();
           } else if (['precio', 'precio unitario'].includes(claveLower)) {
             if (typeof valor === 'number' && valor > 40000) {
@@ -86,7 +93,7 @@ export class GestionarProductosComponent implements OnInit {
               const textoPrecio = String(valor).replace(',', '.');
               productoNormalizado.precio = parseFloat(textoPrecio);
             }
-          } else if (['stock', 'cantidad', 'cantidad stock', 'existencia'].includes(claveLower)) {
+          } else if (['stock', 'cantidad', 'cantidad stock', 'existencia', 'Cantidad Contada'].includes(claveLower)) {
             productoNormalizado.cantidadStock = typeof valor === 'number' ? valor : parseInt(valor, 10);
           } else if (['nombre', 'producto', 'descripcion'].includes(claveLower)) {
             productoNormalizado.nombre = String(valor).trim();
@@ -97,10 +104,14 @@ export class GestionarProductosComponent implements OnInit {
               .split(',')
               .map((c: string) => c.trim())
               .filter((c: string) => c.length > 0);
-          } else if (['categoria', 'idcategoria', 'categoría', 'id categoría', 'codigocategoria', 'código categoría', 'category code'].includes(claveLower)) {
+          } else if (['categoria', 'idcategoria', 'categoría', 'id categoría', 'codigocategoria', 'codigo categoría', 'category code'].includes(claveLower)) {
             productoNormalizado.codigoCategoria = String(valor).trim();
           } else if (['proveedor', 'nombre proveedor', 'nombre del proveedor', 'supplier', 'supplier name'].includes(claveLower)) {
-            productoNormalizado.nombreProveedor = String(valor).trim();
+            // Split multiple provider names by ", "
+            productoNormalizado.nombreProveedor = String(valor)
+              .split(', ')
+              .map((p: string) => p.trim())
+              .filter((p: string) => p.length > 0);
           } else {
             productoNormalizado[claveLower] = valor;
           }
@@ -161,7 +172,7 @@ export class GestionarProductosComponent implements OnInit {
       return;
     }
 
-    // Fetch categoriaId and proveedorId for each product
+    // Fetch categoriaId and proveedorIds for each product
     const requests = productosValidos.map(prod => {
       const categoriaRequest = prod.codigoCategoria
         ? this.productoService.obtenerCategoriaPorCodigoYSucursal(prod.codigoCategoria, sucursalId).pipe(
@@ -170,18 +181,20 @@ export class GestionarProductosComponent implements OnInit {
         )
         : of({ categoriaId: null });
 
-      const proveedorRequest = prod.nombreProveedor
-        ? this.productoService.obtenerProveedorPorNombre(prod.nombreProveedor).pipe(
-          map(proveedor => ({ proveedorId: proveedor.id })),
-          catchError(() => of({ proveedorId: null }))
+      const proveedorRequests = prod.nombreProveedor && Array.isArray(prod.nombreProveedor)
+        ? prod.nombreProveedor.map((nombre: string) =>
+          this.productoService.obtenerProveedorPorNombre(nombre).pipe(
+            map(proveedor => proveedor.id),
+            catchError(() => of(null))
+          )
         )
-        : of({ proveedorId: null });
+        : [of(null)];
 
-      return forkJoin([categoriaRequest, proveedorRequest]).pipe(
-        map(([categoria, proveedor]) => ({
+      return forkJoin([categoriaRequest, ...proveedorRequests]).pipe(
+        map(([categoria, ...proveedorIds]) => ({
           ...prod,
           categoriaId: categoria.categoriaId,
-          proveedorId: proveedor.proveedorId
+          proveedorIds: proveedorIds.filter(id => id !== null) as number[]
         }))
       );
     });
@@ -198,7 +211,7 @@ export class GestionarProductosComponent implements OnInit {
           imagen: p.imagen ?? null,
           detalle: p.detalle ?? null,
           categoriaId: p.categoriaId,
-          proveedorIds: p.proveedorId ? [p.proveedorId] : [], // Include proveedorId if found
+          proveedorIds: p.proveedorIds ?? [],
         }));
 
         this.productoService.actualizarMasivoProductos(productosParaActualizar, sucursalId).subscribe({
@@ -283,7 +296,7 @@ export class GestionarProductosComponent implements OnInit {
                     detalle: p.detalle ?? null,
                     codigoProducto: p.codigoProducto,
                     categoriaId: p.categoriaId,
-                    proveedorIds: p.proveedorId ? [p.proveedorId] : [], // Include proveedorId if found
+                    proveedorIds: p.proveedorIds ?? [],
                   }));
 
                   if (productosParaAgregar.length === 0) {
@@ -786,4 +799,34 @@ export class GestionarProductosComponent implements OnInit {
 
     return paginas;
   }
+
+  descargarPlantillaExcel(): void {
+    const columnas = [
+      'codigo producto',
+      'nombre',
+      'codigo de barras',
+      'precio',
+      'stock',
+      'codigo categoría',
+      'nombre proveedor'
+    ];
+
+    const ws: XLSX.WorkSheet = XLSX.utils.json_to_sheet([], { header: columnas });
+
+    // ancho de las columnas
+    ws['!cols'] = [
+      { wch: 20 }, // codigo producto
+      { wch: 30 }, // nombre
+      { wch: 25 }, // codigo de barras
+      { wch: 10 }, // precio
+      { wch: 10 }, // stock
+      { wch: 20 }, // codigo categoría
+      { wch: 25 }  // nombre proveedor
+    ];
+
+    const wb: XLSX.WorkBook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Plantilla Productos');
+    XLSX.writeFile(wb, 'Plantilla_Productos.xlsx');
+  }
+
 }

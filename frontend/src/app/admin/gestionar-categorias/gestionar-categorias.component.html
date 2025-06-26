@@ -34,9 +34,44 @@
 <div class="container py-5">
   <h2 class="mb-4 text-center">Lista de Categorías</h2>
 
-  <!-- Buscador -->
-  <div class="mb-4">
-    <input type="text" class="form-control" placeholder="Buscar por id, nombre o descripción..." [(ngModel)]="filtro" />
+  <!-- Buscador + Subida de Excel -->
+  <div class="d-flex align-items-end mb-4">
+    <!-- Filtro -->
+    <div class="flex-grow-1 me-3">
+      <label class="form-label d-block mb-1">Buscar por id, nombre o descripción:</label>
+      <input type="text" class="form-control" placeholder="Buscar por id, nombre o descripción..." [(ngModel)]="filtro"
+        (ngModelChange)="filtrarCategorias()" />
+    </div>
+
+    <!-- Subida de Excel -->
+    <div>
+      <label class="form-label d-block mb-1 text-center">
+        Importar categorías vía Excel (.xlsx / .xls):
+      </label>
+      <input type="file" accept=".xlsx, .xls" (change)="onArchivoSeleccionado($event)" #fileInputCat class="d-none" />
+      <button class="btn btn-success" (click)="fileInputCat.click()">
+        <i class="bi bi-upload me-2"></i>
+        Subir categorías vía Excel
+      </button>
+    </div>
+
+    <!-- Descarga de Plantilla -->
+    <div class="text-center">
+      <label class="form-label d-block mb-1">&nbsp;</label>
+
+      <!-- Botón de descarga -->
+      <button class="btn btn-outline-secondary btn-sm" (click)="downloadPlantilla()">
+        <i class="bi bi-download me-1"></i>
+        Plantilla XLS
+      </button>
+
+      <!-- Icono de info con tooltip -->
+      <i class="bi bi-info-circle ms-2 text-secondary" tabindex="0" role="button" data-bs-toggle="tooltip"
+        data-bs-placement="top" data-bs-html="true"
+        data-bs-title="⚠️ Si vas a usar códigos con ceros a la izquierda (ej. <code>0001</code>), asegurate de que la columna <strong>'codigo_categoria'</strong> esté formateada como <u>Texto</u> en Excel.<br><br>En Excel: <em>Formato &gt; Número &gt; Texto</em>.">
+      </i>
+    </div>
+
   </div>
 
   <!-- Tabla -->
@@ -150,8 +185,8 @@
           <div class="row g-3">
             <div class="col-12">
               <label class="form-label">Código <span class="text-danger">*</span></label>
-              <input type="text" class="form-control" [(ngModel)]="categoriaSeleccionada.codigoCategoria" name="codigoCategoria"
-                required />
+              <input type="text" class="form-control" [(ngModel)]="categoriaSeleccionada.codigoCategoria"
+                name="codigoCategoria" required />
             </div>
             <div class="col-12">
               <label class="form-label">Nombre <span class="text-danger">*</span></label>
