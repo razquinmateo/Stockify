@@ -35,9 +35,37 @@
   <h2 class="mb-5 text-center">Lista de Proveedores</h2>
 
   <!-- Buscador -->
-  <div class="mb-4">
-    <input type="text" class="form-control" placeholder="Buscar por nombre, RUT, dirección o vendedor..."
-      [(ngModel)]="filtro" (ngModelChange)="filtrarProveedores()" />
+  <div class="mb-4 d-flex justify-content-between align-items-end">
+    <!-- Buscador -->
+    <div class="flex-grow-1 me-3">
+      <input type="text" class="form-control" placeholder="Buscar por nombre, RUT, dirección o vendedor..."
+        [(ngModel)]="filtro" (ngModelChange)="filtrarProveedores()" />
+    </div>
+
+    <!-- Botones Excel -->
+    <div class="d-flex align-items-end">
+      <!-- Importar Excel -->
+      <div class="me-2 text-center">
+        <label class="form-label d-block mb-1">
+          Importar categorías vía Excel (.xlsx / .xls):
+        </label>
+        <input #fileInputProv type="file" accept=".xlsx, .xls" class="d-none"
+          (change)="onArchivoSeleccionado($event)" />
+        <button class="btn btn-success btn-sm" (click)="fileInputProv.click()">
+          <i class="bi bi-upload me-1"></i>
+          Subir categorías vía Excel
+        </button>
+      </div>
+
+      <!-- Descargar plantilla -->
+      <div class="text-center">
+        <label class="form-label d-block mb-1">&nbsp;</label>
+        <button class="btn btn-outline-secondary btn-sm" (click)="downloadPlantilla()">
+          <i class="bi bi-download me-1"></i>
+          Plantilla XLS
+        </button>
+      </div>
+    </div>
   </div>
 
   <!-- Tabla -->

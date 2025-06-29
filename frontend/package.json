@@ -21,6 +21,7 @@
     "@stomp/stompjs": "^7.1.1",
     "@sweetalert2/ngx-sweetalert2": "^13.0.0",
     "@zxing/browser": "^0.1.5",
+    "@zxing/library": "^0.21.3",
     "bcryptjs": "^3.0.2",
     "bootstrap": "^5.3.6",
     "bootstrap-icons": "^1.12.1",

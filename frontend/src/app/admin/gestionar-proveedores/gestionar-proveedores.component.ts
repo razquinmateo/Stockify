@@ -1,4 +1,4 @@
-import { Component, OnInit } from '@angular/core';
+import { Component, ElementRef, OnInit, ViewChild } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { RouterModule } from '@angular/router';
@@ -8,8 +8,9 @@ import { ProductoService, Producto } from '../../services/producto.service';
 import { AuthService } from '../../auth.service';
 import { Router } from '@angular/router';
 import Swal from 'sweetalert2';
-import { forkJoin } from 'rxjs';
+import { catchError, forkJoin, of } from 'rxjs';
 import { HttpErrorResponse } from '@angular/common/http';
+import * as XLSX from 'xlsx';
 
 declare var bootstrap: any;
 
@@ -21,6 +22,8 @@ declare var bootstrap: any;
   styleUrls: ['./gestionar-proveedores.component.css']
 })
 export class GestionarProveedoresComponent implements OnInit {
+  @ViewChild('fileInputProv') fileInputProv!: ElementRef<HTMLInputElement>;
+
   proveedores: Proveedor[] = [];
   proveedorSeleccionado: Proveedor = this.resetProveedor();
   productos: Producto[] = [];
@@ -32,13 +35,21 @@ export class GestionarProveedoresComponent implements OnInit {
   elementosPorPagina: number = 10;
   maxPaginasMostradas: number = 5;
   nombreUsuarioLogueado: string = '';
+  // Array donde se almacenan los datos limpios del Excel de proveedores
+  proveedoresExcel: {
+    nombre: string;
+    nombreVendedor: string;
+    rut: string;
+    telefono: string;
+  }[] = [];
+
 
   constructor(
     private proveedorService: ProveedorService,
     private productoService: ProductoService,
     private authService: AuthService,
     private router: Router
-  ) {}
+  ) { }
 
   ngOnInit(): void {
     this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
@@ -49,7 +60,8 @@ export class GestionarProveedoresComponent implements OnInit {
     const sucursalId = this.authService.getSucursalId();
     if (sucursalId !== null) {
       forkJoin({
-        proveedores: this.proveedorService.obtenerProveedoresPorSucursal(sucursalId),
+        //proveedores: this.proveedorService.obtenerProveedoresPorSucursal(sucursalId),
+        proveedores: this.proveedorService.obtenerProveedores(),
         productos: this.productoService.obtenerProductosActivosPorSucursal(sucursalId)
       }).subscribe({
         next: ({ proveedores, productos }) => {
@@ -263,7 +275,7 @@ export class GestionarProveedoresComponent implements OnInit {
       this.proveedorSeleccionado.productoIds!.includes(producto.id) &&
       (this.filtroProductos
         ? producto.nombre.toLowerCase().includes(this.filtroProductos.toLowerCase()) ||
-          (producto.detalle && producto.detalle.toLowerCase().includes(this.filtroProductos.toLowerCase()))
+        (producto.detalle && producto.detalle.toLowerCase().includes(this.filtroProductos.toLowerCase()))
         : true)
     );
   }
@@ -327,4 +339,166 @@ export class GestionarProveedoresComponent implements OnInit {
 
     return paginas;
   }
+
+  onArchivoSeleccionado(event: any): void {
+    const archivo = event.target.files[0];
+    if (!archivo) return;
+
+    const lector = new FileReader();
+    lector.onload = (e: any) => {
+      const data = new Uint8Array(e.target.result);
+      const workbook = XLSX.read(data, { type: 'array' });
+      const hoja = workbook.Sheets[workbook.SheetNames[0]];
+      const raw: any[] = XLSX.utils.sheet_to_json(hoja, { defval: null });
+
+      // Normalizar claves y limpiar datos para proveedores
+      this.proveedoresExcel = raw
+        .map((row: any) => {
+          const prov: any = {};
+
+          for (const clave in row) {
+            const valor = row[clave];
+            const claveLower = clave.toLowerCase().trim();
+
+            // Nombre del proveedor
+            if (['nombre'].includes(claveLower)) {
+              prov.nombre = String(valor ?? '').trim();
+            }
+            // Direccion del proveedor
+            else if (['direccion', 'dirección', 'address'].includes(claveLower)) {
+              prov.direccion = String(valor ?? '').trim();
+            }
+            // Nombre del vendedor
+            else if (['nombre_vendedor', 'nombre vendedor', 'vendedor'].includes(claveLower)) {
+              prov.nombreVendedor = String(valor ?? '').trim();
+            }
+            // RUT
+            else if (['rut'].includes(claveLower)) {
+              prov.rut = String(valor ?? '').trim();
+            }
+            // Teléfono
+            else if (['telefono', 'teléfono', 'phone'].includes(claveLower)) {
+              prov.telefono = String(valor ?? '').trim();
+            }
+            // puedes añadir más variantes si las cabeceras cambian
+          }
+
+          return prov;
+        })
+        .filter(p => p.rut && p.nombre);
+      // Sólo filas con todos los campos obligatorios
+      /*.filter(p =>
+        p.nombre &&
+        p.direccion &&
+        p.nombreVendedor &&
+        p.rut &&
+        p.telefono
+      );*/
+
+      // Llama a tu manejador de importación y resetea el input
+      this._handleExcelProveedores();
+      this.fileInputProv.nativeElement.value = '';
+    };
+    lector.readAsArrayBuffer(archivo);
+  }
+
+
+  private _handleExcelProveedores(): void {
+    // 1) Descarga la lista actual de proveedores activos
+    this.proveedorService.obtenerProveedores()
+      .subscribe({
+        next: current => {
+          this.proveedores = current;
+
+          // 2) Limpieza de RUT para comparar sin guiones, puntos ni mayúsculas
+          const cleanRut = (rut: string) =>
+            rut.toLowerCase().replace(/[^0-9kK]/g, '').trim();
+
+          const rutsExistentes = this.proveedores.map(p => cleanRut(p.rut));
+
+          // 3) Detectar sólo los nuevos
+          const faltantes = this.proveedoresExcel.filter(ep =>
+            !rutsExistentes.includes(cleanRut(ep.rut))
+          );
+
+          if (!faltantes.length) {
+            Swal.fire('Info', 'Todos los proveedores ya existen.', 'info');
+            return;
+          }
+
+          // 4) Mostrar lista y pedir confirmación
+          const listaHtml = faltantes
+            .map(p => `<li>${p.nombre} – ${p.rut}</li>`)
+            .join('');
+
+          Swal.fire({
+            title: 'Proveedores nuevos detectados',
+            html: `
+            <p>Se encontraron ${faltantes.length} proveedores nuevos:</p>
+            <ul style="text-align:left">${listaHtml}</ul>
+          `,
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Crear proveedores'
+          }).then(res => {
+            if (!res.isConfirmed) return;
+
+            // 5) Crear cada uno en paralelo
+            const calls = faltantes.map(p => {
+              const dto: any = {
+                id: 0,
+                nombre: p.nombre,
+                nombreVendedor: p.nombreVendedor,
+                rut: p.rut,
+                telefono: p.telefono,
+                activo: true
+              };
+              return this.proveedorService.crearProveedor(dto)
+                .pipe(catchError(() => of(null)));
+            });
+
+            // 6) Ejecutar y recargar la tabla al terminar
+            forkJoin(calls).subscribe(results => {
+              const exitosos = results.filter(r => r != null).length;
+              Swal.fire('Hecho', `Se crearon ${exitosos} proveedores.`, 'success');
+              // recarga final
+              this.proveedorService.obtenerProveedores()
+                .subscribe(data => this.proveedores = data);
+            });
+          });
+        },
+        error: err => {
+          console.error('Error cargando proveedores', err);
+          Swal.fire('Error', 'No se pudieron leer los proveedores actuales.', 'error');
+        }
+      });
+  }
+  downloadPlantilla(): void {
+    // Creamos un libro nuevo
+    const wb = XLSX.utils.book_new();
+    // Definimos la hoja con sólo una fila de encabezados para proveedores
+    const ws = XLSX.utils.aoa_to_sheet([[
+      'nombre', 'direccion', 'nombre_vendedor', 'rut', 'telefono'
+    ]]);
+    XLSX.utils.book_append_sheet(wb, ws, 'Proveedores');
+    // Ajustamos anchos de columna
+    (ws['!cols'] as any) = [
+      { wch: 20 },  // nombre
+      { wch: 30 },  // direccion
+      { wch: 25 },  // nombre_vendedor
+      { wch: 15 },  // rut
+      { wch: 15 }   // telefono
+    ];
+    // Generamos el binario en formato XLS
+    const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
+    const blob = new Blob([wbout], { type: 'application/vnd.ms-excel' });
+    // Forzamos la descarga
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'plantilla_proveedores.xls';
+    a.click();
+    window.URL.revokeObjectURL(url);
+  }
+
 }
