@@ -1,5 +1,3 @@
-// src/app/auth.service.ts
-
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders } from '@angular/common/http';
 import { Observable } from 'rxjs';
@@ -112,7 +110,7 @@ export class AuthService {
     return '';
   }
 
-  /** 1) Recupera TODOS los usuarios */
+  /** Recupera TODOS los usuarios */
   getAllUsuarios(): Observable<UsuarioDto[]> {
     return this.http.get<UsuarioDto[]>(
       `${this.baseUrl}/usuarios/all`

@@ -81,7 +81,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
 
-    // Load usuarioId
+    // cargar usuarioId
     this.usuarioService.getUsuarios().subscribe({
       next: (usuarios) => {
         const usuario = usuarios.find(u => u.nombreUsuario === this.nombreUsuarioLogueado);
@@ -99,7 +99,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
       }
     });
 
-    // Initialize barcode scanner
+    // inicializare scanner de codigo d barra
     window.addEventListener('keydown', this.handleScannerKey);
 
     navigator.mediaDevices.getUserMedia({ video: true })
@@ -118,24 +118,23 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
         Swal.fire('Error', 'No se pudo acceder a las cámaras', 'error');
       });
 
-    // Load registros from localStorage
+    // cargamos registros del localstorage
     const saved = localStorage.getItem(`registros_${this.nombreUsuarioLogueado}`);
     if (saved) {
       this.registros = JSON.parse(saved);
-      // Initialize productosConteo from registros
       this.productosConteo = this.registros.map(r => ({
-        id: 0, // ID will be updated via WebSocket
+        id: 0, 
         conteoId: this.conteoId,
         productoId: r.productoId,
         cantidadEsperada: r.cantidadEsperada,
         cantidadContada: r.cantidadContada,
-        precioActual: 0, // Will be updated via WebSocket
+        precioActual: 0,
         activo: true
       }));
       this.cdr.detectChanges();
     }
 
-    // Load productos
+    // cargamos productos
     const sucursalId = this.authService.getSucursalId();
     if (sucursalId == null) {
       Swal.fire('Error', 'No se pudo obtener el ID de la sucursal', 'error');
@@ -150,10 +149,10 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
       error: () => Swal.fire('Error', 'No se pudo cargar el catálogo de productos activos de la sucursal', 'error')
     });
 
-    // WebSocket subscriptions
+    // subs a WebSocket 
     this.wsSubs.push(
       this.wsService.onConteoProductoActualizado().subscribe(msg => {
-        console.log('WebSocket ConteoProductoMensaje received:', msg); // Debug log
+        console.log('WebSocket ConteoProductoMensaje received:', msg);
         if (msg.conteoId === this.conteoId) {
           const prod = this.allProductos.find(p => p.id === msg.productoId);
           if (prod) {
@@ -192,8 +191,8 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
                 activo: msg.activo
               });
             }
-            console.log('Updated productosConteo:', this.productosConteo); // Debug log
-            console.log('Updated registros:', this.registros); // Debug log
+            console.log('Updated productosConteo:', this.productosConteo);
+            console.log('Updated registros:', this.registros);
             this.cdr.detectChanges();
           } else {
             console.warn(`Producto ${msg.productoId} not found in allProductos`);
@@ -206,7 +205,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
 
     this.wsSubs.push(
       this.wsService.onConteoFinalizado().subscribe(msg => {
-        console.log('WebSocket ConteoFinalizado received:', msg); // Debug log
+        console.log('WebSocket ConteoFinalizado received:', msg); 
         localStorage.removeItem(this.STORAGE_KEY);
         localStorage.removeItem(`registros_${this.nombreUsuarioLogueado}`);
         this.registros = [];
@@ -360,7 +359,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
       try {
         item = await lastValueFrom(this.conteoProdService.create(nuevo));
         this.productosConteo.push(item!);
-        console.log('Created new ConteoProducto:', item); // Debug log
+        console.log('Created new ConteoProducto:', item);
         this.cdr.detectChanges();
       } catch {
         await Swal.fire('Error', 'No se pudo crear registro de conteo', 'error');
@@ -421,7 +420,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
               localStorage.setItem(key, JSON.stringify(sinEste));
             }
           }
-          console.log('Updated registros after scan:', this.registros); // Debug log
+          console.log('Updated registros after scan:', this.registros);
           this.codigoIngresado = '';
           this.cdr.detectChanges();
           this.registrarParticipante();
@@ -584,7 +583,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
       }).then(async (result) => {
         if (result.isConfirmed) {
           try {
-            // Create ConteoProducto records for uncounted products with cantidadContada: 0
+            // crear productoconteo para productos in contar con cantidad contada: 0
             for (const prod of productosNoContados) {
               const nuevo: Partial<ConteoProducto> = {
                 conteoId: this.conteoActual!.id,
@@ -597,7 +596,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
               const item = await lastValueFrom(this.conteoProdService.create(nuevo));
               this.productosConteo.push(item!);
 
-              // Update registros
+              // actualizamos registros
               const reg: RegistroConteo = {
                 productoId: prod.id,
                 codigoProducto: prod.codigoProducto,
@@ -610,11 +609,11 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
               };
               this.registros.push(reg);
             }
-            // Save updated registros to localStorage
+            // guardamos los registros actualizaos en localstorage
             localStorage.setItem(`registros_${this.nombreUsuarioLogueado}`, JSON.stringify(this.registros));
             this.cdr.detectChanges();
 
-            // Finalize the count
+            // finalizamos el conteo
             this.conteoService.update(this.conteoActual!.id, { conteoFinalizado: true }).subscribe({
               next: () => {
                 Swal.fire({

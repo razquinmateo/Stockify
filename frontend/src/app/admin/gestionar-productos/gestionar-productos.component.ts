@@ -75,7 +75,6 @@ export class GestionarProductosComponent implements OnInit {
 
       let detectoErrorFecha = false;
 
-      // Normalizar claves y limpiar datos
       this.productosExcel = productosExcelRaw.map((prod: any) => {
         const productoNormalizado: any = {};
 
@@ -107,7 +106,7 @@ export class GestionarProductosComponent implements OnInit {
           } else if (['categoria', 'idcategoria', 'categoría', 'id categoría', 'codigocategoria', 'codigo categoría', 'category code'].includes(claveLower)) {
             productoNormalizado.codigoCategoria = String(valor).trim();
           } else if (['proveedor', 'nombre proveedor', 'nombre del proveedor', 'supplier', 'supplier name'].includes(claveLower)) {
-            // Split multiple provider names by ", "
+            // separamos multiples nombres de proveedor medidante las ", "
             productoNormalizado.nombreProveedor = String(valor)
               .split(', ')
               .map((p: string) => p.trim())
@@ -120,12 +119,12 @@ export class GestionarProductosComponent implements OnInit {
         return productoNormalizado;
       });
 
-      // Validar productos válidos
+      // validar productos válidos
       const productosValidos = this.productosExcel.filter(
         (p) => p.codigoProducto && (typeof p.precio === 'number' || typeof p.cantidadStock === 'number')
       );
 
-      // Mostrar alertas según corresponda
+      // mostrar alertas según corresponda
       if (detectoErrorFecha) {
         Swal.fire({
           icon: 'warning',
@@ -172,7 +171,7 @@ export class GestionarProductosComponent implements OnInit {
       return;
     }
 
-    // Fetch categoriaId and proveedorIds for each product
+    // Fetch categoriaId y proveedorIds para cada producto
     const requests = productosValidos.map(prod => {
       const categoriaRequest = prod.codigoCategoria
         ? this.productoService.obtenerCategoriaPorCodigoYSucursal(prod.codigoCategoria, sucursalId).pipe(
@@ -201,7 +200,7 @@ export class GestionarProductosComponent implements OnInit {
 
     forkJoin(requests).subscribe({
       next: (productosConIds) => {
-        // Mapear productos al formato esperado por el backend
+        // mapeamos productos al formato esperado por el backend
         const productosParaActualizar = productosConIds.map((p) => ({
           codigoProducto: p.codigoProducto,
           precio: p.precio,
@@ -249,7 +248,7 @@ export class GestionarProductosComponent implements OnInit {
                 if (result.isConfirmed) {
                   const codigosNoEncontradosSet = new Set(noEncontrados.map((c: string) => c.toString().trim()));
 
-                  // Detectar productos con precio inválido
+                  // detectar productos con precio inválido
                   const productosExcluidosPorPrecioInvalido = productosConIds.filter((p) =>
                     codigosNoEncontradosSet.has(p.codigoProducto.toString().trim()) &&
                     (p.precio === null || typeof p.precio !== 'number' || isNaN(p.precio) || p.precio < 0)
@@ -276,7 +275,7 @@ export class GestionarProductosComponent implements OnInit {
                     });
                   }
 
-                  // Filtrar productos válidos para agregar
+                  // filtrar productos válidos para agregar
                   const productosFiltrados = productosConIds.filter((p) => {
                     const codigoNoEncontrado = codigosNoEncontradosSet.has(p.codigoProducto.toString().trim());
                     const tieneNombre = typeof p.nombre === 'string' && p.nombre.trim().length > 0;
@@ -356,7 +355,7 @@ export class GestionarProductosComponent implements OnInit {
       forkJoin({
         productos: this.productoService.obtenerTodosLosProductos(),
         categorias: this.categoriaService.obtenerTodasLasCategorias(),
-        proveedores: this.productoService.obtenerProveedoresActivosPorSucursal(sucursalId)
+        proveedores: this.productoService.obtenerProveedores()
       }).subscribe({
         next: ({ productos, categorias, proveedores }) => {
           this.categorias = categorias.filter(cat => cat.sucursalId === sucursalId);
@@ -587,7 +586,7 @@ export class GestionarProductosComponent implements OnInit {
         this.cerrarCamara();
       },
       error: (err: HttpErrorResponse) => {
-        console.log('Error del servidor:', err.status, err.error); // Para depuración
+        console.log('Error del servidor:', err.status, err.error);
         let errorMessage = 'No se pudo ' + (this.esEditar ? 'actualizar' : 'agregar') + ' el producto';
 
         if (err.status === 400) {

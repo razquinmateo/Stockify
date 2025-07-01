@@ -338,7 +338,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
                     }
                 }
 
-                // Ordenar productos dentro de cada categoría por productoId
+                // ordenamos productos dentro de cada categoría por productoId
                 for (const [categoriaId, productos] of this.conteoProductosByCategory) {
                     this.conteoProductosByCategory.set(
                         categoriaId,
@@ -532,7 +532,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
 
     private getNextUncountedProductId(categoryId: number): number | null {
         const conteoProductos = (this.conteoProductosByCategory.get(categoryId) || [])
-            .sort((a, b) => a.productoId - b.productoId); // Ordenar por productoId
+            .sort((a, b) => a.productoId - b.productoId);
         const uncounted = conteoProductos.find(cp => !this.countedProducts.has(cp.productoId));
         return uncounted ? uncounted.productoId : null;
     }
@@ -781,7 +781,7 @@ export class ConteoCategoriasComponent implements OnInit, OnDestroy {
     get currentProductIndex(): number {
         if (!this.currentCategoryId || !this.currentProductId) return 0;
         const conteoProductos = (this.conteoProductosByCategory.get(this.currentCategoryId) || [])
-            .sort((a, b) => a.productoId - b.productoId); // Ordenar por productoId
+            .sort((a, b) => a.productoId - b.productoId);
         const index = conteoProductos.findIndex(cp => cp.productoId === this.currentProductId);
         return index >= 0 ? index + 1 : 0;
     }

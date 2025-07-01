@@ -217,10 +217,10 @@ export class EstadisticasComponent implements OnInit {
                 format: 'a4'
             });
 
-            // Configurar fuente
+            // fuente
             doc.setFont('helvetica', 'normal');
 
-            // Encabezado
+            // encabezado
             doc.setFontSize(10);
             doc.setTextColor(100);
             doc.text('Stockify', 14, 15);
@@ -236,14 +236,14 @@ export class EstadisticasComponent implements OnInit {
             doc.text(`Período: ${this.fechaDesde} a ${this.fechaHasta}`, 14, 41);
             doc.text(`Generado por: ${this.nombreUsuarioLogueado}`, 14, 49);
 
-            // Línea divisoria
+            // línea divisoria
             doc.setDrawColor(200);
             doc.setLineWidth(0.5);
             doc.line(14, 54, 196, 54);
 
             let yPosition = 64;
 
-            // Resumen General
+            // resumen General
             doc.setFontSize(14);
             doc.setFont('helvetica', 'bold');
             doc.text('Resumen General', 14, yPosition);
@@ -265,14 +265,14 @@ export class EstadisticasComponent implements OnInit {
             doc.text(`Dinero Sobrante Total: $${totalDineroSobrante.toFixed(2)}`, 14, yPosition);
             yPosition += 10;
 
-            // Línea divisoria
+            // línea divisoria
             doc.setDrawColor(200);
             doc.setLineWidth(0.5);
             doc.line(14, yPosition, 196, yPosition);
             yPosition += 10;
 
             if (this.masFaltaron.length > 0) {
-                // Fetch productos for masFaltaron
+                // fetch productos por faltantes
                 const productosFaltantesObs: Observable<Producto>[] = this.masFaltaron.map(item =>
                     this.productoService.obtenerProductoPorId(item.productoId)
                 );
@@ -321,7 +321,7 @@ export class EstadisticasComponent implements OnInit {
             }
 
             if (this.masSobrantes.length > 0) {
-                // Fetch productos for masSobrantes
+                // fetch productos por sobrantes
                 const productosSobrantesObs: Observable<Producto>[] = this.masSobrantes.map(item =>
                     this.productoService.obtenerProductoPorId(item.productoId)
                 );
@@ -494,7 +494,7 @@ export class EstadisticasComponent implements OnInit {
                 yPosition = (doc as any).lastAutoTable.finalY + 15;
             }
 
-            // Agregar pie de página a todas las páginas
+            // pie de página a todas las páginas
             const pageCount = doc.getNumberOfPages();
             for (let i = 1; i <= pageCount; i++) {
                 doc.setPage(i);

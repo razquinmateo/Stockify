@@ -90,7 +90,7 @@ public class ProductoController {
         List<String> noEncontrados = new ArrayList<>();
 
         for (ProductoDto dto : productos) {
-            // Validar que el DTO tenga un código de producto
+            // validamos que el DTO tenga un código de producto
             if (dto.getCodigoProducto() == null || dto.getCodigoProducto().trim().isEmpty()) {
                 noEncontrados.add("Producto sin código de producto");
                 continue;

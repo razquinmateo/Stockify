@@ -35,7 +35,7 @@ export class GestionarProveedoresComponent implements OnInit {
   elementosPorPagina: number = 10;
   maxPaginasMostradas: number = 5;
   nombreUsuarioLogueado: string = '';
-  // Array donde se almacenan los datos limpios del Excel de proveedores
+  // array donde se almacenan los datos limpios del Excel de proveedores
   proveedoresExcel: {
     nombre: string;
     nombreVendedor: string;
@@ -308,14 +308,13 @@ export class GestionarProveedoresComponent implements OnInit {
       .join(', ');
   }
 
-  // Método para cambiar de página
   cambiarPagina(pagina: number): void {
     if (pagina >= 1 && pagina <= this.totalPaginas()) {
       this.paginaActual = pagina;
     }
   }
 
-  // Método para calcular las páginas intermedias a mostrar
+  // método para calcular las páginas intermedias a mostrar
   paginasMostradas(): number[] {
     const total = this.totalPaginas();
     const paginas: number[] = [];
@@ -324,7 +323,6 @@ export class GestionarProveedoresComponent implements OnInit {
     let inicio = Math.max(2, this.paginaActual - rango);
     let fin = Math.min(total - 1, this.paginaActual + rango);
 
-    // Ajustar el rango para mantener un número fijo de páginas visibles
     if (fin - inicio + 1 < this.maxPaginasMostradas) {
       if (this.paginaActual < total / 2) {
         fin = Math.min(total - 1, inicio + this.maxPaginasMostradas - 1);
@@ -351,7 +349,6 @@ export class GestionarProveedoresComponent implements OnInit {
       const hoja = workbook.Sheets[workbook.SheetNames[0]];
       const raw: any[] = XLSX.utils.sheet_to_json(hoja, { defval: null });
 
-      // Normalizar claves y limpiar datos para proveedores
       this.proveedoresExcel = raw
         .map((row: any) => {
           const prov: any = {};
@@ -380,7 +377,6 @@ export class GestionarProveedoresComponent implements OnInit {
             else if (['telefono', 'teléfono', 'phone'].includes(claveLower)) {
               prov.telefono = String(valor ?? '').trim();
             }
-            // puedes añadir más variantes si las cabeceras cambian
           }
 
           return prov;

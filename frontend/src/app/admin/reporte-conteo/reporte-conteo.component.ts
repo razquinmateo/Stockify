@@ -219,7 +219,7 @@ export class ReporteConteoComponent implements OnInit {
       format: 'a4'
     });
 
-    // Configurar márgenes globales
+    // márgenes globales
     const marginLeft: number = 14;
     const marginRight: number = 20;
     const marginTop: number = 20;
@@ -229,10 +229,10 @@ export class ReporteConteoComponent implements OnInit {
     const usableWidth: number = pageWidth - marginLeft - marginRight;
     const usableHeight: number = pageHeight - marginTop - marginBottom;
 
-    // Configurar fuente
+    // fuente
     doc.setFont('helvetica', 'normal');
 
-    // Encabezado (sin cambios)
+    // encabezado
     doc.setFillColor(30, 30, 30);
     doc.rect(0, 0, pageWidth, marginTop, 'F');
     doc.setFontSize(12);
@@ -251,7 +251,7 @@ export class ReporteConteoComponent implements OnInit {
     doc.text(`Tipo: ${this.tipoConteo === 'CATEGORIAS' ? 'Por rubro' : 'Libre'}`, marginLeft, marginTop + 26, { maxWidth: usableWidth });
     doc.text(`Usuario: ${this.nombreUsuarioLogueado}`, marginLeft, marginTop + 34, { maxWidth: usableWidth });
 
-    // Línea divisoria
+    // línea divisoria
     doc.setDrawColor(100);
     doc.setLineWidth(0.5);
     doc.line(marginLeft, marginTop + 40, pageWidth - marginRight, marginTop + 40);
@@ -259,7 +259,7 @@ export class ReporteConteoComponent implements OnInit {
     let finalY: number = marginTop + 50;
 
     if (this.tipoConteo === 'LIBRE') {
-      // Tabla única para LIBRE (sin cambios)
+      // tabla única para LIBRE
       autoTable(doc, {
         startY: finalY,
         head: [['Código Producto', 'Producto', 'Concepto', 'Stock', 'Cant. Contada', 'Diferencia']],
@@ -305,32 +305,31 @@ export class ReporteConteoComponent implements OnInit {
       });
       finalY = (doc as any).lastAutoTable.finalY || finalY;
     } else if (this.tipoConteo === 'CATEGORIAS') {
-      // Tablas por categoría para CATEGORIAS
+      // tablas por categoría para CATEGORIAS
       this.categoriasReporte.forEach((categoria, index) => {
         if (categoria.items.length > 0) {
-          // Estimar altura requerida para la categoría (título + tabla + totales)
-          const titleHeight = 8; // Altura del título
-          const totalsHeight = 6 * 2 + 10; // Dos líneas de totales (6mm cada una) + espacio
-          const rowHeight = 6; // Altura aproximada por fila (ajusta según tu diseño)
-          const headerHeight = 7; // Altura del encabezado de la tabla
-          const tableHeight = headerHeight + categoria.items.length * rowHeight; // Altura total de la tabla
+          const titleHeight = 8; // altura del título
+          const totalsHeight = 6 * 2 + 10; // dos líneas de totales (6mm cada una) + espacio
+          const rowHeight = 6; // altura aproximada por fila (ajusta según tu diseño)
+          const headerHeight = 7; // altura del encabezado de la tabla
+          const tableHeight = headerHeight + categoria.items.length * rowHeight; // altura total de la tabla
           const totalCategoryHeight = titleHeight + tableHeight + totalsHeight + 5; // +5 para espacio adicional
 
-          // Verificar si hay suficiente espacio en la página actual
+          // verif. si hay suficiente espacio en la página actual
           const remainingHeight = pageHeight - marginBottom - finalY;
           if (totalCategoryHeight > remainingHeight && finalY > marginTop + 40) {
             doc.addPage();
             finalY = marginTop;
           }
 
-          // Título de la categoría
+          // título de la categoría
           doc.setFontSize(14);
           doc.setFont('helvetica', 'bold');
           doc.setTextColor(30, 30, 30);
           doc.text(categoria.nombre, marginLeft, finalY, { maxWidth: usableWidth });
           finalY += titleHeight;
 
-          // Tabla de la categoría
+          // tabla de la categoría
           autoTable(doc, {
             startY: finalY,
             head: [['Código Producto', 'Producto', 'Concepto', 'Stock', 'Cant. Contada', 'Diferencia']],
@@ -378,7 +377,7 @@ export class ReporteConteoComponent implements OnInit {
           finalY = (doc as any).lastAutoTable.finalY || finalY;
           finalY += 5;
 
-          // Totales por categoría
+          // totales por categoría
           doc.setFontSize(10);
           doc.setFont('helvetica', 'bold');
           doc.setTextColor(0);
@@ -394,9 +393,9 @@ export class ReporteConteoComponent implements OnInit {
       });
     }
 
-    // Totales Generales
-    // Verificar espacio para totales generales
-    const totalsGeneralHeight = 34; // Aproximado para título + 3 líneas
+    // totales Generales
+    // verif. espacio para totales generales
+    const totalsGeneralHeight = 34; // aproximado para título + 3 líneas
     if (finalY + totalsGeneralHeight > pageHeight - marginBottom) {
       doc.addPage();
       finalY = marginTop;
@@ -413,14 +412,14 @@ export class ReporteConteoComponent implements OnInit {
     doc.text(`Ingresos Totales: ${this.ingresosTotales} unidades`, marginLeft, finalY + 26, { maxWidth: usableWidth });
     doc.text(`Diferencia: ${this.ingresosTotales - this.egresosTotales} unidades`, marginLeft, finalY + 34, { maxWidth: usableWidth });
 
-    // Pie de página
+    // pie de página
     const pageCount = doc.getNumberOfPages();
     for (let i = 1; i <= pageCount; i++) {
       doc.setPage(i);
       this.addFooter(doc, i, pageCount);
     }
 
-    // Guardar PDF
+    // guardar PDF
     doc.save(`reporte-conteo-${this.conteoId}.pdf`);
     this.cerrarModalExportar();
   }
@@ -448,7 +447,7 @@ export class ReporteConteoComponent implements OnInit {
 
   private addFooter(doc: jsPDF, pageNumber: number, totalPages: number): void {
     const marginLeft: number = 14;
-    const marginRight: number = 20; // Ajustado a 20 mm
+    const marginRight: number = 20;
     const pageWidth: number = doc.internal.pageSize.getWidth();
     const pageHeight: number = doc.internal.pageSize.getHeight();
     doc.setFontSize(8);

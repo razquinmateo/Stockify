@@ -39,7 +39,7 @@ public class EmpresaService {
 
     public EmpresaDto create(EmpresaDto empresaDto) {
         Empresa empresa = mapToEntity(empresaDto);
-        // Asegurar que activo sea true para nuevas empresas, incluso si no se especifica
+        // aseguramos que activo sea true para nuevas empresas
         empresa.setActivo(true);
         return mapToDto(empresaRepository.save(empresa));
     }

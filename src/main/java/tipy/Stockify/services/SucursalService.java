@@ -43,7 +43,7 @@ public class SucursalService {
 
     public SucursalDto create(SucursalDto sucursalDto) {
         Sucursal sucursal = mapToEntity(sucursalDto);
-        // Asegurar que activo sea true para nuevas sucursales, incluso si no se especifica
+        // aseguramos que activo sea true para nuevas sucursales
         sucursal.setActivo(true);
         return mapToDto(sucursalRepository.save(sucursal));
     }

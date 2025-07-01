@@ -51,7 +51,7 @@ public class ConteoProductoService {
 
     public ConteoProductoDto create(ConteoProductoDto conteoProductoDto) {
         ConteoProducto conteoProducto = mapToEntity(conteoProductoDto);
-        // Asegurar que activo sea true para nuevos conteos de producto, incluso si no se especifica
+        // aseguramos que activo sea true para nuevos conteos de producto
         conteoProducto.setActivo(true);
         return mapToDto(conteoProductoRepository.save(conteoProducto));
     }
@@ -61,7 +61,7 @@ public class ConteoProductoService {
                 .map(existingConteoProducto -> {
                     updateConteoProductoFields(existingConteoProducto, conteoProductoDto);
                     ConteoProducto updated = conteoProductoRepository.save(existingConteoProducto);
-                    // Enviar notificación WebSocket
+                    // enviamos notificación WebSocket
                     messagingTemplate.convertAndSend(
                             "/topic/conteo-producto-actualizado",
                             mapToDto(updated)
@@ -115,7 +115,7 @@ public class ConteoProductoService {
 
         List<ConteoProducto> updatedEntities = conteoProductoRepository.saveAll(entities);
 
-        // Enviar notificaciones WebSocket para cada actualización
+        // enviamos notificaciones WebSocket para cada actualización
         updatedEntities.forEach(updated -> {
             messagingTemplate.convertAndSend(
                     "/topic/conteo-producto-actualizado",

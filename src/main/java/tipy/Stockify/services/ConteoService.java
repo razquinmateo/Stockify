@@ -68,10 +68,10 @@ public class ConteoService {
         Conteo conteo = mapToEntity(conteoDto);
         conteo.setActivo(!conteo.isConteoFinalizado());
 
-        // Crear el conteo primero para obtener su ID
+        //creamos el conteo primero para obtener su ID
         Conteo saved = conteoRepository.save(conteo);
 
-        // Si el tipo de conteo es CATEGORIAS, poblar ConteoProducto con productos de las categorías seleccionadas
+        // si el tipo de conteo es CATEGORIAS, poblar ConteoProducto con productos de las categorías seleccionadas
         if (conteo.getTipoConteo() == Conteo.TipoConteo.CATEGORIAS) {
             if (conteoDto.getUsuarioId() == null) {
                 throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "UsuarioId es requerido para conteos de tipo CATEGORIAS");
@@ -84,7 +84,7 @@ public class ConteoService {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Usuario no encontrado con id: " + conteoDto.getUsuarioId()));
             Long sucursalId = usuario.getSucursal().getId();
 
-            // Filtrar categorías activas de la sucursal y que estén en la lista proporcionada
+            // filtrramos categorías activas de la sucursal y que estén en la lista proporcionada
             List<Categoria> categorias = categoriaRepository.findByIdInAndActivoTrueAndSucursalId(
                     conteoDto.getCategoriaIds(), sucursalId
             );
@@ -108,7 +108,7 @@ public class ConteoService {
             }
         }
 
-        // Notificar a los suscriptores de WebSocket
+        // notificamos a los suscriptores de WebSocket
         messagingTemplate.convertAndSend(
                 "/topic/conteo-activo",
                 new ConteoMensaje(saved.getId(), saved.getFechaHora().toString())

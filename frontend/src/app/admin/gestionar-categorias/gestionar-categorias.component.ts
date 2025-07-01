@@ -77,7 +77,6 @@ export class GestionarCategoriasComponent implements OnInit {
       const hoja = workbook.Sheets[workbook.SheetNames[0]];
       const raw: any[] = XLSX.utils.sheet_to_json(hoja, { defval: null });
 
-      // Normalizar claves y limpiar datos para categorías
       this.categoriasExcel = raw
         .map((row: any) => {
           const cat: any = {};
@@ -86,26 +85,24 @@ export class GestionarCategoriasComponent implements OnInit {
             const valor = row[clave];
             const claveLower = clave.toLowerCase().trim();
 
-            // Variantes para el código de categoría
+            // variantes para el código de categoría
             if ([, 'id_categoria', 'codigo', 'código', 'codigo_categoria', 'código_categoria', 'código categoria', 'codigo categoria'].includes(claveLower)) {
               cat.codigoCategoria = String(valor ?? '').trim();
             }
-            // Variantes para el nombre de categoría
+            // variantes para el nombre de categoría
             else if (['nombre', 'categoria', 'categoría', 'nombre_categoria', 'nombre categoría'].includes(claveLower)) {
               cat.nombre = String(valor ?? '').trim();
             }
-            // Otros campos (si los necesitas algún día)
             else {
-              // cat[claveLower] = valor;
+              // por si llegaramos a agregar mas
             }
           }
 
           return cat;
         })
-        // Filtrar sólo filas con ambos valores
+        // filtrar sólo filas con ambos valores
         .filter(c => c.codigoCategoria && c.nombre);
 
-      // Ahora llama tu manejador
       this._handleExcelCategorias();
       this.fileInputCat.nativeElement.value = '';
     };
@@ -121,7 +118,7 @@ export class GestionarCategoriasComponent implements OnInit {
       return;
     }
 
-    // Detectar códigos que aún no existen
+    // detectar códigos que aún no existen
     const faltantes = this.categoriasExcel.filter(ec =>
       !this.categorias.some(c => c.codigoCategoria === ec.codigoCategoria)
     );
@@ -147,10 +144,10 @@ export class GestionarCategoriasComponent implements OnInit {
     }).then(res => {
       if (!res.isConfirmed) return;
 
-      // Llamadas al servicio
+      // llamadas al servicio
       const calls = faltantes.map(c => {
         const dto: Categoria = {
-          id: 0,                       // incluir el campo id para que compile
+          id: 0,                      
           codigoCategoria: c.codigoCategoria,
           nombre: c.nombre,
           descripcion: '',
@@ -173,9 +170,9 @@ export class GestionarCategoriasComponent implements OnInit {
   }
 
   downloadPlantilla(): void {
-    // Creamos un libro nuevo
+    // creamos un libro nuevo
     const wb = XLSX.utils.book_new();
-    // Definimos la hoja con sólo una fila de encabezados
+    // definimos la hoja con sólo una fila de encabezados
     const ws = XLSX.utils.aoa_to_sheet([
       ['codigo_categoria', 'nombre']
     ]);
@@ -184,10 +181,10 @@ export class GestionarCategoriasComponent implements OnInit {
       { wch: 15 },  // ancho para codigo_categoria
       { wch: 25 }   // ancho para nombre
     ];
-    // Generamos el binario
+    // generamos el binario
     const wbout = XLSX.write(wb, { bookType: 'xls', type: 'array' });
     const blob = new Blob([wbout], { type: 'application/vnd.ms-excel' });
-    // Forzamos la descarga
+    // forzamos la descarga
     const url = window.URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;

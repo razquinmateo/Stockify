@@ -270,7 +270,7 @@ public class ProductoService {
                 });
 
         for (ProductoDto dto : productos) {
-            // Validar campos requeridos
+            // validamos los campos
             if (dto.getNombre() == null || dto.getNombre().isEmpty() ||
                     dto.getCodigosBarra() == null || dto.getCodigosBarra().isEmpty() ||
                     dto.getPrecio() == null || dto.getPrecio() < 0 ||
@@ -280,7 +280,7 @@ public class ProductoService {
             }
 
             try {
-                // Validar que los códigos de barra no estén asignados a otro producto
+                // validamos que los códigos de barra no estén asignados a otro producto
                 for (String codigoBarra : dto.getCodigosBarra()) {
                     if (codigoBarra == null || codigoBarra.trim().isEmpty()) {
                         errores.add(dto.getCodigoProducto() + " - Código de barras inválido");
@@ -293,7 +293,7 @@ public class ProductoService {
                     }
                 }
 
-                // Validar código de producto único
+                // validamos código de producto único
                 String codigoProducto = dto.getCodigoProducto();
                 if (codigoProducto == null || codigoProducto.trim().isEmpty()) {
                     errores.add("Código de producto es obligatorio");
@@ -305,7 +305,7 @@ public class ProductoService {
                     continue;
                 }
 
-                // Determinar categoría
+                // determinamos la categoría
                 Categoria categoria = sinCategoria;
                 if (dto.getCategoriaId() != null) {
                     categoria = categoriaRepository.findById(dto.getCategoriaId())
@@ -316,7 +316,7 @@ public class ProductoService {
                             });
                 }
 
-                // Crear el producto
+                // creamos el producto
                 Producto producto = new Producto();
                 producto.setNombre(dto.getNombre());
                 producto.setCodigoProducto(codigoProducto);
@@ -328,10 +328,10 @@ public class ProductoService {
                 producto.setCategoria(categoria);
                 producto.setSucursal(sucursalUsuario);
 
-                // Asignar códigos de barra
+                // asignamos los códigos de barra
                 assignCodigosBarra(producto, dto.getCodigosBarra());
 
-                // Asignar proveedores
+                // asignamos los proveedores
                 assignProveedores(producto, dto.getProveedorIds());
 
                 productoRepository.save(producto);
@@ -366,7 +366,7 @@ public class ProductoService {
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Categoría no encontrada con id: " + productoDto.getCategoriaId()));
             producto.setCategoria(categoria);
         } else {
-            // Fallback to "Sin categoría" if no categoriaId is provided
+            // se le asigna "Sin Categoria" si no se provee una categoriaid
             Sucursal sucursal = sucursalRepository.findById(productoDto.getSucursalId())
                     .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Sucursal no encontrada con id: " + productoDto.getSucursalId()));
             Categoria sinCategoria = categoriaRepository.findByNombreIgnoreCaseAndSucursal("Sin categoría", sucursal)

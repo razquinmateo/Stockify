@@ -113,7 +113,7 @@
           </td>
           <td>{{ prod.nombre }}</td>
           <td>{{ prod.codigosBarra.join(', ') }}</td>
-          <td>{{ prod.detalle }}</td>
+          <td>{{ prod.detalle || 'Sin Detalles'}}</td>
           <td>${{ prod.precio | number: '1.2-2' }}</td>
           <td>{{ prod.cantidadStock }}</td>
           <td>{{ prod.categoriaNombre || 'Sin Categoría' }}</td>

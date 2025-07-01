@@ -47,13 +47,13 @@
       <!-- Importar Excel -->
       <div class="me-2 text-center">
         <label class="form-label d-block mb-1">
-          Importar categorías vía Excel (.xlsx / .xls):
+          Importar proveedores vía Excel (.xlsx / .xls):
         </label>
         <input #fileInputProv type="file" accept=".xlsx, .xls" class="d-none"
           (change)="onArchivoSeleccionado($event)" />
         <button class="btn btn-success btn-sm" (click)="fileInputProv.click()">
           <i class="bi bi-upload me-1"></i>
-          Subir categorías vía Excel
+          Subir proveedores vía Excel
         </button>
       </div>
 

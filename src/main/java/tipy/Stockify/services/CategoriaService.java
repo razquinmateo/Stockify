@@ -55,7 +55,7 @@ public class CategoriaService {
 
     public CategoriaDto create(CategoriaDto categoriaDto) {
         Categoria categoria = mapToEntity(categoriaDto);
-        // Asegurar que activo sea true para nuevas categorías, incluso si no se especifica
+        // aseguramos que activo sea true para nuevas categorías
         categoria.setActivo(true);
         return mapToDto(categoriaRepository.save(categoria));
     }

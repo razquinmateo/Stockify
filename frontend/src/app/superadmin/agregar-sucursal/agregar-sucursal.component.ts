@@ -40,7 +40,10 @@ export class AgregarSucursalComponent implements OnInit {
 
   ngOnInit(): void {
     this.empresaService.getAllEmpresas().subscribe({
-      next: (data) => this.empresas = data,
+      next: (data) => {
+        console.log('Empresas recibidas:', data);
+        this.empresas = data;
+      },
       error: () => Swal.fire('Error', 'No se pudieron cargar las empresas', 'error')
     });
     this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();

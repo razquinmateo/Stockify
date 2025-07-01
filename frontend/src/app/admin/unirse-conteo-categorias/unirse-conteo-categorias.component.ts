@@ -367,7 +367,7 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
                     }
                 }
 
-                // Ordenar productos dentro de cada categoría por productoId
+                // ordenanamos productos dentro de cada categoría por productoId
                 for (const [categoriaId, productos] of this.conteoProductosByCategory) {
                     this.conteoProductosByCategory.set(
                         categoriaId,
@@ -559,7 +559,7 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
 
     private getNextUncountedProductId(categoryId: number): number | null {
         const conteoProductos = (this.conteoProductosByCategory.get(categoryId) || [])
-            .sort((a, b) => a.productoId - b.productoId); // Ordenar por productoId
+            .sort((a, b) => a.productoId - b.productoId); // ordenar por productoId
         const uncounted = conteoProductos.find(cp => !this.countedProducts.has(cp.productoId));
         return uncounted ? uncounted.productoId : null;
     }
@@ -784,7 +784,7 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
             );
             console.log(`Updated ${updated.length} uncounted products to cantidadContada: 0`);
 
-            // Actualizar el estado local
+            // actualizar el estado local
             updated.forEach(updatedItem => {
                 const item = this.productosConteo.find(p => p.id === updatedItem.id);
                 if (item) {
@@ -952,7 +952,7 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
                 width: '80%'
             }).then(async (result) => {
                 if (result.isConfirmed) {
-                    // Mostrar modal de carga
+                    // mostrar modal de carga
                     Swal.fire({
                         title: 'Actualizando productos...',
                         html: 'Por favor, espera mientras se actualizan los productos no contados.',
@@ -965,7 +965,7 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
 
                     try {
                         await this.updateUncountedProductsToZero();
-                        Swal.close(); // Cerrar el modal de carga
+                        Swal.close(); // cerrar el modal de carga
 
                         this.conteoService.update(this.conteoActual!.id, { conteoFinalizado: true }).subscribe({
                             next: () => {
@@ -981,7 +981,7 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
                                 this.router.navigate(['/admin/gestionar-conteos']);
                             },
                             error: (err) => {
-                                Swal.close(); // Cerrar el modal de carga en caso de error
+                                Swal.close(); // cerrar el modal de carga en caso de error
                                 if (err.status === 403) {
                                     Swal.fire({
                                         icon: 'error',
@@ -994,7 +994,7 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
                             }
                         });
                     } catch (err) {
-                        Swal.close(); // Cerrar el modal de carga en caso de error
+                        Swal.close(); // cerrar el modal de carga en caso de error
                         Swal.fire('Error', 'No se pudo actualizar los productos no contados', 'error');
                     }
                 }
@@ -1032,7 +1032,7 @@ export class UnirseConteoCategoriasComponent implements OnInit, OnDestroy {
     get currentProductIndex(): number {
         if (!this.currentCategoryId || !this.currentProductId) return 0;
         const conteoProductos = (this.conteoProductosByCategory.get(this.currentCategoryId) || [])
-            .sort((a, b) => a.productoId - b.productoId); // Ordenar por productoId
+            .sort((a, b) => a.productoId - b.productoId); // ordenar por productoId
         const index = conteoProductos.findIndex(cp => cp.productoId === this.currentProductId);
         return index >= 0 ? index + 1 : 0;
     }

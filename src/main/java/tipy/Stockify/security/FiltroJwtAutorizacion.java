@@ -23,18 +23,18 @@ public class FiltroJwtAutorizacion extends OncePerRequestFilter {
                                     FilterChain filterChain)
             throws ServletException, IOException {
         try {
-            // 1) Extraemos la ruta completa de la petición:
+            // 1) extraemos la ruta completa de la petición:
             String path = request.getRequestURI();
             // Ejemplo: "/Stockify/api/v1/estadisticas/productos-faltaron"
 
-            // 2) Si la URI contiene "/api/v1/estadisticas/", OMITIMOS la validación de JWT:
+            // 2) si la URI contiene "/api/v1/estadisticas/", OMITIMOS la validación de JWT:
             if (path.contains("/api/v1/estadisticas/")) {
-                // Simplemente dejamos pasar la petición tal cual:
+                // simplemente dejamos pasar la petición tal cual:
                 filterChain.doFilter(request, response);
                 return;
             }
 
-            // 3) Si llegamos aquí, NO era un endpoint de estadísticas, entonces
+            // 3) si llegamos aquí, NO era un endpoint de estadísticas, entonces
             //    procedemos con la validación usual de JWT:
             if (validarUsoDeToken(request)) {
                 Claims claims = validarToken(request);
@@ -47,11 +47,11 @@ public class FiltroJwtAutorizacion extends OncePerRequestFilter {
                 SecurityContextHolder.clearContext();
             }
 
-            // 4) Después de autenticar (o limpiar el contexto), continuar con la cadena:
+            // 4) después de autenticar (o limpiar el contexto), continuar con la cadena:
             filterChain.doFilter(request, response);
 
         } catch (ExpiredJwtException | UnsupportedJwtException | MalformedJwtException ex) {
-            // Si el token está expirado o mal formado, devolvemos 403:
+            // si el token está expirado o mal formado, devolvemos 403:
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             response.sendError(HttpServletResponse.SC_FORBIDDEN, ex.getMessage());
         }
@@ -68,7 +68,7 @@ public class FiltroJwtAutorizacion extends OncePerRequestFilter {
     }
 
     private Claims validarToken(HttpServletRequest request) {
-        // Extraemos el token del header "Authorization"
+        // extraemos el token del header "Authorization"
         String tokenCliente = request.getHeader("Authorization").replace("Bearer ", "");
         return Jwts.parser()
                 .setSigningKey(CLAVE.getBytes())

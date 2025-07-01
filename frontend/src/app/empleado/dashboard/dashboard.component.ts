@@ -76,7 +76,7 @@ export class EmpleadoComponent implements OnInit, OnDestroy {
               next: usuarios => {
                 const creador = usuarios.find(u => u.id === conteo.usuarioId);
                 if (creador?.sucursalId === sucursalId) {
-                  // Guardar en localStorage solo lo que se necesita
+                  // guardamos en localStorage solo lo que se necesita
                   localStorage.setItem(this.STORAGE_KEY, JSON.stringify({
                     id: conteo.id,
                     tipoConteo: conteo.tipoConteo,

@@ -95,6 +95,10 @@ export class ProductoService {
     return this.http.get<Proveedor>(`${this.proveedorUrl}/nombre/${nombre}`);
   }
 
+  obtenerProveedores(): Observable<Proveedor[]> {
+    return this.http.get<Proveedor[]>(`${this.proveedorUrl}/all`);
+  }
+
   obtenerProveedoresActivosPorSucursal(sucursalId: number): Observable<Proveedor[]> {
     return this.http.get<Proveedor[]>(`${this.proveedorUrl}/sucursal/${sucursalId}/activos`);
   }

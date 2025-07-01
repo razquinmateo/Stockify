@@ -69,7 +69,7 @@ public class LoteService {
         Lote lote = mapToEntity(loteDto);
         lote.setActivo(true);
 
-        // Actualizar el stock del producto
+        // actualizamos el stock del producto
         Producto producto = lote.getProducto();
         producto.setCantidadStock(producto.getCantidadStock() + lote.getCantidadStock());
         if (producto.getCantidadStock() < 0) {
@@ -87,12 +87,12 @@ public class LoteService {
         validateLoteDto(loteDto);
         return loteRepository.findById(id)
                 .map(existingLote -> {
-                    // Calcular la diferencia en cantidadStock
+                    // calculamos la diferencia en cantidadStock
                     int oldCantidadStock = existingLote.getCantidadStock();
                     int newCantidadStock = loteDto.getCantidadStock() != null ? loteDto.getCantidadStock() : oldCantidadStock;
                     int stockDifference = newCantidadStock - oldCantidadStock;
 
-                    // Actualizar el stock del producto
+                    // actualizamos el stock del producto
                     Producto producto = existingLote.getProducto();
                     producto.setCantidadStock(producto.getCantidadStock() + stockDifference);
                     if (producto.getCantidadStock() < 0) {
@@ -115,7 +115,7 @@ public class LoteService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "El lote ya está inactivo");
         }
 
-        // Restar el cantidadStock del producto
+        // restamos el cantidadStock del producto
         Producto producto = lote.getProducto();
         producto.setCantidadStock(producto.getCantidadStock() - lote.getCantidadStock());
         if (producto.getCantidadStock() < 0) {
@@ -154,7 +154,7 @@ public class LoteService {
         if (loteDto.getFechaIngreso() != null) {
             lote.setFechaIngreso(loteDto.getFechaIngreso());
         }
-        lote.setFechaVencimiento(loteDto.getFechaVencimiento()); // Puede ser null
+        lote.setFechaVencimiento(loteDto.getFechaVencimiento());
         if (loteDto.getCantidadStock() != null) {
             lote.setCantidadStock(loteDto.getCantidadStock());
         }

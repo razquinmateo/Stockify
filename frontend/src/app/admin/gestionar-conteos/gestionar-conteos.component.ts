@@ -47,7 +47,7 @@ export class GestionarConteosComponent implements OnInit {
   esEditar: boolean = false;
   filtro: string = "";
   paginaActual: number = 1;
-  conteosPorPagina: number = 15;
+  conteosPorPagina: number = 5;
   maxPaginasMostradas: number = 5;
   nombreUsuarioLogueado: string = "";
   usuarioId: number | null = null;
@@ -116,7 +116,7 @@ export class GestionarConteosComponent implements OnInit {
     this.categoriaService.obtenerCategoriasPorSucursal(sucursalId).subscribe({
       next: (categorias) => {
         this.allCategorias = categorias;
-        this.categoriasFiltradas = [...categorias]; // Inicializar categorías filtradas
+        this.categoriasFiltradas = [...categorias];
         categorias.forEach(cat => this.categoryCache.set(cat.id, cat));
       },
       error: (err) => {
@@ -272,9 +272,9 @@ export class GestionarConteosComponent implements OnInit {
     this.cerrarModalTipoConteo();
     this.mostrarModalCategorias = true;
     this.categoriasSeleccionadas = {};
-    this.filtroCategorias = ''; // Resetear filtro
-    this.seleccionarTodo = false; // Resetear seleccionar todo
-    this.filtrarCategorias(); // Inicializar categorías filtradas
+    this.filtroCategorias = ''; // resetear filtro
+    this.seleccionarTodo = false; // resetear seleccionar todo
+    this.filtrarCategorias(); // inicializar categorías filtradas
     this.conteoSeleccionado = this.resetConteo();
     this.conteoSeleccionado.tipoConteo = 'CATEGORIAS';
   }
@@ -290,7 +290,6 @@ export class GestionarConteosComponent implements OnInit {
     return Object.values(this.categoriasSeleccionadas).some(selected => selected);
   }
 
-  // Nuevos métodos para buscador y seleccionar todo
   filtrarCategorias(): void {
     if (!this.filtroCategorias) {
       this.categoriasFiltradas = [...this.allCategorias];
@@ -880,14 +879,13 @@ export class GestionarConteosComponent implements OnInit {
     this.router.navigate(['/admin/reporte-conteo', conteo.id]);
   }
 
-  // Método para cambiar de página
   cambiarPagina(pagina: number): void {
     if (pagina >= 1 && pagina <= this.totalPaginas()) {
       this.paginaActual = pagina;
     }
   }
 
-  // Método para calcular las páginas intermedias a mostrar
+  // método para calcular las páginas intermedias a mostrar
   paginasMostradas(): number[] {
     const total = this.totalPaginas();
     const paginas: number[] = [];
@@ -896,7 +894,6 @@ export class GestionarConteosComponent implements OnInit {
     let inicio = Math.max(2, this.paginaActual - rango);
     let fin = Math.min(total - 1, this.paginaActual + rango);
 
-    // Ajustar el rango para mantener un número fijo de páginas visibles
     if (fin - inicio + 1 < this.maxPaginasMostradas) {
       if (this.paginaActual < total / 2) {
         fin = Math.min(total - 1, inicio + this.maxPaginasMostradas - 1);

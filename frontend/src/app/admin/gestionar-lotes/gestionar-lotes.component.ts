@@ -401,14 +401,13 @@ export class GestionarLotesComponent implements OnInit {
     this.router.navigate(['/login']);
   }
 
-  // Método para cambiar de página
   cambiarPagina(pagina: number): void {
     if (pagina >= 1 && pagina <= this.totalPaginas()) {
       this.paginaActual = pagina;
     }
   }
 
-  // Método para calcular las páginas intermedias a mostrar
+  // método para calcular las páginas intermedias a mostrar
   paginasMostradas(): number[] {
     const total = this.totalPaginas();
     const paginas: number[] = [];
@@ -417,7 +416,6 @@ export class GestionarLotesComponent implements OnInit {
     let inicio = Math.max(2, this.paginaActual - rango);
     let fin = Math.min(total - 1, this.paginaActual + rango);
 
-    // Ajustar el rango para mantener un número fijo de páginas visibles
     if (fin - inicio + 1 < this.maxPaginasMostradas) {
       if (this.paginaActual < total / 2) {
         fin = Math.min(total - 1, inicio + this.maxPaginasMostradas - 1);

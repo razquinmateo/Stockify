@@ -17,7 +17,7 @@ export interface Empresa {
   providedIn: 'root'
 })
 export class EmpresaService {
-  private apiUrl = `${environment.apiUrl}/conteos`;
+  private apiUrl = `${environment.apiUrl}/empresas`;
 
   constructor(private http: HttpClient) {}
 

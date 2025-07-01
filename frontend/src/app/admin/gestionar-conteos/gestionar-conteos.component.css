@@ -1,8 +1,7 @@
-/* Estilos existentes */
 .disabled-btn {
   opacity: 0.6;
   cursor: not-allowed;
-  background-color: #6c757d !important; /* gris oscuro */
+  background-color: #6c757d !important;
   border-color: #6c757d !important;
 }
 
@@ -47,7 +46,6 @@ button.btn-outline-primary:hover {
   cursor: pointer;
 }
 
-/* Nuevos estilos para el paginador */
 .pagination {
   margin-top: 1rem;
   justify-content: center;
@@ -56,7 +54,7 @@ button.btn-outline-primary:hover {
 .page-item .page-link {
   padding: 0.5rem 1rem;
   margin: 0 0.2rem;
-  border-radius: 0.5rem; /* Bordes redondeados para coincidir con el diseño */
+  border-radius: 0.5rem;
   transition: all 0.2s ease-in-out;
   cursor: pointer;
   font-size: 0.9rem;

@@ -39,7 +39,7 @@ public class ReporteService {
 
     public ReporteDto create(ReporteDto reporteDto) {
         Reporte reporte = mapToEntity(reporteDto);
-        // Asegurar que activo sea true para nuevos reportes, incluso si no se especifica
+        // aseguramos que activo sea true para nuevos reportes
         reporte.setActivo(true);
         return mapToDto(reporteRepository.save(reporte));
     }

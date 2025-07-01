@@ -74,13 +74,13 @@ public class ConteoUsuarioService {
 
     public ConteoUsuarioDto addParticipante(Long conteoId, Long usuarioId) {
 
-        // Verificar si ya existe la relación
+        // verificamos si ya existe la relación
         boolean yaExiste = conteoUsuarioRepository.existsByConteoIdAndUsuarioId(conteoId, usuarioId);
         if (yaExiste) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "El usuario ya está registrado en este conteo");
         }
 
-        // Obtiene usuario y conteo existentes
+        // obtiene usuario y conteo existentes
         Usuario usr = usuarioRepository.findByIdAndActivoTrue(usuarioId)
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Usuario no encontrado: " + usuarioId));
@@ -88,13 +88,13 @@ public class ConteoUsuarioService {
                 .orElseThrow(() -> new ResponseStatusException(
                         HttpStatus.NOT_FOUND, "Conteo no encontrado: " + conteoId));
 
-        // Construye y guarda la relación
+        // construye y guarda la relación
         ConteoUsuario pivot = new ConteoUsuario();
         pivot.setUsuario(usr);
         pivot.setConteo(cnt);
         ConteoUsuario saved = conteoUsuarioRepository.save(pivot);
 
-        // Mapea a DTO
+        // mapea a DTO
         ConteoUsuarioDto dto = new ConteoUsuarioDto();
         dto.setId(saved.getId());
         dto.setConteoId(cnt.getId());
