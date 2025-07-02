@@ -426,9 +426,9 @@ export class ReporteConteoComponent implements OnInit {
 
   descargarXLS(): void {
     const data = this.reporteItems.map(item => ({
-      'Código Producto': item.codigoProducto,
+      'codigoproducto': item.codigoProducto,
       Producto: item.producto,
-      'Cantidad Contada': item.cantidadContada ?? 0
+      'stock': item.cantidadContada ?? 0
     }));
     const ws = XLSX.utils.json_to_sheet(data);
 
