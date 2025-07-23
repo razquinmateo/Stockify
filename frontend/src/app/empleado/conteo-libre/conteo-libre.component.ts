@@ -101,21 +101,27 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
 
     window.addEventListener('keydown', this.handleScannerKey);
 
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(stream => {
-        stream.getTracks().forEach(t => t.stop());
-        return navigator.mediaDevices.enumerateDevices();
-      })
-      .then((devs: MediaDeviceInfo[]) => {
-        this.devices = devs.filter(d => d.kind === 'videoinput');
-        if (this.devices.length) {
-          this.selectedDeviceId = this.devices[0].deviceId;
-        }
-      })
-      .catch(err => {
-        console.warn('No se pudo acceder a las cámaras', err);
-        Swal.fire('Error', 'No se pudo acceder a las cámaras', 'error');
-      });
+    // Verificar si la API de cámaras está disponible
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          stream.getTracks().forEach(t => t.stop());
+          return navigator.mediaDevices.enumerateDevices();
+        })
+        .then((devs: MediaDeviceInfo[]) => {
+          this.devices = devs.filter(d => d.kind === 'videoinput');
+          if (this.devices.length) {
+            this.selectedDeviceId = this.devices[0].deviceId;
+          }
+        })
+        .catch(err => {
+          console.warn('No se pudo acceder a las cámaras:', err);
+          this.devices = []; // Deshabilitar cámara
+        });
+    } else {
+      console.warn('MediaDevices no está disponible en este entorno');
+      this.devices = []; // Deshabilitar cámara
+    }
 
     const saved = localStorage.getItem(this.REGISTROS_KEY);
     if (saved) {
@@ -334,8 +340,11 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
   }
 
   async abrirCamara(): Promise<void> {
-    if (!this.devices.length) {
-      Swal.fire('Error', 'No se detectaron cámaras', 'warning');
+    // Verificar si la API de cámaras está disponible
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !this.devices.length) {
+      console.warn('No se puede acceder a la cámara. Usa HTTPS o localhost para habilitarla.');
+      this.mostrarCamara = false;
+      this.devices = [];
       return;
     }
 
@@ -367,7 +376,7 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
         .then(stream => {
           this.currentStream = stream;
           video.srcObject = stream;
-          video.play().catch(() => { });
+          video.play().catch(() => {});
           this.codeReader = new BrowserMultiFormatReader();
           this.codeReader.decodeFromVideoDevice(
             this.selectedDeviceId!,
@@ -380,11 +389,15 @@ export class ConteoLibreComponent implements OnInit, OnDestroy {
             }
           )
             .then(ctrl => this.scannerControls = ctrl)
-            .catch(e => console.error('ZXing error:', e));
+            .catch(e => {
+              console.error('ZXing error:', e);
+              this.mostrarCamara = false;
+              console.warn('Error al iniciar el escáner de códigos de barras');
+            });
         })
         .catch(err => {
           this.mostrarCamara = false;
-          Swal.fire('Error', 'No se pudo acceder a la cámara: ' + err.message, 'error');
+          console.warn('No se pudo acceder a la cámara:', err);
         });
     }, 0);
   }

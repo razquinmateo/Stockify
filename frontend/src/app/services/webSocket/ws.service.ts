@@ -2,6 +2,7 @@
 import { Injectable } from '@angular/core';
 import { Client, IMessage, StompSubscription } from '@stomp/stompjs';
 import { Observable, Subject } from 'rxjs';
+import { environment } from '../../../environments/environment';
 
 export interface ConteoMensaje {
   id: number;
@@ -32,7 +33,7 @@ export class WsService {
     constructor() {
         // 1) Crea el cliente STOMP usando WebSocket nativo
         this.client = new Client({
-            brokerURL: 'ws://localhost:8080/Stockify/ws/websocket',
+            brokerURL: environment.wsUrl,
             reconnectDelay: 5000,
             heartbeatIncoming: 0,
             heartbeatOutgoing: 20000,

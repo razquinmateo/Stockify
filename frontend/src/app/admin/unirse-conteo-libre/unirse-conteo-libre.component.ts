@@ -81,7 +81,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
   ngOnInit(): void {
     this.nombreUsuarioLogueado = this.authService.getUsuarioDesdeToken();
 
-    // cargar usuarioId
+    // Cargar usuarioId
     this.usuarioService.getUsuarios().subscribe({
       next: (usuarios) => {
         const usuario = usuarios.find(u => u.nombreUsuario === this.nombreUsuarioLogueado);
@@ -99,31 +99,38 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
       }
     });
 
-    // inicializare scanner de codigo d barra
+    // Inicializar scanner de código de barras
     window.addEventListener('keydown', this.handleScannerKey);
 
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(stream => {
-        stream.getTracks().forEach(t => t.stop());
-        return navigator.mediaDevices.enumerateDevices();
-      })
-      .then((devs: MediaDeviceInfo[]) => {
-        this.devices = devs.filter(d => d.kind === 'videoinput');
-        if (this.devices.length) {
-          this.selectedDeviceId = this.devices[0].deviceId;
-        }
-      })
-      .catch(err => {
-        console.warn('No se pudo acceder a las cámaras', err);
-        Swal.fire('Error', 'No se pudo acceder a las cámaras', 'error');
-      });
+    // Verificar si la API de cámaras está disponible
+    if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          stream.getTracks().forEach(t => t.stop());
+          return navigator.mediaDevices.enumerateDevices();
+        })
+        .then((devs: MediaDeviceInfo[]) => {
+          this.devices = devs.filter(d => d.kind === 'videoinput');
+          if (this.devices.length) {
+            this.selectedDeviceId = this.devices[0].deviceId;
+          }
+        })
+        .catch(err => {
+          console.warn('No se pudo acceder a las cámaras:', err);
+          // No mostrar alerta para no molestar al usuario
+          this.devices = []; // Deshabilitar cámara
+        });
+    } else {
+      console.warn('MediaDevices no está disponible en este entorno');
+      this.devices = []; // Deshabilitar cámara
+    }
 
-    // cargamos registros del localstorage
+    // Cargamos registros del localStorage
     const saved = localStorage.getItem(`registros_${this.nombreUsuarioLogueado}`);
     if (saved) {
       this.registros = JSON.parse(saved);
       this.productosConteo = this.registros.map(r => ({
-        id: 0, 
+        id: 0,
         conteoId: this.conteoId,
         productoId: r.productoId,
         cantidadEsperada: r.cantidadEsperada,
@@ -134,7 +141,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
       this.cdr.detectChanges();
     }
 
-    // cargamos productos
+    // Cargamos productos
     const sucursalId = this.authService.getSucursalId();
     if (sucursalId == null) {
       Swal.fire('Error', 'No se pudo obtener el ID de la sucursal', 'error');
@@ -149,7 +156,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
       error: () => Swal.fire('Error', 'No se pudo cargar el catálogo de productos activos de la sucursal', 'error')
     });
 
-    // subs a WebSocket 
+    // Suscripciones a WebSocket
     this.wsSubs.push(
       this.wsService.onConteoProductoActualizado().subscribe(msg => {
         console.log('WebSocket ConteoProductoMensaje received:', msg);
@@ -205,7 +212,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
 
     this.wsSubs.push(
       this.wsService.onConteoFinalizado().subscribe(msg => {
-        console.log('WebSocket ConteoFinalizado received:', msg); 
+        console.log('WebSocket ConteoFinalizado received:', msg);
         localStorage.removeItem(this.STORAGE_KEY);
         localStorage.removeItem(`registros_${this.nombreUsuarioLogueado}`);
         this.registros = [];
@@ -271,8 +278,12 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
   }
 
   async abrirCamara(): Promise<void> {
-    if (!this.devices.length) {
-      Swal.fire('Error', 'No se detectaron cámaras', 'warning');
+    // Verificar si la API de cámaras está disponible
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || !this.devices.length) {
+      // Silenciosamente deshabilitar la cámara sin mostrar alerta
+      console.warn('No se puede acceder a la cámara. Usa HTTPS o localhost para habilitarla.');
+      this.mostrarCamara = false;
+      this.devices = [];
       return;
     }
 
@@ -306,7 +317,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
         .then(stream => {
           this.currentStream = stream;
           video.srcObject = stream;
-          video.play().catch(() => { });
+          video.play().catch(() => {});
 
           this.codeReader = new BrowserMultiFormatReader();
           this.codeReader.decodeFromVideoDevice(
@@ -320,11 +331,17 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
             }
           )
             .then(ctrl => this.scannerControls = ctrl)
-            .catch(e => console.error('ZXing error:', e));
+            .catch(e => {
+              console.error('ZXing error:', e);
+              this.mostrarCamara = false;
+              // Evitar mostrar alerta para no molestar
+              console.warn('Error al iniciar el escáner de códigos de barras');
+            });
         })
         .catch(err => {
           this.mostrarCamara = false;
-          Swal.fire('Error', 'No se pudo acceder a la cámara: ' + err.message, 'error');
+          console.warn('No se pudo acceder a la cámara:', err);
+          // Evitar mostrar alerta para no molestar
         });
     }, 0);
   }
@@ -430,16 +447,16 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
   }
 
   get registrosFiltrados(): RegistroConteo[] {
-  const term = this.filtro.trim().toLowerCase();
-  const filtered = term
-    ? this.registros.filter(r =>
-        r.codigoProducto.toLowerCase().includes(term) ||
-        r.nombre.toLowerCase().includes(term) ||
-        r.codigosBarra.some(c => c.toLowerCase().includes(term))
-      )
-    : this.registros;
-  return filtered.sort((a, b) => a.productoId - b.productoId);
-}
+    const term = this.filtro.trim().toLowerCase();
+    const filtered = term
+      ? this.registros.filter(r =>
+          r.codigoProducto.toLowerCase().includes(term) ||
+          r.nombre.toLowerCase().includes(term) ||
+          r.codigosBarra.some(c => c.toLowerCase().includes(term))
+        )
+      : this.registros;
+    return filtered.sort((a, b) => a.productoId - b.productoId);
+  }
 
   get productosNoContados(): Producto[] {
     const contadosIds = this.productosConteo.map(p => p.productoId);
@@ -520,59 +537,59 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
     } else {
       const tablaProductos = productosNoContados
         .map(p => `
-        <tr>
-          <td>${p.codigoProducto}</td>
-          <td>${p.nombre}</td>
-        </tr>
-      `)
+          <tr>
+            <td>${p.codigoProducto}</td>
+            <td>${p.nombre}</td>
+          </tr>
+        `)
         .join('');
       Swal.fire({
         title: '¿Finalizar conteo con productos sin contar?',
         html: `
-        <style>
-          .table-container {
-            max-height: 420px; /* 10 filas aprox. */
-            overflow-y: auto;
-          }
-          table {
-            width: 100%;
-            border-collapse: collapse;
-            min-width: 600px;
-            table-layout: fixed;
-          }
-          th, td {
-            padding: 8px;
-            border: 1px solid #dee2e6;
-            text-align: left;
-            white-space: normal;
-            word-wrap: break-word;
-          }
-          th:nth-child(1), td:nth-child(1) { width: 20%; }
-          th:nth-child(2), td:nth-child(2) { width: 80%; min-width: 200px; }
-          thead th {
-            position: sticky;
-            top: 0;
-            background-color: #343a40;
-            color: white;
-            z-index: 2;
-          }
-        </style>
-        <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar. Se crearán registros con cantidad contada 0 para estos productos.</p>
-        <div class="table-container">
-          <table>
-            <thead>
-              <tr>
-                <th>Código Producto</th>
-                <th>Nombre</th>
-              </tr>
-            </thead>
-            <tbody>
-              ${tablaProductos}
-            </tbody>
-          </table>
-        </div>
-        <p>¿Estás seguro de finalizar el conteo?</p>
-      `,
+          <style>
+            .table-container {
+              max-height: 420px; /* 10 filas aprox. */
+              overflow-y: auto;
+            }
+            table {
+              width: 100%;
+              border-collapse: collapse;
+              min-width: 600px;
+              table-layout: fixed;
+            }
+            th, td {
+              padding: 8px;
+              border: 1px solid #dee2e6;
+              text-align: left;
+              white-space: normal;
+              word-wrap: break-word;
+            }
+            th:nth-child(1), td:nth-child(1) { width: 20%; }
+            th:nth-child(2), td:nth-child(2) { width: 80%; min-width: 200px; }
+            thead th {
+              position: sticky;
+              top: 0;
+              background-color: #343a40;
+              color: white;
+              z-index: 2;
+            }
+          </style>
+          <p>Hay <strong>${productosNoContados.length}</strong> producto(s) sin contar. Se crearán registros con cantidad contada 0 para estos productos.</p>
+          <div class="table-container">
+            <table>
+              <thead>
+                <tr>
+                  <th>Código Producto</th>
+                  <th>Nombre</th>
+                </tr>
+              </thead>
+              <tbody>
+                ${tablaProductos}
+              </tbody>
+            </table>
+          </div>
+          <p>¿Estás seguro de finalizar el conteo?</p>
+        `,
         icon: 'warning',
         showCancelButton: true,
         confirmButtonColor: '#3085d6',
@@ -583,7 +600,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
       }).then(async (result) => {
         if (result.isConfirmed) {
           try {
-            // crear productoconteo para productos in contar con cantidad contada: 0
+            // Crear productoconteo para productos sin contar con cantidad contada: 0
             for (const prod of productosNoContados) {
               const nuevo: Partial<ConteoProducto> = {
                 conteoId: this.conteoActual!.id,
@@ -596,7 +613,7 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
               const item = await lastValueFrom(this.conteoProdService.create(nuevo));
               this.productosConteo.push(item!);
 
-              // actualizamos registros
+              // Actualizamos registros
               const reg: RegistroConteo = {
                 productoId: prod.id,
                 codigoProducto: prod.codigoProducto,
@@ -609,11 +626,11 @@ export class UnirseConteoLibreComponent implements OnInit, OnDestroy {
               };
               this.registros.push(reg);
             }
-            // guardamos los registros actualizaos en localstorage
+            // Guardamos los registros actualizados en localStorage
             localStorage.setItem(`registros_${this.nombreUsuarioLogueado}`, JSON.stringify(this.registros));
             this.cdr.detectChanges();
 
-            // finalizamos el conteo
+            // Finalizamos el conteo
             this.conteoService.update(this.conteoActual!.id, { conteoFinalizado: true }).subscribe({
               next: () => {
                 Swal.fire({

@@ -36,10 +36,7 @@ public class WebSecurityConfig {
                         .requestMatchers(antMatcher("/swagger-ui/**")).permitAll()
                         .requestMatchers(antMatcher("/swagger-resources/**")).permitAll()
                         .requestMatchers(antMatcher("/configuration/**")).permitAll()
-
-                                // dejar pasar la conexión SockJS
-                                .requestMatchers("/ws/**", "/topic/**").permitAll()
-
+                        .requestMatchers(antMatcher("/ws/**"), antMatcher("/topic/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/empresas/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/sucursales/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/sucursal-proveedor/**")).permitAll()
@@ -52,19 +49,7 @@ public class WebSecurityConfig {
                         .requestMatchers(antMatcher("/api/v1/proveedores/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/reportes/**")).permitAll()
                         .requestMatchers(antMatcher("/api/v1/conteo-usuarios/**")).permitAll()
-                                .requestMatchers(antMatcher("/api/v1/estadisticas/**")).permitAll()
-
-//                        .requestMatchers(antMatcher("/api/v1/empresas/**")).hasAuthority("SUPERADMINISTRADOR")
-//                        .requestMatchers(antMatcher("/api/v1/sucursales/**")).hasAnyAuthority("SUPERADMINISTRADOR", "ADMINISTRADOR", "EMPLEADO")
-//                        .requestMatchers(antMatcher("/api/v1/usuarios/**")).hasAnyAuthority("SUPERADMINISTRADOR", "ADMINISTRADOR", "EMPLEADO")
-//                        .requestMatchers(antMatcher("/api/v1/productos/**")).hasAnyAuthority("SUPERADMINISTRADOR", "ADMINISTRADOR", "EMPLEADO")
-//                        .requestMatchers(antMatcher("/api/v1/categorias/**")).hasAnyAuthority("SUPERADMINISTRADOR", "ADMINISTRADOR", "EMPLEADO")
-//                        .requestMatchers(antMatcher("/api/v1/conteos/**")).hasAnyAuthority("SUPERADMINISTRADOR", "ADMINISTRADOR", "EMPLEADO")
-//                        .requestMatchers(antMatcher("/api/v1/conteoproducto/**")).hasAnyAuthority("SUPERADMINISTRADOR", "ADMINISTRADOR", "EMPLEADO")
-//                        .requestMatchers(antMatcher("/api/v1/lotes/**")).hasAnyAuthority("SUPERADMINISTRADOR", "ADMINISTRADOR", "EMPLEADO")
-//                        .requestMatchers(antMatcher("/api/v1/proveedores/**")).hasAnyAuthority("SUPERADMINISTRADOR", "ADMINISTRADOR", "EMPLEADO")
-//                        .requestMatchers(antMatcher("/api/v1/reportes/**")).hasAnyAuthority("SUPERADMINISTRADOR", "ADMINISTRADOR", "EMPLEADO")
-
+                        .requestMatchers(antMatcher("/api/v1/estadisticas/**")).permitAll()
                         .anyRequest().authenticated()
                 );
 
@@ -74,8 +59,8 @@ public class WebSecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:4200"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE"));
+        configuration.setAllowedOrigins(List.of("http://localhost:4200", "http://192.168.1.5:4200"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -84,7 +69,7 @@ public class WebSecurityConfig {
     }
 
     @Bean
-    public PasswordEncoder passwordEncoder(){
+    public PasswordEncoder passwordEncoder() {
         return new BCryptPasswordEncoder();
     }
 }
